@@ -260,8 +260,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
   <div class="section" id="sec-positions">
     <div class="section-header">持倉追蹤</div>
     <div id="positions-list"></div>
-    <button class="btn" onclick="openAddPos()">＋ 新增持倉</button>
-  </div>
+    <button class="btn" onclick="openAddPos()">＋ 新增持倉</button>  </div>
 
   <!-- 策略 -->
   <div class="section" id="sec-strat">
@@ -386,9 +385,11 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     <div class="modal-title">新增持倉</div>
     <div class="form-grid">
       <div class="field"><label>股票名稱</label><input type="text" id="p-name" placeholder="例：奇鋐"></div>
+      <div class="field"><label>買入日期</label><input type="date" id="p-date"></div>
       <div class="field"><label>買入價格</label><input type="number" id="p-buy" placeholder="1050"></div>
       <div class="field"><label>股數</label><input type="number" id="p-qty" placeholder="1000"></div>
       <div class="field"><label>現價（選填）</label><input type="number" id="p-cur" placeholder="1120"></div>
+      <div class="field"><label>股票代號（抓收盤用）</label><input type="text" id="p-code" placeholder="例：2454"></div>
     </div>
     <div class="field"><label>帳號</label>
       <select id="p-acct"><option value="華南">華南</option><option value="凱基">凱基</option></select>
@@ -427,6 +428,53 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     </div>
     <button class="btn primary" style="margin-top:4px" onclick="addPosition()">新增持倉</button>
     <button class="btn" style="margin-top:8px" onclick="closeModal('pos-modal')">取消</button>
+  </div>
+</div>
+
+<!-- EDIT POSITION MODAL -->
+<div class="modal-overlay hidden" id="edit-modal" onclick="closeModal('edit-modal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">編輯持倉</div>
+    <input type="hidden" id="e-id">
+    <div class="form-grid">
+      <div class="field"><label>股票名稱</label><input type="text" id="e-name"></div>
+      <div class="field"><label>買入日期</label><input type="date" id="e-date"></div>
+      <div class="field"><label>買入價格</label><input type="number" id="e-buy"></div>
+      <div class="field"><label>股數</label><input type="number" id="e-qty"></div>
+      <div class="field"><label>現價</label><input type="number" id="e-cur"></div>
+      <div class="field"><label>股票代號</label><input type="text" id="e-code" placeholder="例：2454"></div>
+    </div>
+    <div class="field"><label>帳號</label>
+      <select id="e-acct"><option value="華南">華南</option><option value="凱基">凱基</option></select>
+    </div>
+    <div class="field"><label>策略</label>
+      <select id="e-strat">
+        <option>打工型強勢日</option><option>打工型日拉回</option>
+        <option>上班族強勢週</option><option>上班族週趨勢</option>
+        <option>老闆型廉價收購</option><option>老闆型週拉回</option>
+        <option>自己挑股票</option><option>配股</option>
+      </select>
+    </div>
+    <div class="field"><label>買入時風度</label>
+      <select id="e-wind"><option>強風</option><option>陣風</option><option>亂流</option><option>無風</option></select>
+    </div>
+    <div class="field"><label>停損條件</label><input type="text" id="e-stop"></div>
+    <div class="field"><label>備註</label><input type="text" id="e-note"></div>
+    <!-- 加碼區 -->
+    <div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">加碼紀錄</div>
+      <div id="e-lots-list"></div>
+      <div class="form-grid" style="margin-top:8px">
+        <div class="field" style="margin-bottom:0"><label>加碼價格</label><input type="number" id="e-add-price" placeholder="買入價"></div>
+        <div class="field" style="margin-bottom:0"><label>加碼股數</label><input type="number" id="e-add-qty" placeholder="股數"></div>
+      </div>
+      <div class="field" style="margin-bottom:0;margin-top:8px"><label>加碼日期</label><input type="date" id="e-add-date"></div>
+      <button class="btn sm primary" style="margin-top:8px" onclick="addLot()">＋ 新增這筆加碼</button>
+    </div>
+    <div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:12px;font-size:13px" id="e-avg-display"></div>
+    <button class="btn primary" onclick="saveEdit()">儲存修改</button>
+    <button class="btn" style="margin-top:8px" onclick="closeModal('edit-modal')">取消</button>
   </div>
 </div>
 
@@ -580,6 +628,12 @@ function updateCustomStop(){
 }
 
 // ── 新增持倉 ────────────────────────────────────────────
+function openAddPos(){
+  updateStopOptions();
+  // 預設今天日期
+  document.getElementById('p-date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('pos-modal').classList.remove('hidden');
+}
 function addPosition(){
   const name=document.getElementById('p-name').value.trim();
   const buy=parseFloat(document.getElementById('p-buy').value);
@@ -589,20 +643,117 @@ function addPosition(){
   const yoy=document.getElementById('chk-yoy').checked;
   const stopV=document.getElementById('p-stop-sel').value;
   const stop=stopV==='自訂…'?document.getElementById('p-stop-custom').value.trim():stopV;
-  S.positions.push({id:Date.now(),name,buy,qty,cur,
+  const dateVal=document.getElementById('p-date').value||new Date().toISOString().split('T')[0];
+  S.positions.push({id:Date.now(),name,
+    lots:[{price:buy,qty,date:dateVal}], // 加碼紀錄
+    cur,code:document.getElementById('p-code').value.trim(),
     acct:document.getElementById('p-acct').value,
     strat:document.getElementById('p-strat').value,
     wind:document.getElementById('p-wind').value,
     basis:(yoy?'YOY30%+ / ':'')+document.getElementById('p-basis').value,
     stop,memo:document.getElementById('p-note').value.trim(),
     batch:document.getElementById('p-batch').value.trim(),
-    date:new Date().toLocaleDateString('zh-TW'),
-    days:0
+    date:dateVal
   });
-  ['p-name','p-buy','p-qty','p-cur','p-note','p-batch','p-stop-custom'].forEach(id=>document.getElementById(id).value='');
+  ['p-name','p-buy','p-qty','p-cur','p-note','p-batch','p-stop-custom','p-code'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('chk-yoy').checked=false;
   closeModal('pos-modal');save();renderPositions();renderStats();renderAlerts();calcWater();
 }
+
+// ── 計算平均成本 ─────────────────────────────────────────
+function calcAvg(lots){
+  if(!lots||!lots.length)return{avgPrice:0,totalQty:0,totalCost:0};
+  const totalQty=lots.reduce((s,l)=>s+l.qty,0);
+  const totalCost=lots.reduce((s,l)=>s+l.price*l.qty,0);
+  return{avgPrice:totalCost/totalQty,totalQty,totalCost};
+}
+
+// ── 編輯持倉 ─────────────────────────────────────────────
+function openEdit(id){
+  const p=S.positions.find(x=>x.id===id);if(!p)return;
+  document.getElementById('e-id').value=id;
+  document.getElementById('e-name').value=p.name;
+  document.getElementById('e-date').value=p.date||'';
+  document.getElementById('e-cur').value=p.cur||'';
+  document.getElementById('e-code').value=p.code||'';
+  document.getElementById('e-acct').value=p.acct||'華南';
+  document.getElementById('e-strat').value=p.strat||'自己挑股票';
+  document.getElementById('e-wind').value=p.wind||'強風';
+  document.getElementById('e-stop').value=p.stop||'';
+  document.getElementById('e-note').value=p.memo||'';
+  document.getElementById('e-add-date').value=new Date().toISOString().split('T')[0];
+  // lots相容舊資料
+  if(!p.lots||!p.lots.length){
+    p.lots=[{price:p.buy||0,qty:p.qty||0,date:p.date||''}];
+  }
+  renderEditLots(p.lots);
+  document.getElementById('edit-modal').classList.remove('hidden');
+}
+function renderEditLots(lots){
+  const {avgPrice,totalQty,totalCost}=calcAvg(lots);
+  document.getElementById('e-lots-list').innerHTML=lots.map((l,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bdr);font-size:13px">
+      <span style="color:var(--txt2);flex:1">${l.date||'-'} · ${l.qty.toLocaleString()}股 @ $${l.price}</span>
+      <span style="color:var(--txt3);font-size:11px">小計：${(l.price*l.qty).toLocaleString()}</span>
+      <button class="btn sm danger" onclick="removeLot(${i})" style="padding:3px 8px">✕</button>
+    </div>`).join('');
+  document.getElementById('e-avg-display').innerHTML=
+    `<div style="color:var(--txt2)">共 <strong style="color:var(--txt)">${totalQty.toLocaleString()}股</strong>　平均成本 <strong style="color:var(--sf)">$${avgPrice.toFixed(1)}</strong>　總投入 <strong style="color:var(--txt)">${Math.round(totalCost).toLocaleString()}</strong></div>`;
+}
+function addLot(){
+  const id=parseInt(document.getElementById('e-id').value);
+  const p=S.positions.find(x=>x.id===id);if(!p)return;
+  const price=parseFloat(document.getElementById('e-add-price').value);
+  const qty=parseInt(document.getElementById('e-add-qty').value);
+  const date=document.getElementById('e-add-date').value;
+  if(!price||!qty){alert('請填入加碼價格和股數');return;}
+  if(!p.lots)p.lots=[{price:p.buy||0,qty:p.qty||0,date:p.date||''}];
+  p.lots.push({price,qty,date});
+  document.getElementById('e-add-price').value='';
+  document.getElementById('e-add-qty').value='';
+  renderEditLots(p.lots);
+}
+function removeLot(idx){
+  const id=parseInt(document.getElementById('e-id').value);
+  const p=S.positions.find(x=>x.id===id);if(!p||!p.lots)return;
+  if(p.lots.length<=1){alert('至少保留一筆買入紀錄');return;}
+  p.lots.splice(idx,1);
+  renderEditLots(p.lots);
+}
+function saveEdit(){
+  const id=parseInt(document.getElementById('e-id').value);
+  const p=S.positions.find(x=>x.id===id);if(!p)return;
+  p.name=document.getElementById('e-name').value.trim()||p.name;
+  p.date=document.getElementById('e-date').value||p.date;
+  p.cur=parseFloat(document.getElementById('e-cur').value)||p.cur;
+  p.code=document.getElementById('e-code').value.trim();
+  p.acct=document.getElementById('e-acct').value;
+  p.strat=document.getElementById('e-strat').value;
+  p.wind=document.getElementById('e-wind').value;
+  p.stop=document.getElementById('e-stop').value.trim();
+  p.memo=document.getElementById('e-note').value.trim();
+  const {avgPrice,totalQty}=calcAvg(p.lots);
+  p.buy=avgPrice;p.qty=totalQty; // 用平均成本更新
+  closeModal('edit-modal');save();renderPositions();renderStats();renderAlerts();calcWater();
+}
+
+// ── 自動抓收盤價 ─────────────────────────────────────────
+async function fetchClosePrice(id){
+  const p=S.positions.find(x=>x.id===id);if(!p||!p.code)return;
+  try{
+    const url=`https://query1.finance.yahoo.com/v8/finance/chart/${p.code}.TW?interval=1d&range=1d`;
+    const r=await fetch(url);const data=await r.json();
+    const price=data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+    if(price){p.cur=price;save();renderPositions();renderStats();renderAlerts();calcWater();}
+    else alert('找不到股價，請確認代號正確');
+  }catch(e){alert('無法抓取股價，請手動更新');}
+}
+async function fetchAllPrices(){
+  const withCode=S.positions.filter(p=>p.code);
+  if(!withCode.length){alert('請先在持倉編輯裡填入股票代號');return;}
+  for(const p of withCode)await fetchClosePrice(p.id);
+}
+
 function deletePosition(id){if(!confirm('確認移除？'))return;S.positions=S.positions.filter(p=>p.id!==id);save();renderPositions();renderStats();renderAlerts();calcWater();}
 function updatePrice(id){
   const p=S.positions.find(x=>x.id===id);if(!p)return;
@@ -615,7 +766,8 @@ function getHints(p,pct){
   if(S.wind==='無風')h.push({c:'red',t:'無風：考慮縮部位'});
   if(pct<=-5)h.push({c:'red',t:`虧${Math.abs(pct).toFixed(1)}% 確認停損!`});
   if(pct>=10)h.push({c:'grn',t:'獲利≥10% 停利保護'});
-  if(p.stop)h.push({c:'blu',t:'停損：'+p.stop});
+  // 獲利>20%不顯示停損提示
+  if(p.stop&&pct<20)h.push({c:'blu',t:'停損：'+p.stop});
   if(p.batch)h.push({c:'amb',t:p.batch});
   if(p.wind==='無風')h.push({c:'red',t:'⚠ 無風時買入'});
   return h;
@@ -639,16 +791,23 @@ function closeCheckMsg(p){
 function renderPositions(){
   const el=document.getElementById('positions-list');
   if(!S.positions.length){el.innerHTML='<div class="empty">尚無持倉，點下方按鈕新增</div>';return;}
-  el.innerHTML=S.positions.map(p=>{
-    const pnl=(p.cur-p.buy)*p.qty,pct=(p.cur-p.buy)/p.buy*100,pos=pnl>=0;
+  // 加一個「全部更新股價」按鈕
+  let html=`<button class="btn sm" style="margin-bottom:10px;width:100%" onclick="fetchAllPrices()">📡 自動抓取所有收盤價</button>`;
+  html+=S.positions.map(p=>{
+    // 相容舊資料（沒有lots的）
+    if(!p.lots||!p.lots.length)p.lots=[{price:p.buy||0,qty:p.qty||0,date:p.date||''}];
+    const {avgPrice,totalQty}=calcAvg(p.lots);
+    p.buy=avgPrice;p.qty=totalQty;
+    const pnl=(p.cur-avgPrice)*totalQty,pct=(p.cur-avgPrice)/avgPrice*100,pos=pnl>=0;
     const hints=getHints(p,pct);
     const needsWarn=pct<=-5||pct>=10||(S.wind==='無風'||S.wind==='陣風');
     const warnMsgs=closeCheckMsg(p);
+    const lotsInfo=p.lots.length>1?`${p.lots.length}批 · 均價$${avgPrice.toFixed(1)}`:`均價$${avgPrice.toFixed(1)}`;
     return `<div class="pos-item">
       <div class="pos-top">
         <div>
-          <div class="pos-name">${p.name}</div>
-          <div class="pos-sub">${p.date} · <span class="tag ${p.acct==='華南'?'blu':'amb'}" style="font-size:10px;padding:1px 7px">${p.acct}</span><br>${p.strat} · 買入${p.wind} · ${p.qty.toLocaleString()}股@${p.buy}<br>${p.basis}</div>
+          <div class="pos-name">${p.date||''} ${p.name}</div>
+          <div class="pos-sub"><span class="tag ${p.acct==='華南'?'blu':'amb'}" style="font-size:10px;padding:1px 7px">${p.acct}</span> ${p.strat} · 買入${p.wind}<br>${totalQty.toLocaleString()}股 · ${lotsInfo}<br>${p.basis||''}</div>
           ${p.memo?`<div class="pos-sub" style="margin-top:3px;font-style:italic">${p.memo}</div>`:''}
         </div>
         <div class="pos-pnl">
@@ -659,12 +818,14 @@ function renderPositions(){
       <div class="tags">${hints.map(h=>`<span class="tag ${h.c}">${h.t}</span>`).join('')}</div>
       ${needsWarn&&warnMsgs.length?`<div class="close-warn">⚡ ${warnMsgs[0]}</div>`:''}
       <div class="btn-row">
-        <button class="btn sm" onclick="updatePrice(${p.id})">更新現價</button>
-        <button class="btn sm" onclick="askPosition(${p.id})">AI分析↗</button>
+        <button class="btn sm" onclick="openEdit(${p.id})">✏️ 編輯/加碼</button>
+        <button class="btn sm" onclick="p.code?fetchClosePrice(${p.id}):updatePrice(${p.id})">${p.code?'📡 抓股價':'更新現價'}</button>
+        <button class="btn sm" onclick="askPosition(${p.id})">AI↗</button>
         <button class="btn sm danger" onclick="deletePosition(${p.id})">移除</button>
       </div>
     </div>`;
   }).join('');
+  el.innerHTML=html;
 }
 
 // ── 13:25提醒 ────────────────────────────────────────────
@@ -909,6 +1070,8 @@ renderDate();
 setWind(S.wind);
 if(S.water.hn)document.getElementById('w-hn').value=S.water.hn;
 if(S.water.kg)document.getElementById('w-kg').value=S.water.kg;
+// 設定加碼日期預設今天
+document.getElementById('e-add-date').value=new Date().toISOString().split('T')[0];
 renderStats();renderAlerts();renderNotes();renderPositions();renderStrat();calcWater();
 renderWindStreak();renderWindStat();
 updateStopOptions();
