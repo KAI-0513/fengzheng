@@ -12,7 +12,7 @@
 :root{
   --bg:#0d0d0d;--bg2:#161616;--bg3:#1e1e1e;--bg4:#252525;
   --bdr:rgba(255,255,255,0.08);--bdr2:rgba(255,255,255,0.14);
-  --txt:#f0f0ee;--txt2:#999;--txt3:#555;
+  --txt:#f0f0ee;--txt2:#bbb;--txt3:#888;
   --grn:#3ecf8e;--grn2:#0a2e1e;
   --red:#f56565;--red2:#3b1010;
   --amb:#f6ad55;--amb2:#3b2000;
@@ -170,7 +170,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .pos-price-dn{color:var(--nw);font-weight:600}
 .pos-pnl-up{color:var(--sf);font-weight:600;font-size:12px}
 .pos-pnl-dn{color:var(--nw);font-weight:600;font-size:12px}
-.pos-strat-cell{font-size:11px;color:var(--txt2);max-width:90px;line-height:1.4}
+.pos-strat-cell{font-size:13px;color:var(--txt2);max-width:90px;line-height:1.4}
 
 /* ── 候選 ── */
 .plan-item{background:var(--bg2);border:1px solid var(--bdr);border-radius:13px;padding:13px;margin-bottom:9px}
@@ -284,7 +284,6 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
   <!-- 歷史記錄 -->
   <div class="section" id="sec-history">
     <div class="section-header">歷史記錄</div>
-    <div id="perf-cards" style="margin-bottom:10px"></div>
     <div style="display:flex;gap:8px;margin-bottom:10px;overflow-x:auto;padding-bottom:4px">
       <button class="btn sm" id="hf-all" onclick="setHistFilter('all')" style="white-space:nowrap;background:var(--grn);color:#000;border-color:var(--grn)">全部</button>
       <button class="btn sm" id="hf-win" onclick="setHistFilter('win')" style="white-space:nowrap">獲利</button>
@@ -959,9 +958,8 @@ const STOP_OPTS={
   '上班族週趨勢':['週MACD柱往下（週五確認）','週五收盤低於上週五','跌破週線五日線','自訂…'],
   '老闆型廉價收購':['跌破自己設定的均線','月MACD柱縮短（月底確認）','自訂…'],
   '老闆型週拉回':['跌破自己設定的均線','週MACD柱往下','自訂…'],
-  '自己挑':['跌破五日線','虧損達 -5%','跌破月線(20MA)','自訂…'],
+  '自己挑股票':['跌破五日線','虧損達 -5%','跌破月線(20MA)','自訂…'],
   '配股':['依原持倉策略','自訂…'],
-  '認股':['依認股成本計算','閉鎖期結束後決定','自訂…'],
 };
 const TIMING_OPTS={
   '打工型強勢日':['10點以後再買','看到就買進','選買得下去的價格','確認離起漲點不太遠'],
@@ -1267,23 +1265,6 @@ function setHistFilter(f){
 function renderHistory(){
   if(!S.history)S.history=[];
   const hist=S.history;
-  // 績效統計
-  const perfEl=document.getElementById('perf-cards');
-  if(perfEl){
-    const wins=hist.filter(h=>h.pnl>0),losses=hist.filter(h=>h.pnl<=0);
-    const totalPnl=hist.reduce((s,h)=>s+h.pnl,0);
-    const winRate=hist.length?Math.round(wins.length/hist.length*100):0;
-    const avgWin=wins.length?Math.round(wins.reduce((s,h)=>s+h.pnl,0)/wins.length):0;
-    const avgLoss=losses.length?Math.round(losses.reduce((s,h)=>s+h.pnl,0)/losses.length):0;
-    perfEl.innerHTML=`
-      <div class="metric-row" style="grid-template-columns:repeat(4,1fr)">
-        <div class="metric"><div class="val" style="font-size:17px;color:${totalPnl>=0?'var(--sf)':'var(--nw)'}">${totalPnl>=0?'+':''}${Math.round(totalPnl/1000)}K</div><div class="lbl">總損益</div></div>
-        <div class="metric"><div class="val" style="font-size:17px;color:${winRate>=50?'var(--sf)':'var(--nw)'}">${winRate}%</div><div class="lbl">勝率(${hist.length}筆)</div></div>
-        <div class="metric"><div class="val" style="font-size:17px;color:var(--sf)">+${Math.round(avgWin/1000)}K</div><div class="lbl">平均獲利</div></div>
-        <div class="metric"><div class="val" style="font-size:17px;color:var(--nw)">${Math.round(avgLoss/1000)}K</div><div class="lbl">平均虧損</div></div>
-      </div>
-      ${hist.length?`<div style="font-size:11px;color:var(--txt3);text-align:right;margin-top:-4px;margin-bottom:8px">共${hist.length}筆　勝${wins.length}負${losses.length}</div>`:''}`;
-  }
   // 篩選
   let list=hist;
   if(histFilter==='win')list=hist.filter(h=>h.pnl>0);
@@ -1393,7 +1374,7 @@ function renderPositions(){
     const tax=Math.round(avgPrice*totalQty*1.001425); // 含手續費0.1425%
     const pnl=(p.cur-avgPrice)*totalQty,pct=(p.cur-avgPrice)/avgPrice*100,pos=pnl>=0;
     const needsWarn=pct<=-5||(S.wind==='無風');
-    const stratShort=(p.strat||'').replace('型','').replace('強勢日','強勢').replace('日拉回','拉回').replace('廉價收購','廉價').replace('週拉回','週拉');
+    const stratShort=p.strat||'';
     return `<tr onclick="openEdit(${p.id})" style="cursor:pointer">
       <td>
         <div class="pos-code">${p.code||'—'}</div>
