@@ -1,0 +1,1673 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="放風箏">
+<meta name="theme-color" content="#0d0d0d">
+<title>放風箏指揮中心</title>
+<style>
+:root{
+  --bg:#0d0d0d;--bg2:#161616;--bg3:#1e1e1e;--bg4:#252525;
+  --bdr:rgba(255,255,255,0.08);--bdr2:rgba(255,255,255,0.14);
+  --txt:#f0f0ee;--txt2:#999;--txt3:#555;
+  --grn:#3ecf8e;--grn2:#0a2e1e;
+  --red:#f56565;--red2:#3b1010;
+  --amb:#f6ad55;--amb2:#3b2000;
+  --blu:#63b3ed;--blu2:#0d2540;
+  /* 強風=正紅 陣風=淡紅 亂流=淺綠 無風=深綠 */
+  --sf:#ff2222;--sf-bg:#3d0000;--sf-bdr:#ff2222;
+  --gf:#ff9999;--gf-bg:#2d1010;--gf-bdr:rgba(255,153,153,.55);
+  --lt:#86efb8;--lt-bg:#092a16;--lt-bdr:rgba(134,239,184,.45);
+  --nw:#1db954;--nw-bg:#052e14;--nw-bdr:#1db954;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,'Helvetica Neue',sans-serif;background:var(--bg);color:var(--txt);min-height:100dvh}
+input,select,textarea,button{font-family:inherit}
+.app{display:flex;flex-direction:column;height:100dvh}
+
+/* ── HEADER ── */
+.header{padding:50px 16px 10px;background:var(--bg);border-bottom:1px solid var(--bdr);flex-shrink:0}
+.header-row1{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.logo{font-size:15px;font-weight:800;letter-spacing:-.5px;color:#3ecf8e}
+.header-date{font-size:11px;color:var(--txt3)}
+.header-row2{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+
+/* 風度連續天數小條 */
+.wind-streak{display:flex;gap:4px;flex:1;align-items:center;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-right:4px}
+.ws-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* 水位pill */
+.water-pill{display:flex;align-items:center;gap:4px;padding:5px 10px;border-radius:99px;border:1px solid var(--bdr2);background:var(--bg3);cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap}
+.water-pill svg{width:14px;height:14px;flex-shrink:0}
+
+/* 風度badge */
+.wind-badge{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:99px;font-size:13px;font-weight:700;cursor:pointer;border:1.5px solid;white-space:nowrap}
+.w-強風{background:var(--sf-bg);color:var(--sf);border-color:var(--sf-bdr)}
+.w-陣風{background:var(--gf-bg);color:var(--gf);border-color:var(--gf-bdr)}
+.w-亂流{background:var(--lt-bg);color:var(--lt);border-color:var(--lt-bdr)}
+.w-無風{background:var(--nw-bg);color:var(--nw);border-color:var(--nw-bdr)}
+
+/* 風度圓點 */
+.wd-sf{background:var(--sf)}
+.wd-陣風{background:var(--gf)}
+.wd-亂流{background:var(--lt)}
+.wd-無風{background:var(--nw)}
+
+.content{flex:1;overflow-y:auto;padding:14px 14px 106px;-webkit-overflow-scrolling:touch}
+.tab-bar{position:fixed;bottom:0;left:0;right:0;background:rgba(13,13,13,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--bdr);padding:8px 0 calc(6px + env(safe-area-inset-bottom));display:flex;z-index:100}
+.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 0;cursor:pointer;color:var(--txt3)}
+.tab-item.active{color:var(--grn)}
+.tab-item svg{width:21px;height:21px}
+.tab-item span{font-size:10px;font-weight:500}
+.section{display:none}
+.section.active{display:block;animation:fadeIn .15s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── CARDS ── */
+.card{background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:14px;margin-bottom:10px}
+.card-title{font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.9px;margin-bottom:12px}
+.section-header{font-size:20px;font-weight:700;margin-bottom:14px;letter-spacing:-.5px}
+.metric-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.metric{background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:11px;text-align:center}
+.metric .val{font-size:20px;font-weight:700}
+.metric .lbl{font-size:10px;color:var(--txt2);margin-top:2px}
+
+/* ── FORMS ── */
+.field{margin-bottom:11px}
+.field label{font-size:12px;color:var(--txt2);display:block;margin-bottom:5px;font-weight:500}
+input[type=text],input[type=number],textarea,select{width:100%;background:var(--bg3);border:1px solid var(--bdr2);border-radius:10px;color:var(--txt);font-size:15px;padding:11px 12px;outline:none;-webkit-appearance:none}
+input:focus,textarea:focus,select:focus{border-color:var(--grn)}
+textarea{resize:none;line-height:1.5}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{padding:11px 18px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;border:1px solid var(--bdr2);background:var(--bg3);color:var(--txt);width:100%}
+.btn:active{transform:scale(.97);opacity:.85}
+.btn.primary{background:var(--grn);color:#000;border-color:var(--grn)}
+.btn.sm{padding:6px 13px;font-size:12px;width:auto;border-radius:8px}
+.btn.danger{background:transparent;border-color:rgba(245,101,101,.3);color:var(--red)}
+.btn-row{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}
+
+/* ── TAGS / ALERTS ── */
+.tag{display:inline-block;font-size:11px;padding:3px 9px;border-radius:99px;border:1px solid;font-weight:500}
+.tag.grn{background:var(--sf-bg);color:var(--sf);border-color:rgba(255,34,34,.2)} /* 停利=紅 */
+.tag.red{background:var(--red2);color:var(--red);border-color:rgba(245,101,101,.2)}
+.tag.nwt{background:var(--nw-bg);color:var(--nw);border-color:rgba(29,185,84,.2)} /* 停損=綠 */
+.tag.amb{background:var(--amb2);color:var(--amb);border-color:rgba(246,173,85,.2)}
+.tag.blu{background:var(--blu2);color:var(--blu);border-color:rgba(99,179,237,.2)}
+.tag.gray{background:var(--bg3);color:var(--txt2);border-color:var(--bdr)}
+.tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.alert{border-radius:11px;padding:11px 13px;margin-bottom:8px;font-size:13px;line-height:1.6;border:1px solid}
+.alert.good{background:var(--grn2);color:var(--grn);border-color:rgba(62,207,142,.2)}
+.alert.warn{background:var(--amb2);color:var(--amb);border-color:rgba(246,173,85,.2)}
+.alert.danger{background:var(--red2);color:var(--red);border-color:rgba(245,101,101,.2)}
+.alert.info{background:var(--blu2);color:var(--blu);border-color:rgba(99,179,237,.2)}
+.alert.sf{background:var(--sf-bg);color:var(--sf);border-color:rgba(255,34,34,.2)}
+.alert.gf{background:var(--gf-bg);color:var(--gf);border-color:rgba(255,153,153,.15)}
+.alert.lt{background:var(--lt-bg);color:var(--lt);border-color:rgba(134,239,184,.15)}
+.alert.nw{background:var(--nw-bg);color:var(--nw);border-color:rgba(29,185,84,.2)}
+
+/* ── 水位 ── */
+.gauge-wrap{text-align:center;padding:8px 0}
+.gauge-pct{font-size:42px;font-weight:800;letter-spacing:-2px}
+.gauge-bar-outer{height:12px;background:var(--bg3);border-radius:99px;margin:12px 0 6px;overflow:hidden}
+.gauge-bar-inner{height:100%;border-radius:99px;transition:width .5s}
+.gauge-hint{font-size:13px;color:var(--txt2);line-height:1.6}
+.water-wind-row{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--bdr);gap:10px}
+.water-wind-row:last-child{border-bottom:none}
+.water-wind-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.water-wind-name{font-size:13px;font-weight:600;width:44px}
+.water-wind-range{font-size:13px;color:var(--txt2);flex:1}
+.water-wind-badge{font-size:11px;padding:3px 10px;border-radius:99px;font-weight:600;border:1px solid}
+/* 強風=紅色積極 陣風=淡紅保守 亂流=淺綠中性 無風=深綠休息 */
+.wwb-sf{background:var(--sf-bg);color:var(--sf);border-color:var(--sf-bdr)}
+.wwb-gf{background:var(--gf-bg);color:var(--gf);border-color:var(--gf-bdr)}
+.wwb-lt{background:var(--lt-bg);color:var(--lt);border-color:var(--lt-bdr)}
+.wwb-nw{background:var(--nw-bg);color:var(--nw);border-color:var(--nw-bdr)}
+
+/* ── 策略卡 ── */
+.strat-block{background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;margin-bottom:10px;overflow:hidden}
+.strat-header{display:flex;align-items:center;justify-content:space-between;padding:13px 15px;cursor:pointer;user-select:none}
+.strat-hL{display:flex;align-items:center;gap:10px}
+.strat-emoji{font-size:19px}
+.strat-name{font-size:15px;font-weight:700}
+.strat-sub{font-size:11px;color:var(--txt2);margin-top:2px}
+.strat-arr{font-size:18px;color:var(--txt3);transition:transform .2s;flex-shrink:0}
+.strat-arr.open{transform:rotate(90deg)}
+.strat-body{display:none;padding:0 15px 13px}
+.strat-body.open{display:block}
+.sl{font-size:10px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.8px;margin:11px 0 5px}
+.sr{font-size:13px;color:var(--txt2);padding:5px 0;border-bottom:1px solid var(--bdr);line-height:1.5;display:flex;gap:8px}
+.sr:last-child{border-bottom:none}
+.si{flex-shrink:0;width:14px}
+.sk{margin-top:9px;padding:9px 11px;border-radius:9px;background:var(--grn2);color:var(--grn);border:1px solid rgba(62,207,142,.15);font-size:12px;line-height:1.6}
+.sw{margin-top:8px;padding:9px 11px;border-radius:9px;background:var(--red2);color:var(--red);border:1px solid rgba(245,101,101,.15);font-size:12px;line-height:1.6}
+.nt{display:flex;align-items:center;gap:6px;padding:9px 0 0;cursor:pointer;font-size:12px;color:var(--txt3);border-top:1px solid var(--bdr);margin-top:10px}
+.nta{transition:transform .2s}.nta.open{transform:rotate(90deg)}
+.pna{display:none;margin-top:8px}.pna.open{display:block}
+.pni{padding:5px 0;border-bottom:1px solid var(--bdr);font-size:12px;color:var(--txt2);line-height:1.5}
+.pni:last-child{border-bottom:none}
+
+/* ── 持倉 ── */
+.pos-item{background:var(--bg2);border:1px solid var(--bdr);border-radius:13px;padding:13px;margin-bottom:9px}
+.pos-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.pos-name{font-size:16px;font-weight:700}
+.pos-sub{font-size:12px;color:var(--txt2);margin-top:3px;line-height:1.55}
+.pos-pnl .pct{font-size:17px;font-weight:700;text-align:right}
+.pos-pnl .abs{font-size:11px;color:var(--txt2);text-align:right}
+.close-warn{margin-top:9px;padding:8px 11px;border-radius:8px;background:var(--sf-bg);color:var(--sf);border:1px solid rgba(255,34,34,.2);font-size:12px;line-height:1.5}
+/* 表格式持倉 */
+.pos-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px}
+.pos-table th{padding:8px 6px;text-align:left;color:var(--txt3);font-weight:600;border-bottom:1px solid var(--bdr);white-space:nowrap;font-size:11px}
+.pos-table td{padding:9px 6px;border-bottom:1px solid var(--bdr);vertical-align:middle}
+.pos-table tr:last-child td{border-bottom:none}
+.pos-table tr:active{background:var(--bg3)}
+.pos-code{font-size:13px;font-weight:700;color:var(--txt)}
+.pos-tname{font-size:12px;color:var(--txt2)}
+.pos-price-up{color:var(--sf);font-weight:600}
+.pos-price-dn{color:var(--nw);font-weight:600}
+.pos-pnl-up{color:var(--sf);font-weight:600;font-size:12px}
+.pos-pnl-dn{color:var(--nw);font-weight:600;font-size:12px}
+.pos-strat-cell{font-size:11px;color:var(--txt2);max-width:90px;line-height:1.4}
+
+/* ── 候選 ── */
+.plan-item{background:var(--bg2);border:1px solid var(--bdr);border-radius:13px;padding:13px;margin-bottom:9px}
+
+/* ── AI ── */
+.ai-card{background:var(--bg2);border:1px solid var(--bdr);border-radius:13px;padding:13px;margin-bottom:9px}
+.ai-q{font-size:12px;color:var(--txt3);margin-bottom:9px;padding-bottom:9px;border-bottom:1px solid var(--bdr)}
+.ai-ans{font-size:14px;line-height:1.7;color:var(--txt);white-space:pre-wrap}
+.ai-loading{color:var(--txt3);font-style:italic}
+.quick-btn{padding:11px 14px;border-radius:10px;font-size:13px;font-weight:500;border:1px solid var(--bdr2);background:var(--bg3);color:var(--txt2);cursor:pointer;text-align:left;width:100%;margin-bottom:7px}
+.quick-btn:active{background:var(--bg4)}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;display:flex;align-items:flex-end}
+.modal{background:var(--bg2);border-radius:20px 20px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));width:100%;max-height:88dvh;overflow-y:auto;border-top:1px solid var(--bdr2)}
+.modal-handle{width:36px;height:4px;background:var(--bg4);border-radius:99px;margin:0 auto 16px}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:14px}
+.hidden{display:none!important}
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid var(--bdr2);border-top-color:var(--grn);border-radius:50%;animation:spin .6s linear infinite;margin-right:5px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:28px;color:var(--txt3);font-size:14px}
+.chk-row{display:flex;align-items:center;gap:9px;padding:9px 12px;background:var(--bg3);border:1px solid var(--bdr2);border-radius:9px;margin-bottom:8px;cursor:pointer}
+.chk-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--grn);flex-shrink:0}
+.chk-row span{font-size:14px;color:var(--txt)}
+
+/* 筆記歷史 */
+.note-item{padding:9px 0;border-bottom:1px solid var(--bdr);font-size:13px;color:var(--txt2);line-height:1.6}
+.note-date{font-size:11px;color:var(--txt3);margin-bottom:2px}
+.notes-toggle{display:flex;align-items:center;gap:6px;padding:9px 0 0;cursor:pointer;font-size:12px;color:var(--txt3);border-top:1px solid var(--bdr);margin-top:10px;user-select:none}
+.notes-history{display:none;margin-top:8px}.notes-history.open{display:block}
+
+/* 風度連續統計卡 */
+.streak-card{background:var(--bg3);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.streak-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+.streak-info{flex:1}
+.streak-name{font-size:13px;font-weight:600}
+.streak-detail{font-size:11px;color:var(--txt2);margin-top:2px}
+.streak-days{font-size:22px;font-weight:800;color:var(--txt)}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- HEADER -->
+<div class="header" style="padding:50px 16px 10px">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+    <div style="flex-shrink:0;min-width:0">
+      <div class="logo">放風箏指揮中心</div>
+      <div class="header-date" id="hdr-date"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+      <div class="water-pill" id="water-pill" onclick="showTab('water',document.querySelectorAll('.tab-item')[4])">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6 10 4 13.5 4 16a8 8 0 0 0 16 0c0-2.5-2-6-8-14z"/></svg>
+        <span id="header-water">—%</span>
+      </div>
+      <div class="wind-badge w-強風" id="wind-badge" onclick="openWindModal()">
+        <span id="wind-dot" style="width:9px;height:9px;border-radius:50%;background:var(--sf);flex-shrink:0;display:inline-block"></span>
+        <span id="wind-label">強風</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="content" id="content">
+
+  <!-- 總覽 -->
+  <div class="section active" id="sec-home">
+    <div class="metric-row">
+      <div class="metric"><div class="val" id="m-pos">0</div><div class="lbl">持倉</div></div>
+      <div class="metric"><div class="val" id="m-plans">0</div><div class="lbl">候選</div></div>
+      <div class="metric"><div class="val" id="m-pnl" style="color:var(--sf)">+0</div><div class="lbl">帳面損益</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">市場風度</div>
+      <div class="alert sf" id="wind-advice-box"></div>
+      <div id="sheet-sync-status" style="font-size:11px;color:var(--txt3);margin-top:6px"></div>
+    </div>
+    <div class="card" id="wind-stat-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="card-title" style="margin-bottom:0">風度統計</div>
+          <button onclick="syncSheet()" style="padding:3px 10px;font-size:11px;font-weight:600;border-radius:6px;border:1px solid var(--bdr2);background:var(--bg3);color:var(--txt2);cursor:pointer">⟳ 同步</button>
+        </div>
+        <div style="display:flex;gap:4px">
+          <button id="wv-d" onclick="setWindView('d')" style="padding:4px 10px;font-size:11px;font-weight:600;border-radius:6px;border:1px solid var(--sf);background:var(--sf);color:#000;cursor:pointer">日</button>
+          <button id="wv-m" onclick="setWindView('m')" style="padding:4px 10px;font-size:11px;font-weight:600;border-radius:6px;border:1px solid var(--bdr2);background:var(--bg3);color:var(--txt2);cursor:pointer">年</button>
+        </div>
+      </div>
+      <div id="wind-stat-content"></div>
+    </div>
+    <div class="card"><div class="card-title">今日提醒</div><div id="alerts-container"><div class="empty">目前無特別提醒 🎉</div></div></div>
+    <div class="card">
+      <div class="card-title">快速筆記</div>
+      <textarea id="note-input" placeholder="記錄今天的操作、觀察、想法..." style="min-height:68px"></textarea>
+      <button class="btn primary" style="margin-top:9px" onclick="saveNote()">儲存筆記</button>
+      <!-- 歷史筆記展開 -->
+      <div class="notes-toggle" onclick="toggleNotesHistory()">
+        <span id="nha" style="transition:transform .2s">›</span>
+        <span id="nht-label">歷史筆記（0則）</span>
+      </div>
+      <div class="notes-history" id="notes-history"></div>
+    </div>
+  </div>
+
+  <!-- 持倉 -->
+  <div class="section" id="sec-positions">
+    <div class="section-header">持倉追蹤</div>
+    <div id="positions-list"></div>
+    <button class="btn" onclick="openAddPos()">＋ 新增持倉</button>  </div>
+
+  <!-- 歷史記錄 -->
+  <div class="section" id="sec-history">
+    <div class="section-header">歷史記錄</div>
+    <div id="perf-cards" style="margin-bottom:10px"></div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;overflow-x:auto;padding-bottom:4px">
+      <button class="btn sm" id="hf-all" onclick="setHistFilter('all')" style="white-space:nowrap;background:var(--grn);color:#000;border-color:var(--grn)">全部</button>
+      <button class="btn sm" id="hf-win" onclick="setHistFilter('win')" style="white-space:nowrap">獲利</button>
+      <button class="btn sm" id="hf-loss" onclick="setHistFilter('loss')" style="white-space:nowrap">虧損</button>
+      <button class="btn sm" id="hf-hn" onclick="setHistFilter('hn')" style="white-space:nowrap">華南</button>
+      <button class="btn sm" id="hf-kg" onclick="setHistFilter('kg')" style="white-space:nowrap">凱基</button>
+    </div>
+    <div id="history-list"></div>
+    <button class="btn" style="margin-top:4px" onclick="openAddPlan()">📋 候選清單</button>
+  </div>
+
+  <!-- 策略 -->
+  <div class="section" id="sec-strat">
+    <div class="section-header">進出場策略</div>
+    <div id="strat-wind-note" class="alert sf" style="margin-bottom:14px"></div>
+    <div id="strat-content"></div>
+  </div>
+
+  <!-- 水位 -->
+  <div class="section" id="sec-water">
+    <div class="section-header">水位儀表板</div>
+    <div class="card">
+      <div class="card-title">帳戶資金</div>
+      <div class="form-grid">
+        <div class="field"><label>華南（元）</label><input type="number" id="w-hn" placeholder="500000" oninput="calcWater()"></div>
+        <div class="field"><label>凱基（元）</label><input type="number" id="w-kg" placeholder="500000" oninput="calcWater()"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">目前水位</div>
+      <div class="gauge-wrap">
+        <div class="gauge-pct" id="gauge-pct">—</div>
+        <div class="gauge-bar-outer"><div class="gauge-bar-inner" id="gauge-bar" style="width:0%"></div></div>
+        <div class="gauge-hint" id="gauge-hint">請先設定帳戶資金並新增持倉</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">各風度建議倉位（強風→陣風→亂流→無風）</div>
+      <div class="water-wind-row">
+        <div class="water-wind-dot" style="background:var(--sf)"></div>
+        <div class="water-wind-name" style="color:var(--sf)">強風</div>
+        <div class="water-wind-range">70–80%</div>
+        <span class="water-wind-badge wwb-sf">積極</span>
+      </div>
+      <div class="water-wind-row">
+        <div class="water-wind-dot" style="background:var(--gf)"></div>
+        <div class="water-wind-name" style="color:var(--gf)">陣風</div>
+        <div class="water-wind-range">50–60%</div>
+        <span class="water-wind-badge wwb-gf">中性</span>
+      </div>
+      <div class="water-wind-row">
+        <div class="water-wind-dot" style="background:var(--lt)"></div>
+        <div class="water-wind-name" style="color:var(--lt)">亂流</div>
+        <div class="water-wind-range">20–40%</div>
+        <span class="water-wind-badge wwb-lt">保守</span>
+      </div>
+      <div class="water-wind-row">
+        <div class="water-wind-dot" style="background:var(--nw)"></div>
+        <div class="water-wind-name" style="color:var(--nw)">無風</div>
+        <div class="water-wind-range">0–20%</div>
+        <span class="water-wind-badge wwb-nw">休息</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI顧問 -->
+  <div class="section" id="sec-advisor">
+    <div class="section-header">AI 顧問</div>
+    <div class="card">
+      <div class="card-title">快速詢問</div>
+      <button class="quick-btn" onclick="quickAsk('幫我分析目前所有持倉，根據放風箏邏輯和目前風度，哪些應該考慮賣出？')">賣出時機分析 →</button>
+      <button class="quick-btn" onclick="quickAsk('根據候選清單，目前風度下哪個最適合進場？')">進場時機建議 →</button>
+      <button class="quick-btn" onclick="quickAsk('根據放風箏策略，幫我設計今天的操作計畫')">今日操作計畫 →</button>
+      <button class="quick-btn" onclick="quickAsk('根據我的歷史，我最容易犯哪些錯？今天要注意什麼？')">紀律自我檢視 →</button>
+    </div>
+    <div class="card">
+      <div class="card-title">自由詢問</div>
+      <textarea id="advisor-input" placeholder="例：奇鋐獲利12%，目前亂流，應怎麼處理？" style="min-height:85px"></textarea>
+      <button class="btn primary" style="margin-top:9px" onclick="sendAdvisor()">送出給 AI ↗</button>
+    </div>
+    <div id="advisor-history"></div>
+  </div>
+
+</div>
+
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <div class="tab-item active" onclick="showTab('home',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span>總覽</span>
+  </div>
+  <div class="tab-item" onclick="showTab('positions',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    <span>持倉</span>
+  </div>
+  <div class="tab-item" onclick="showTab('history',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    <span>歷史</span>
+  </div>
+  <div class="tab-item" onclick="showTab('strat',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+    <span>策略</span>
+  </div>
+  <div class="tab-item" onclick="showTab('water',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6 10 4 13.5 4 16a8 8 0 0 0 16 0c0-2.5-2-6-8-14z"/></svg>
+    <span>水位</span>
+  </div>
+  <div class="tab-item" onclick="showTab('advisor',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <span>AI顧問</span>
+  </div>
+</div>
+</div>
+
+<!-- ADD PLAN MODAL -->
+<div class="modal-overlay hidden" id="plan-modal" onclick="closeModal('plan-modal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">新增候選股票</div>
+    <div class="form-grid">
+      <div class="field"><label>股票名稱</label><input type="text" id="pl-name" placeholder="例：緯穎"></div>
+      <div class="field"><label>目標買入價</label><input type="number" id="pl-price" placeholder="2800"></div>
+    </div>
+    <div class="field"><label>策略</label>
+      <select id="pl-strat">
+        <option>打工型強勢日</option><option>打工型日拉回</option>
+        <option>上班族強勢週</option><option>上班族週趨勢</option>
+        <option>老闆型廉價收購</option><option>老闆型週拉回</option>
+      </select>
+    </div>
+    <div class="field"><label>選股依據</label><input type="text" id="pl-basis" placeholder="例：YoY +171% 創高，成值前三"></div>
+    <div class="field"><label>進場條件</label><input type="text" id="pl-entry" placeholder="例：回五日線，風度強風或陣風"></div>
+    <div class="field"><label>停損</label><input type="text" id="pl-stop" placeholder="例：跌破五日線"></div>
+    <button class="btn primary" style="margin-top:4px" onclick="addPlan()">建立候選</button>
+    <button class="btn" style="margin-top:8px" onclick="closeModal('plan-modal')">取消</button>
+  </div>
+</div>
+
+<!-- SELL MODAL -->
+<div class="modal-overlay hidden" id="sell-modal" onclick="closeModal('sell-modal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">賣出持倉</div>
+    <input type="hidden" id="sell-id">
+    <div id="sell-pos-info" style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:12px;font-size:13px;color:var(--txt2);line-height:1.7"></div>
+    <div class="form-grid">
+      <div class="field"><label>賣出日期</label><input type="date" id="sell-date"></div>
+      <div class="field"><label>賣出價格</label><input type="number" id="sell-price" placeholder="賣出均價" oninput="updateSellPreview()"></div>
+    </div>
+    <div class="field"><label>賣出股數（留空＝全部賣出）</label><input type="number" id="sell-qty" placeholder="全部賣出則留空" oninput="updateSellPreview()"></div>
+    <div class="field"><label>賣出原因</label>
+      <select id="sell-reason">
+        <option>停利（獲利≥10%）</option><option>停損（虧損≥5%）</option>
+        <option>跌破停損條件</option><option>風度轉差先出</option>
+        <option>換股操作</option><option>其他</option>
+      </select>
+    </div>
+    <div class="field"><label>備註</label><input type="text" id="sell-note" placeholder="例：陣風轉亂流，提前出場"></div>
+    <div id="sell-preview" style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:12px;font-size:13px;display:none;line-height:1.8"></div>
+    <button class="btn primary" onclick="confirmSell()">確認賣出</button>
+    <button class="btn" style="margin-top:8px" onclick="closeModal('sell-modal')">取消</button>
+  </div>
+</div>
+
+<!-- WIND MODAL --><div class="modal-overlay hidden" id="wind-modal" onclick="closeModal('wind-modal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">設定今日風度</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <button class="btn" onclick="setWind('強風')" style="padding:16px;font-size:15px;background:var(--sf-bg);color:var(--sf);border-color:var(--sf-bdr)"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--sf);margin-right:6px;vertical-align:middle"></span>強風</button>
+      <button class="btn" onclick="setWind('陣風')" style="padding:16px;font-size:15px;background:var(--gf-bg);color:var(--gf);border-color:var(--gf-bdr)"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--gf);margin-right:6px;vertical-align:middle"></span>陣風</button>
+      <button class="btn" onclick="setWind('亂流')" style="padding:16px;font-size:15px;background:var(--lt-bg);color:var(--lt);border-color:var(--lt-bdr)"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--lt);margin-right:6px;vertical-align:middle"></span>亂流</button>
+      <button class="btn" onclick="setWind('無風')" style="padding:16px;font-size:15px;background:var(--nw-bg);color:var(--nw);border-color:var(--nw-bdr)"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--nw);margin-right:6px;vertical-align:middle"></span>無風</button>
+    </div>
+    <div style="font-size:12px;color:var(--txt3);text-align:center;margin-bottom:10px">或從 Google 試算表自動讀取</div>
+    <button class="btn" onclick="syncSheet()" id="sync-btn">📊 從試算表同步風度</button>
+    <button class="btn" style="margin-top:8px" onclick="closeModal('wind-modal')">關閉</button>
+  </div>
+</div>
+
+<!-- ADD POSITION MODAL -->
+<div class="modal-overlay hidden" id="pos-modal" onclick="closeModal('pos-modal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">新增持倉</div>
+    <div class="form-grid">
+      <div class="field"><label>股票名稱</label><input type="text" id="p-name" placeholder="例：奇鋐"></div>
+      <div class="field"><label>買入日期</label><input type="date" id="p-date"></div>
+      <div class="field"><label>買入價格</label><input type="number" id="p-buy" placeholder="1050"></div>
+      <div class="field"><label>股數</label><input type="number" id="p-qty" placeholder="1000"></div>
+      <div class="field"><label>現價（選填）</label><input type="number" id="p-cur" placeholder="1120"></div>
+      <div class="field"><label>股票代號（抓收盤用）</label><input type="text" id="p-code" placeholder="例：2454"></div>
+    </div>
+    <div class="field"><label>帳號</label>
+      <select id="p-acct"><option value="華南">華南</option><option value="凱基">凱基</option></select>
+    </div>
+    <div class="field"><label>策略</label>
+      <select id="p-strat" onchange="updateStopOptions()">
+        <option>打工型強勢日</option><option>打工型日拉回</option>
+        <option>上班族強勢週</option><option>上班族週趨勢</option>
+        <option>老闆型廉價收購</option><option>老闆型週拉回</option>
+      </select>
+    </div>
+    <div class="field"><label>買入時風度（強風→陣風→亂流→無風）</label>
+      <select id="p-wind"><option>強風</option><option>陣風</option><option>亂流</option><option>無風</option></select>
+    </div>
+    <div class="field" id="p-timing-field">
+      <label>買入時間條件（依策略）</label>
+      <select id="p-timing">
+        <option value="">請先選擇策略</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>選股依據</label>
+      <div class="chk-row" onclick="document.getElementById('chk-yoy').click()">
+        <input type="checkbox" id="chk-yoy" onclick="event.stopPropagation()">
+        <span>YOY 30% 以上</span>
+      </div>
+      <select id="p-basis"><option>成值營收創高</option><option>成值營收</option><option>成值</option><option>營收</option><option>無成值營收</option></select>
+    </div>
+    <div class="field">
+      <label>停損條件（依策略自動建議）</label>
+      <select id="p-stop-sel" onchange="updateCustomStop()">
+        <option value="">請選擇策略後自動更新</option>
+      </select>
+      <input type="text" id="p-stop-custom" placeholder="輸入自訂停損" style="margin-top:8px;display:none">
+    </div>
+    <div class="field"><label>分批紀錄（老闆型）</label>
+      <input type="text" id="p-batch" placeholder="例：第1批，共計畫5批">
+    </div>
+    <div class="field"><label>備註</label>
+      <input type="text" id="p-note" placeholder="例：強風第一天，成值第二">
+    </div>
+    <button class="btn primary" style="margin-top:4px" onclick="addPosition()">新增持倉</button>
+    <button class="btn" style="margin-top:8px" onclick="closeModal('pos-modal')">取消</button>
+  </div>
+</div>
+
+<!-- EDIT POSITION MODAL -->
+<div class="modal-overlay hidden" id="edit-modal" onclick="closeModal('edit-modal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">編輯持倉</div>
+    <input type="hidden" id="e-id">
+    <div class="form-grid">
+      <div class="field"><label>股票名稱</label><input type="text" id="e-name"></div>
+      <div class="field"><label>買入日期</label><input type="date" id="e-date"></div>
+      <div class="field"><label>買入價格</label><input type="number" id="e-buy"></div>
+      <div class="field"><label>股數</label><input type="number" id="e-qty"></div>
+      <div class="field"><label>現價</label><input type="number" id="e-cur"></div>
+      <div class="field"><label>股票代號</label><input type="text" id="e-code" placeholder="例：2454"></div>
+    </div>
+    <div class="field"><label>帳號</label>
+      <select id="e-acct"><option value="華南">華南</option><option value="凱基">凱基</option></select>
+    </div>
+    <div class="field"><label>策略</label>
+      <select id="e-strat">
+        <option>打工型強勢日</option><option>打工型日拉回</option>
+        <option>上班族強勢週</option><option>上班族週趨勢</option>
+        <option>老闆型廉價收購</option><option>老闆型週拉回</option>
+      </select>
+    </div>
+    <div class="field"><label>買入時風度</label>
+      <select id="e-wind"><option>強風</option><option>陣風</option><option>亂流</option><option>無風</option></select>
+    </div>
+    <div class="field"><label>停損條件</label><input type="text" id="e-stop"></div>
+    <div class="field"><label>備註</label><input type="text" id="e-note"></div>
+    <!-- 加碼區 -->
+    <div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">加碼紀錄</div>
+      <div id="e-lots-list"></div>
+      <div class="form-grid" style="margin-top:8px">
+        <div class="field" style="margin-bottom:0"><label>加碼價格</label><input type="number" id="e-add-price" placeholder="買入價"></div>
+        <div class="field" style="margin-bottom:0"><label>加碼股數</label><input type="number" id="e-add-qty" placeholder="股數"></div>
+      </div>
+      <div class="field" style="margin-bottom:0;margin-top:8px"><label>加碼日期</label><input type="date" id="e-add-date"></div>
+      <button class="btn sm primary" style="margin-top:8px" onclick="addLot()">＋ 新增這筆加碼</button>
+    </div>
+    <div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:12px;font-size:13px" id="e-avg-display"></div>
+    <button class="btn primary" onclick="saveEdit()">儲存修改</button>
+    <button class="btn" style="margin-top:8px" onclick="closeModal('edit-modal')">取消</button>
+  </div>
+</div>
+
+<!-- 收盤提醒 MODAL -->
+<div class="modal-overlay hidden" id="close-modal" onclick="closeModal('close-modal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔔 13:25 收盤前檢查</div>
+    <div style="font-size:13px;color:var(--txt2);margin-bottom:14px">更新現價，APP 根據策略判斷是否需要動作。</div>
+    <div id="close-check-list"></div>
+    <button class="btn" style="margin-top:4px" onclick="closeModal('close-modal')">關閉</button>
+  </div>
+</div>
+
+<script>
+const SHEET_ID='1RXGLmfkJp0l58ULQ3CgmD8BtDMAsGJGw-h_BS-k4kXg';
+let S={wind:'強風',positions:[],plans:[],notes:[],history:[],water:{hn:0,kg:0},stratNotes:{},windLog:[]};
+function save(){try{localStorage.setItem('fz_v5',JSON.stringify(S));}catch(e){}}
+function load(){
+  try{
+    // 嘗試讀取 fz_v5（目前版本）
+    let d=localStorage.getItem('fz_v5');
+    // 若沒有 v5，嘗試從舊版本升級
+    if(!d){
+      for(const oldKey of ['fz_v4','fz_v3','fz_v2','fz_v1']){
+        const old=localStorage.getItem(oldKey);
+        if(old){d=old;break;}
+      }
+    }
+    if(d){
+      const parsed=JSON.parse(d);
+      S={...S,...parsed};
+      // 確保必要欄位存在
+      if(!S.history)S.history=[];
+      if(!S.windLog)S.windLog=[];
+      if(!S.stratNotes)S.stratNotes={};
+      if(!S.plans)S.plans=[];
+    }
+  }catch(e){}
+
+  // 內建完整風度資料（從試算表整理）
+  // 只在 windLog 為空時填入，不覆蓋已有資料
+  if(!S.windLog||S.windLog.length===0){
+    S.windLog=[
+      {date:"2025/09/01",wind:"亂流"},{date:"2025/09/02",wind:"亂流"},{date:"2025/09/03",wind:"亂流"},
+      {date:"2025/09/04",wind:"亂流"},{date:"2025/09/05",wind:"強風"},{date:"2025/09/08",wind:"強風"},
+      {date:"2025/09/09",wind:"強風"},{date:"2025/09/10",wind:"強風"},{date:"2025/09/11",wind:"亂流"},
+      {date:"2025/09/12",wind:"亂流"},{date:"2025/09/15",wind:"亂流"},{date:"2025/09/16",wind:"亂流"},
+      {date:"2025/09/17",wind:"亂流"},{date:"2025/09/18",wind:"強風"},{date:"2025/09/19",wind:"強風"},
+      {date:"2025/09/22",wind:"強風"},{date:"2025/09/23",wind:"強風"},{date:"2025/09/24",wind:"亂流"},
+      {date:"2025/09/25",wind:"亂流"},{date:"2025/09/26",wind:"無風"},{date:"2025/09/30",wind:"亂流"},
+      {date:"2025/10/01",wind:"亂流"},{date:"2025/10/02",wind:"強風"},{date:"2025/10/03",wind:"強風"},
+      {date:"2025/10/07",wind:"強風"},{date:"2025/10/08",wind:"強風"},{date:"2025/10/09",wind:"強風"},
+      {date:"2025/10/13",wind:"無風"},{date:"2025/10/14",wind:"無風"},{date:"2025/10/15",wind:"無風"},
+      {date:"2025/10/16",wind:"強風"},{date:"2025/10/17",wind:"陣風"},{date:"2025/10/20",wind:"強風"},
+      {date:"2025/10/21",wind:"強風"},{date:"2025/10/22",wind:"強風"},{date:"2025/10/23",wind:"亂流"},
+      {date:"2025/10/27",wind:"強風"},{date:"2025/10/28",wind:"強風"},{date:"2025/10/29",wind:"強風"},
+      {date:"2025/10/30",wind:"無風"},{date:"2025/10/31",wind:"強風"},
+      {date:"2025/11/03",wind:"強風"},{date:"2025/11/04",wind:"無風"},{date:"2025/11/05",wind:"無風"},
+      {date:"2025/11/06",wind:"陣風"},{date:"2025/11/07",wind:"無風"},{date:"2025/11/10",wind:"無風"},
+      {date:"2025/11/11",wind:"無風"},{date:"2025/11/12",wind:"陣風"},{date:"2025/11/13",wind:"陣風"},
+      {date:"2025/11/14",wind:"無風"},{date:"2025/11/17",wind:"無風"},{date:"2025/11/18",wind:"無風"},
+      {date:"2025/11/19",wind:"無風"},{date:"2025/11/20",wind:"陣風"},{date:"2025/11/21",wind:"無風"},
+      {date:"2025/11/24",wind:"陣風"},{date:"2025/11/25",wind:"陣風"},{date:"2025/11/26",wind:"陣風"},
+      {date:"2025/11/27",wind:"強風"},{date:"2025/11/28",wind:"強風"},
+      {date:"2025/12/01",wind:"強風"},{date:"2025/12/02",wind:"強風"},{date:"2025/12/03",wind:"強風"},
+      {date:"2025/12/04",wind:"亂流"},{date:"2025/12/05",wind:"亂流"},{date:"2025/12/08",wind:"強風"},
+      {date:"2025/12/09",wind:"強風"},{date:"2025/12/10",wind:"強風"},{date:"2025/12/11",wind:"亂流"},
+      {date:"2025/12/12",wind:"亂流"},{date:"2025/12/15",wind:"亂流"},{date:"2025/12/16",wind:"亂流"},
+      {date:"2025/12/17",wind:"亂流"},{date:"2025/12/18",wind:"無風"},{date:"2025/12/19",wind:"亂流"},
+      {date:"2025/12/22",wind:"強風"},{date:"2025/12/23",wind:"強風"},{date:"2025/12/24",wind:"強風"},
+      {date:"2025/12/26",wind:"強風"},{date:"2025/12/29",wind:"強風"},{date:"2025/12/30",wind:"強風"},
+      {date:"2025/12/31",wind:"強風"},
+      {date:"2026/01/02",wind:"強風"},{date:"2026/01/05",wind:"亂流"},{date:"2026/01/06",wind:"亂流"},
+      {date:"2026/01/07",wind:"強風"},{date:"2026/01/08",wind:"亂流"},{date:"2026/01/09",wind:"亂流"},
+      {date:"2026/01/12",wind:"強風"},{date:"2026/01/13",wind:"強風"},{date:"2026/01/14",wind:"強風"},
+      {date:"2026/01/15",wind:"強風"},{date:"2026/01/16",wind:"強風"},{date:"2026/01/19",wind:"強風"},
+      {date:"2026/01/20",wind:"強風"},{date:"2026/01/21",wind:"亂流"},{date:"2026/01/22",wind:"亂流"},
+      {date:"2026/01/23",wind:"亂流"},{date:"2026/01/26",wind:"強風"},{date:"2026/01/27",wind:"強風"},
+      {date:"2026/01/28",wind:"強風"},{date:"2026/01/29",wind:"亂流"},
+      {date:"2026/02/02",wind:"亂流"},{date:"2026/02/03",wind:"亂流"},{date:"2026/02/04",wind:"亂流"},
+      {date:"2026/02/05",wind:"亂流"},{date:"2026/02/06",wind:"無風"},{date:"2026/02/09",wind:"陣風"},
+      {date:"2026/02/10",wind:"陣風"},{date:"2026/02/11",wind:"陣風"},{date:"2026/02/23",wind:"強風"},
+      {date:"2026/02/24",wind:"強風"},{date:"2026/02/25",wind:"強風"},{date:"2026/02/26",wind:"強風"},
+      {date:"2026/03/02",wind:"強風"},{date:"2026/03/03",wind:"亂流"},{date:"2026/03/04",wind:"無風"},
+      {date:"2026/03/05",wind:"亂流"},{date:"2026/03/06",wind:"亂流"},{date:"2026/03/09",wind:"無風"},
+      {date:"2026/03/10",wind:"無風"},{date:"2026/03/11",wind:"強風"},{date:"2026/03/12",wind:"強風"},
+      {date:"2026/03/13",wind:"強風"},{date:"2026/03/16",wind:"強風"},{date:"2026/03/17",wind:"強風"},
+      {date:"2026/03/18",wind:"強風"},{date:"2026/03/19",wind:"強風"},{date:"2026/03/20",wind:"強風"},
+      {date:"2026/03/23",wind:"亂流"},{date:"2026/03/24",wind:"亂流"},{date:"2026/03/25",wind:"亂流"},
+      {date:"2026/03/26",wind:"亂流"},{date:"2026/03/27",wind:"亂流"},{date:"2026/03/30",wind:"亂流"},
+      {date:"2026/03/31",wind:"無風"},
+      {date:"2026/04/01",wind:"亂流"},{date:"2026/04/02",wind:"強風"},{date:"2026/04/07",wind:"強風"},
+      {date:"2026/04/08",wind:"強風"},{date:"2026/04/09",wind:"強風"},{date:"2026/04/10",wind:"強風"},
+      {date:"2026/04/13",wind:"強風"},{date:"2026/04/14",wind:"強風"},{date:"2026/04/15",wind:"強風"},
+      {date:"2026/04/16",wind:"強風"},{date:"2026/04/17",wind:"強風"},{date:"2026/04/20",wind:"強風"},
+      {date:"2026/04/21",wind:"強風"},{date:"2026/04/22",wind:"強風"},{date:"2026/04/23",wind:"亂流"},
+      {date:"2026/04/24",wind:"亂流"},{date:"2026/04/27",wind:"亂流"},{date:"2026/04/28",wind:"亂流"},
+      {date:"2026/04/29",wind:"亂流"},{date:"2026/04/30",wind:"亂流"},
+      {date:"2026/05/04",wind:"強風"}
+    ];
+    save();
+  }
+  // 預填持倉（只在 positions 為空時才填入，避免覆蓋現有資料）
+  if(!S.positions||!S.positions.length){
+    const today='2026-05-25';
+    S.positions=[
+      {id:1,name:'聯發科',code:'2454',acct:'華南',strat:'上班族強勢週',wind:'強風',
+       date:today,lots:[{price:2531.09,qty:200,date:today}],
+       cur:4245,stop:'跌破五日線',memo:'',batch:''},
+      {id:2,name:'欣興',code:'3037',acct:'華南',strat:'上班族強勢週',wind:'強風',
+       date:today,lots:[{price:968.37,qty:200,date:today}],
+       cur:990,stop:'跌破五日線',memo:'',batch:''},
+      {id:3,name:'臻鼎-KY',code:'4958',acct:'華南',strat:'老闆型廉價收購',wind:'強風',
+       date:today,lots:[{price:471.17,qty:1000,date:today}],
+       cur:529,stop:'跌破自己設定的均線',memo:'資買',batch:''},
+      {id:4,name:'信驊',code:'5274',acct:'華南',strat:'上班族強勢週',wind:'強風',
+       date:today,lots:[{price:11696,qty:1,date:today}],
+       cur:17725,stop:'跌破五日線',memo:'',batch:''},
+      {id:5,name:'尖點',code:'6117',acct:'華南',strat:'上班族強勢週',wind:'強風',
+       date:today,lots:[{price:127,qty:15,date:today}],
+       cur:464,stop:'跌破五日線',memo:'',batch:''},
+    ];
+    S.positions.forEach(p=>{const r=calcAvg(p.lots);p.buy=r.avgPrice;p.qty=r.totalQty;});
+    save();
+  }
+}
+
+// ── 風度設定 ──────────────────────────────────────────────
+const WCFG={
+  '強風':{dot:'var(--sf)',cls:'w-強風',adv:'sf',dotCls:'wd-sf',
+    advice:'強風：積極追漲 / 積極布局。月線以上，漲勢容易延續。打工型、上班族強勢週最適合積極操作。',lim:80},
+  '陣風':{dot:'var(--gf)',cls:'w-陣風',adv:'gf',dotCls:'wd-陣風',
+    advice:'陣風：謹慎試單或波段布局。月線以下，漲勢不易延續，容易回檔。老闆型可小量布局。',lim:60},
+  '亂流':{dot:'var(--lt)',cls:'w-亂流',adv:'lt',dotCls:'wd-亂流',
+    advice:'亂流：短線嚴守紀律。月線以上但震盪加大，停損停利不能含糊，賣飛是必然的。',lim:40},
+  '無風':{dot:'var(--nw)',cls:'w-無風',adv:'nw',dotCls:'wd-無風',
+    advice:'無風：短線休息為上。股票易跌，不買新股。老闆型可極小量分批低接，其他人休息。',lim:20},
+};
+const WIND_ORDER=['強風','陣風','亂流','無風'];
+
+function setWind(w){
+  const today=new Date().toLocaleDateString('zh-TW');
+  // 記錄風度log（每天只記一次，不重複）
+  if(!S.windLog)S.windLog=[];
+  const last=S.windLog[S.windLog.length-1];
+  if(!last||last.date!==today){
+    S.windLog.push({date:today,wind:w});
+  } else { last.wind=w; }
+  S.wind=w;save();
+  const c=WCFG[w];
+  document.getElementById('wind-label').textContent=w;
+  document.getElementById('wind-dot').style.background=c.dot;
+  document.getElementById('wind-badge').className='wind-badge '+c.cls;
+  const box=document.getElementById('wind-advice-box');
+  box.className='alert '+c.adv;box.textContent=c.advice;
+  closeModal('wind-modal');
+  renderWindStat();renderAlerts();calcWater();renderStrat();
+}
+function openWindModal(){document.getElementById('wind-modal').classList.remove('hidden');}
+
+// ── 風度統計（日/週/月格狀圖） ───────────────────────────
+let windView='d';
+function setWindView(v){
+  windView=v;
+  ['d','m'].forEach(x=>{
+    const b=document.getElementById('wv-'+x);if(!b)return;
+    const on=x===v;
+    b.style.background=on?'var(--sf)':'var(--bg3)';
+    b.style.color=on?'#000':'var(--txt2)';
+    b.style.borderColor=on?'var(--sf)':'var(--bdr2)';
+  });
+  renderWindStat();
+}
+
+function renderWindStat(){
+  const el=document.getElementById('wind-stat-content');
+  if(!el)return;
+  if(!S.windLog||!S.windLog.length){
+    el.innerHTML='<div class="empty" style="padding:12px">按「從試算表同步」載入風度記錄</div>';return;
+  }
+  const WINDS=WIND_ORDER;
+  const DC={'強風':'var(--sf)','陣風':'var(--gf)','亂流':'var(--lt)','無風':'var(--nw)'};
+  const BC={'強風':'var(--sf-bg)','陣風':'var(--gf-bg)','亂流':'var(--lt-bg)','無風':'var(--nw-bg)'};
+
+  function getKey(dateStr){
+    // 日/月/季都是每天一個點，直接回傳日期
+    return dateStr;
+  }
+  function getLabel(key){
+    const d=new Date(key.replace(/\//g,'-'));
+    if(isNaN(d))return key;
+    const wd=['日','一','二','三','四','五','六'][d.getDay()];
+    const isWeekend=d.getDay()===0||d.getDay()===6;
+    const color=isWeekend?'var(--txt3)':'var(--txt2)';
+    if(windView==='d'){
+      return `<span style="font-size:10px;color:${color};display:block;line-height:1.3">${String(d.getMonth()+1)}/${String(d.getDate()).padStart(2,'0')}<br>${wd}</span>`;
+    }
+    if(windView==='m'){
+      // 月視圖：每5天或週末顯示日期
+      return (d.getDate()%5===1||isWeekend)?
+        `<span style="font-size:9px;color:${color}">${String(d.getMonth()+1)}/${String(d.getDate()).padStart(2,'0')}</span>`:'';
+    }
+    // 季視圖：每10天顯示
+    return d.getDate()%10===1?
+      `<span style="font-size:8px;color:var(--txt3)">${String(d.getMonth()+1)}/${String(d.getDate()).padStart(2,'0')}</span>`:'';
+  }
+
+  // 分組，同組取最後一筆
+  const groups={};
+  S.windLog.forEach(l=>{groups[getKey(l.date)]=l.wind;});
+  const keys=Object.keys(groups).sort();
+  // 日=全部（可左滑），月=近30天，季=近90天
+  const show=windView==='d'?keys:windView==='m'?keys.slice(-30):keys.slice(-90);
+
+  // 連續天數
+  const cur=S.wind;let streak=0;
+  for(let i=S.windLog.length-1;i>=0;i--){if(S.windLog[i].wind===cur)streak++;else break;}
+
+  // 各風度佔比
+  const cnt={};WIND_ORDER.forEach(w=>cnt[w]=0);
+  S.windLog.forEach(l=>{if(cnt[l.wind]!==undefined)cnt[l.wind]++;});
+  const total=S.windLog.length;
+
+  let html=`<div class="streak-card" style="margin-bottom:10px">
+    <div class="streak-dot" style="background:${DC[cur]}"></div>
+    <div class="streak-info">
+      <div class="streak-name" style="color:${DC[cur]}">${cur} 已連續 ${streak} 天</div>
+      <div class="streak-detail">共記錄 ${total} 天</div>
+    </div>
+    <div class="streak-days" style="color:${DC[cur]}">${streak}天</div>
+  </div>`;
+
+  // 日=近30天可左滑看全部，年=近365天
+  const todayKey=(()=>{const t=new Date();return t.getFullYear()+'/'+(String(t.getMonth()+1).padStart(2,'0'))+'/'+String(t.getDate()).padStart(2,'0');})();
+  const validKeys=keys.filter(k=>k<=todayKey);
+  const showKeys=windView==='d'?validKeys.slice(-30):validKeys.slice(-365);
+  const WIND_Y={'強風':0,'陣風':1,'亂流':2,'無風':3};
+  const dotSpacing=windView==='d'?28:14;
+  const PAD_L=46,PAD_R=20,PAD_T=14,PAD_B=60;
+  const W=PAD_L+(showKeys.length-1)*dotSpacing+PAD_R+10;
+  const H=240;
+  const PAD={l:PAD_L,r:PAD_R,t:PAD_T,b:PAD_B};
+  const plotW=W-PAD.l-PAD.r;
+  const plotH=H-PAD.t-PAD.b;
+  const rowH=plotH/3;
+
+  const points=showKeys.map((k,i)=>{
+    const w=groups[k];
+    // 固定間距，第一點在左，最後一點在右
+    const x=PAD.l+i*dotSpacing;
+    const y=PAD.t+WIND_Y[w]*rowH;
+    return{x,y,w,k};
+  });
+
+  // Y軸：每列加色塊背景讓區域更清楚
+  const yBands=WIND_ORDER.map((w,i)=>{
+    const y=PAD.t+i*rowH-(rowH*0.45);
+    const bh=rowH*0.9;
+    return `<rect x="${PAD.l}" y="${y.toFixed(1)}" width="${plotW}" height="${bh.toFixed(1)}" fill="${DC[w]}" opacity="0.12" rx="3"/>
+    <text x="${PAD.l-8}" y="${(PAD.t+i*rowH+4).toFixed(1)}" text-anchor="end" font-size="11" fill="${DC[w]}" font-weight="700">${w}</text>
+    <line x1="${PAD.l}" y1="${(PAD.t+i*rowH).toFixed(1)}" x2="${(W-PAD.r).toFixed(1)}" y2="${(PAD.t+i*rowH).toFixed(1)}" stroke="${DC[w]}" stroke-width="0.8" opacity="0.35" stroke-dasharray="4,3"/>`;
+  }).join('');
+
+  // 連線
+  let lines='';
+  for(let i=1;i<points.length;i++){
+    const p0=points[i-1],p1=points[i];
+    const sameWind=p0.w===p1.w;
+    lines+=`<line x1="${p0.x.toFixed(1)}" y1="${p0.y.toFixed(1)}" x2="${p1.x.toFixed(1)}" y2="${p1.y.toFixed(1)}" stroke="${sameWind?DC[p0.w]:'#666'}" stroke-width="${sameWind?'1.5':'1'}" opacity="${sameWind?'0.5':'0.35'}"/>`;
+  }
+
+  const xLabels=showKeys.map((k,i)=>{
+    const x=PAD.l+i*dotSpacing;
+    const d=new Date(k.replace(/\//g,'-'));
+    if(isNaN(d))return '';
+    const wd=['日','一','二','三','四','五','六'][d.getDay()];
+    const isWend=d.getDay()===0||d.getDay()===6;
+    const yr=d.getFullYear();const mo=d.getMonth()+1;const dd=d.getDate();
+    if(windView==='d'){
+      // 日視圖（近30天）：每天都顯示
+      return `<text x="${x}" y="${H-40}" text-anchor="middle" font-size="10" fill="#fff" font-weight="600">${mo}/${dd}</text>
+        <text x="${x}" y="${H-26}" text-anchor="middle" font-size="10" fill="${isWend?'#ffcc00':'#ccc'}">${wd}</text>
+        <text x="${x}" y="${H-12}" text-anchor="middle" font-size="9" fill="#aaa">${yr}</text>`;
+    } else {
+      // 年視圖：每7個交易日顯示一次，跳過週末
+      if(!isWend&&i%7===0){
+        return `<text x="${x}" y="${H-40}" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">${mo}/${String(dd).padStart(2,'0')}</text>
+          <text x="${x}" y="${H-26}" text-anchor="middle" font-size="10" fill="#ccc">${wd}</text>
+          <text x="${x}" y="${H-12}" text-anchor="middle" font-size="9" fill="#aaa">${yr}</text>`;
+      }
+    }
+    return '';
+  }).join('');
+
+  // 圓點（較大，今天的特別標示）
+  const td=new Date();
+  const todayStr=td.getFullYear()+'/'+(String(td.getMonth()+1).padStart(2,'0'))+'/'+String(td.getDate()).padStart(2,'0');
+  const dots=points.map(p=>{
+    const isToday=p.k===todayStr;
+    return `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${isToday?7:6}" fill="${DC[p.w]}" stroke="${isToday?'#fff':'none'}" stroke-width="${isToday?2:0}" opacity="0.95">
+      <title>${p.k} ${p.w}</title></circle>`;
+  }).join('');
+
+  // 視窗全寬顯示，可左滑看更早，預設捲到最右
+  html+=`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:6px" id="wind-chart-scroll">
+    <svg width="${W}" height="${H}" style="min-width:${W}px;display:block;background:rgba(255,255,255,0.06);border-radius:8px">
+      ${yBands}${lines}${dots}${xLabels}
+    </svg>
+  </div>`;
+  el.innerHTML=html;
+  // 自動捲到最右（最新資料）
+  setTimeout(()=>{const s=document.getElementById('wind-chart-scroll');if(s)s.scrollLeft=s.scrollWidth;},50);
+
+  el.innerHTML=html;
+}
+
+// ── 日期顯示 ────────────────────────────────────────────
+function renderDate(){
+  const now=new Date();
+  const wd=['日','一','二','三','四','五','六'][now.getDay()];
+  document.getElementById('hdr-date').textContent=
+    `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日（${wd}）`;
+}
+
+// ── 試算表同步（讀 GitHub wind.json，無CORS問題） ─────────
+const WIND_JSON_URL='https://raw.githubusercontent.com/KAI-0513/fengzheng/main/wind.json';
+
+async function syncSheet(){
+  const btns=document.querySelectorAll('#sync-btn,[onclick*="syncSheet"]');
+  btns.forEach(b=>{b.textContent='⟳ 同步中...';b.disabled=true;});
+  const status=document.getElementById('sheet-sync-status');
+  try{
+    const r=await fetch(WIND_JSON_URL+'?t='+Date.now());
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const fromSheet=await r.json();
+    if(!fromSheet.length)throw new Error('wind.json 沒有資料');
+    const existDates=new Set(S.windLog.map(l=>l.date));
+    let added=0;
+    fromSheet.forEach(l=>{
+      if(existDates.has(l.date)){
+        const idx=S.windLog.findIndex(x=>x.date===l.date);
+        if(idx>=0)S.windLog[idx].wind=l.wind;
+      } else {S.windLog.push(l);added++;}
+    });
+    S.windLog.sort((a,b)=>a.date.localeCompare(b.date));
+    const latest=S.windLog[S.windLog.length-1];
+    if(latest)setWind(latest.wind);
+    save();
+    if(status)status.textContent=`✅ 同步成功！共${S.windLog.length}筆，最新：${latest?.date} ${latest?.wind}`;
+    setWindView(windView||'d');
+  }catch(e){
+    if(status)status.textContent=`❌ 同步失敗：${e.message}`;
+  }
+  btns.forEach(b=>{b.textContent='⟳ 同步';b.disabled=false;});
+  const mainBtn=document.getElementById('sync-btn');
+  if(mainBtn)mainBtn.innerHTML='📊 從試算表同步風度';
+}
+
+// ── 分頁切換 ────────────────────────────────────────────
+function showTab(id,el){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
+  document.getElementById('sec-'+id).classList.add('active');
+  el.classList.add('active');
+  document.getElementById('content').scrollTop=0;
+  if(id==='water')calcWater();
+  if(id==='strat')renderStrat();
+  if(id==='history')renderHistory();
+}
+function openAddPos(){updateStopOptions();document.getElementById('pos-modal').classList.remove('hidden');}
+function closeModal(id){document.getElementById(id).classList.add('hidden');}
+
+// ── 停損選項依策略動態更新 ──────────────────────────────
+const STOP_OPTS={
+  '打工型強勢日':['跌破當天買進的紅K','虧損達 -5% 就走','3天不漲且未達+5%就走','自訂…'],
+  '打工型日拉回':['跌破當天買進的紅K','虧損達 -5% 就走','3天不漲且未達+5%就走','自訂…'],
+  '上班族強勢週':['跌破當天買進的紅K','虧損達 -5% 就走','三天不漲就走','自訂…'],
+  '上班族週趨勢':['週MACD柱往下（週五確認）','週五收盤低於上週五','跌破週線五日線','自訂…'],
+  '老闆型廉價收購':['跌破自己設定的均線','月MACD柱縮短（月底確認）','自訂…'],
+  '老闆型週拉回':['跌破自己設定的均線','週MACD柱往下','自訂…'],
+  '自己挑股票':['跌破五日線','虧損達 -5%','跌破月線(20MA)','自訂…'],
+  '配股':['依原持倉策略','自訂…'],
+};
+const TIMING_OPTS={
+  '打工型強勢日':['10點以後再買','看到就買進','選買得下去的價格','確認離起漲點不太遠'],
+  '打工型日拉回':['10點以後買','看到拉回就買','選買得下去的位置','靠近五日線買'],
+  '上班族強勢週':['10點以後找買點','尾盤1點後買進','13:25掛最後一盤','不要追漲停'],
+  '上班族週趨勢':['尾盤1點後買進','當天尾盤是下跌時買','靠近五日線買','不要一開盤衝'],
+  '老闆型廉價收購':['尾盤12點後買進','盤中看到大跌-5%以上','分批買不一次全下','量縮整理時進場'],
+  '老闆型週拉回':['尾盤12點後買進','盤中大跌-5%以上','日線拉回月線上方','量縮後進場'],
+};
+function updateStopOptions(){
+  const strat=document.getElementById('p-strat').value;
+  const sel=document.getElementById('p-stop-sel');
+  const opts=STOP_OPTS[strat]||['自訂…'];
+  sel.innerHTML=opts.map(o=>`<option value="${o}">${o}</option>`).join('');
+  // 買入時間條件改為下拉
+  const tsel=document.getElementById('p-timing');
+  if(tsel){
+    const topts=TIMING_OPTS[strat]||['參考策略說明'];
+    tsel.innerHTML=topts.map(o=>`<option value="${o}">${o}</option>`).join('');
+  }
+  updateCustomStop();
+}
+function updateCustomStop(){
+  const v=document.getElementById('p-stop-sel').value;
+  document.getElementById('p-stop-custom').style.display=v==='自訂…'?'block':'none';
+}
+
+// ── 新增持倉 ────────────────────────────────────────────
+function openAddPos(){
+  updateStopOptions();
+  // 預設今天日期
+  document.getElementById('p-date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('pos-modal').classList.remove('hidden');
+}
+function addPosition(){
+  const name=document.getElementById('p-name').value.trim();
+  const buy=parseFloat(document.getElementById('p-buy').value);
+  const qty=parseInt(document.getElementById('p-qty').value);
+  if(!name||!buy||!qty){alert('請填入股票名稱、買入價格和股數');return;}
+  const cur=parseFloat(document.getElementById('p-cur').value)||buy;
+  const yoy=document.getElementById('chk-yoy').checked;
+  const stopV=document.getElementById('p-stop-sel').value;
+  const stop=stopV==='自訂…'?document.getElementById('p-stop-custom').value.trim():stopV;
+  const dateVal=document.getElementById('p-date').value||new Date().toISOString().split('T')[0];
+  S.positions.push({id:Date.now(),name,
+    lots:[{price:buy,qty,date:dateVal}],
+    cur,code:document.getElementById('p-code').value.trim(),
+    acct:document.getElementById('p-acct').value,
+    strat:document.getElementById('p-strat').value,
+    timing:document.getElementById('p-timing').value,
+    wind:document.getElementById('p-wind').value,
+    basis:(yoy?'YOY30%+ / ':'')+document.getElementById('p-basis').value,
+    stop,memo:document.getElementById('p-note').value.trim(),
+    batch:document.getElementById('p-batch').value.trim(),
+    date:dateVal
+  });
+  ['p-name','p-buy','p-qty','p-cur','p-note','p-batch','p-stop-custom','p-code'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('chk-yoy').checked=false;
+  closeModal('pos-modal');save();renderPositions();renderStats();renderAlerts();calcWater();
+}
+
+// ── 計算平均成本 ─────────────────────────────────────────
+function calcAvg(lots){
+  if(!lots||!lots.length)return{avgPrice:0,totalQty:0,totalCost:0};
+  const totalQty=lots.reduce((s,l)=>s+l.qty,0);
+  const totalCost=lots.reduce((s,l)=>s+l.price*l.qty,0);
+  return{avgPrice:totalCost/totalQty,totalQty,totalCost};
+}
+
+// ── 編輯持倉 ─────────────────────────────────────────────
+function openEdit(id){
+  const p=S.positions.find(x=>x.id===id);if(!p)return;
+  document.getElementById('e-id').value=id;
+  document.getElementById('e-name').value=p.name;
+  document.getElementById('e-date').value=p.date||'';
+  document.getElementById('e-cur').value=p.cur||'';
+  document.getElementById('e-code').value=p.code||'';
+  document.getElementById('e-acct').value=p.acct||'華南';
+  document.getElementById('e-strat').value=p.strat||'自己挑股票';
+  document.getElementById('e-wind').value=p.wind||'強風';
+  document.getElementById('e-stop').value=p.stop||'';
+  document.getElementById('e-note').value=p.memo||'';
+  document.getElementById('e-add-date').value=new Date().toISOString().split('T')[0];
+  // lots相容舊資料
+  if(!p.lots||!p.lots.length){
+    p.lots=[{price:p.buy||0,qty:p.qty||0,date:p.date||''}];
+  }
+  renderEditLots(p.lots);
+  document.getElementById('edit-modal').classList.remove('hidden');
+}
+function renderEditLots(lots){
+  const {avgPrice,totalQty,totalCost}=calcAvg(lots);
+  document.getElementById('e-lots-list').innerHTML=lots.map((l,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bdr);font-size:13px">
+      <span style="color:var(--txt2);flex:1">${l.date||'-'} · ${l.qty.toLocaleString()}股 @ $${l.price}</span>
+      <span style="color:var(--txt3);font-size:11px">小計：${(l.price*l.qty).toLocaleString()}</span>
+      <button class="btn sm danger" onclick="removeLot(${i})" style="padding:3px 8px">✕</button>
+    </div>`).join('');
+  document.getElementById('e-avg-display').innerHTML=
+    `<div style="color:var(--txt2)">共 <strong style="color:var(--txt)">${totalQty.toLocaleString()}股</strong>　平均成本 <strong style="color:var(--sf)">$${avgPrice.toFixed(1)}</strong>　總投入 <strong style="color:var(--txt)">${Math.round(totalCost).toLocaleString()}</strong></div>`;
+}
+function addLot(){
+  const id=parseInt(document.getElementById('e-id').value);
+  const p=S.positions.find(x=>x.id===id);if(!p)return;
+  const price=parseFloat(document.getElementById('e-add-price').value);
+  const qty=parseInt(document.getElementById('e-add-qty').value);
+  const date=document.getElementById('e-add-date').value;
+  if(!price||!qty){alert('請填入加碼價格和股數');return;}
+  if(!p.lots)p.lots=[{price:p.buy||0,qty:p.qty||0,date:p.date||''}];
+  p.lots.push({price,qty,date});
+  document.getElementById('e-add-price').value='';
+  document.getElementById('e-add-qty').value='';
+  renderEditLots(p.lots);
+}
+function removeLot(idx){
+  const id=parseInt(document.getElementById('e-id').value);
+  const p=S.positions.find(x=>x.id===id);if(!p||!p.lots)return;
+  if(p.lots.length<=1){alert('至少保留一筆買入紀錄');return;}
+  p.lots.splice(idx,1);
+  renderEditLots(p.lots);
+}
+function saveEdit(){
+  const id=parseInt(document.getElementById('e-id').value);
+  const p=S.positions.find(x=>x.id===id);if(!p)return;
+  p.name=document.getElementById('e-name').value.trim()||p.name;
+  p.date=document.getElementById('e-date').value||p.date;
+  p.cur=parseFloat(document.getElementById('e-cur').value)||p.cur;
+  p.code=document.getElementById('e-code').value.trim();
+  p.acct=document.getElementById('e-acct').value;
+  p.strat=document.getElementById('e-strat').value;
+  p.wind=document.getElementById('e-wind').value;
+  p.stop=document.getElementById('e-stop').value.trim();
+  p.memo=document.getElementById('e-note').value.trim();
+  const {avgPrice,totalQty}=calcAvg(p.lots);
+  p.buy=avgPrice;p.qty=totalQty; // 用平均成本更新
+  closeModal('edit-modal');save();renderPositions();renderStats();renderAlerts();calcWater();
+}
+
+// ── 候選清單 ─────────────────────────────────────────────
+function openAddPlan(){document.getElementById('plan-modal').classList.remove('hidden');}
+function addPlan(){
+  const name=document.getElementById('pl-name').value.trim();
+  if(!name){alert('請填入股票名稱');return;}
+  if(!S.plans)S.plans=[];
+  S.plans.push({id:Date.now(),name,
+    price:document.getElementById('pl-price').value,
+    strat:document.getElementById('pl-strat').value,
+    basis:document.getElementById('pl-basis').value.trim(),
+    entry:document.getElementById('pl-entry').value.trim(),
+    stop:document.getElementById('pl-stop').value.trim(),
+    date:new Date().toLocaleDateString('zh-TW')});
+  ['pl-name','pl-price','pl-basis','pl-entry','pl-stop'].forEach(id=>document.getElementById(id).value='');
+  closeModal('plan-modal');save();renderPlans();renderStats();
+}
+function deletePlan(id){
+  if(!confirm('確認刪除？'))return;
+  S.plans=S.plans.filter(p=>p.id!==id);
+  save();renderPlans();renderStats();
+}
+function movePlanToPos(id){
+  const p=S.plans.find(x=>x.id===id);if(!p)return;
+  document.getElementById('p-name').value=p.name;
+  if(p.price)document.getElementById('p-buy').value=p.price;
+  document.getElementById('p-stop-sel').value=p.stop||'跌破五日線';
+  openAddPos();
+}
+function renderPlans(){
+  const el=document.getElementById('plans-list');
+  if(!el)return;
+  if(!S.plans||!S.plans.length){el.innerHTML='<div class="empty">尚無候選，先把想買的記在這裡</div>';return;}
+  const ok=S.wind==='強風'||S.wind==='陣風';
+  el.innerHTML=S.plans.map(p=>`
+    <div class="pos-item">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px">
+        <div>
+          <div class="pos-name">${p.name}${p.price?' @ '+p.price:''}</div>
+          <div class="pos-sub">${p.strat}</div>
+          <div class="tags" style="margin-top:5px">
+            <span class="tag ${ok?'grn':'nwt'}">${ok?'風度可進場':'風度偏弱'}</span>
+          </div>
+        </div>
+        <button class="btn sm danger" onclick="deletePlan(${p.id})">刪除</button>
+      </div>
+      <div style="font-size:13px;color:var(--txt2);line-height:1.65">
+        ${p.basis?'依據：'+p.basis+'<br>':''}
+        ${p.entry?'進場：'+p.entry+'<br>':''}
+        ${p.stop?'停損：'+p.stop:''}
+      </div>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn sm primary" onclick="movePlanToPos(${p.id})">已買進 → 轉持倉</button>
+      </div>
+    </div>`).join('');
+}
+
+// ── 自動抓收盤價 ─────────────────────────────────────────
+async function fetchClosePrice(id){
+  const p=S.positions.find(x=>x.id===id);if(!p||!p.code)return;
+  try{
+    const url=`https://query1.finance.yahoo.com/v8/finance/chart/${p.code}.TW?interval=1d&range=1d`;
+    const r=await fetch(url);const data=await r.json();
+    const price=data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+    if(price){p.cur=price;save();renderPositions();renderStats();renderAlerts();calcWater();}
+    else alert('找不到股價，請確認代號正確');
+  }catch(e){alert('無法抓取股價，請手動更新');}
+}
+async function fetchAllPrices(){
+  const withCode=S.positions.filter(p=>p.code);
+  if(!withCode.length){alert('請先在持倉編輯裡填入股票代號');return;}
+  for(const p of withCode)await fetchClosePrice(p.id);
+}
+
+// ── 賣出功能 ─────────────────────────────────────────────
+function openSell(id){
+  const p=S.positions.find(x=>x.id===id);if(!p)return;
+  const {avgPrice,totalQty}=calcAvg(p.lots||[{price:p.buy,qty:p.qty,date:p.date}]);
+  document.getElementById('sell-id').value=id;
+  document.getElementById('sell-date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('sell-price').value='';
+  document.getElementById('sell-qty').value='';
+  document.getElementById('sell-note').value='';
+  document.getElementById('sell-preview').style.display='none';
+  document.getElementById('sell-pos-info').innerHTML=
+    `<strong style="color:var(--txt);font-size:14px">${p.name}</strong>　${p.acct}　${p.strat}<br>
+     買入均價 <strong style="color:var(--sf)">$${avgPrice.toFixed(1)}</strong>　持有 <strong>${totalQty.toLocaleString()}股</strong>　現價 <strong style="color:${p.cur>=avgPrice?'var(--sf)':'var(--nw)'}">${p.cur}</strong>　
+     帳面 <strong style="color:${p.cur>=avgPrice?'var(--sf)':'var(--nw)'}">${((p.cur-avgPrice)/avgPrice*100).toFixed(1)}%</strong>`;
+  document.getElementById('sell-modal').classList.remove('hidden');
+}
+function updateSellPreview(){
+  const id=parseInt(document.getElementById('sell-id').value);
+  const p=S.positions.find(x=>x.id===id);if(!p)return;
+  const sellPrice=parseFloat(document.getElementById('sell-price').value);if(!sellPrice)return;
+  const {avgPrice,totalQty}=calcAvg(p.lots||[{price:p.buy,qty:p.qty,date:p.date}]);
+  const sellQtyInput=parseInt(document.getElementById('sell-qty').value)||totalQty;
+  const sellQty=Math.min(sellQtyInput,totalQty);
+  const cost=avgPrice*sellQty*1.001425; // 買入含手續費
+  const revenue=sellPrice*sellQty*(1-0.001425-0.003); // 賣出扣手續費+交易稅
+  const pnl=revenue-cost;
+  const pct=(sellPrice-avgPrice)/avgPrice*100;
+  const prev=document.getElementById('sell-preview');
+  prev.style.display='block';
+  prev.innerHTML=`賣出 <strong style="color:var(--txt)">${sellQty.toLocaleString()}股</strong> @ <strong style="color:var(--sf)">$${sellPrice}</strong><br>
+    買入成本（含稅）<strong>${Math.round(cost).toLocaleString()}</strong><br>
+    賣出所得（扣稅費）<strong>${Math.round(revenue).toLocaleString()}</strong><br>
+    <strong style="font-size:15px;color:${pnl>=0?'var(--sf)':'var(--nw)'}">已實現損益：${pnl>=0?'+':''}${Math.round(pnl).toLocaleString()} 元（${pct.toFixed(1)}%）</strong>`;
+}
+function confirmSell(){
+  const id=parseInt(document.getElementById('sell-id').value);
+  const p=S.positions.find(x=>x.id===id);if(!p)return;
+  const sellPrice=parseFloat(document.getElementById('sell-price').value);
+  if(!sellPrice){alert('請填入賣出價格');return;}
+  const {avgPrice,totalQty}=calcAvg(p.lots||[{price:p.buy,qty:p.qty,date:p.date}]);
+  const sellQtyInput=parseInt(document.getElementById('sell-qty').value)||totalQty;
+  const sellQty=Math.min(sellQtyInput,totalQty);
+  const cost=avgPrice*sellQty*1.001425;
+  const revenue=sellPrice*sellQty*(1-0.001425-0.003);
+  const pnl=Math.round(revenue-cost);
+  const pct=(sellPrice-avgPrice)/avgPrice*100;
+  const sellDate=document.getElementById('sell-date').value||new Date().toISOString().split('T')[0];
+  // 加到歷史
+  if(!S.history)S.history=[];
+  S.history.unshift({
+    id:Date.now(),name:p.name,code:p.code||'',acct:p.acct,strat:p.strat,
+    buyPrice:avgPrice,buyDate:p.date||'',buyWind:p.wind||'',
+    sellPrice,sellDate,sellQty,
+    cost:Math.round(cost),revenue:Math.round(revenue),
+    pnl,pct:parseFloat(pct.toFixed(1)),
+    reason:document.getElementById('sell-reason').value,
+    note:document.getElementById('sell-note').value.trim()
+  });
+  // 部分賣出 or 全部賣出
+  if(sellQty<totalQty){
+    // 部分賣出：從lots扣除
+    let remain=sellQty;
+    const newLots=[];
+    for(const l of [...p.lots].reverse()){
+      if(remain<=0){newLots.unshift(l);continue;}
+      if(l.qty<=remain){remain-=l.qty;}
+      else{newLots.unshift({...l,qty:l.qty-remain});remain=0;}
+    }
+    p.lots=newLots;
+    const r=calcAvg(p.lots);p.buy=r.avgPrice;p.qty=r.totalQty;
+  } else {
+    S.positions=S.positions.filter(x=>x.id!==id);
+  }
+  closeModal('sell-modal');save();
+  renderPositions();renderStats();renderAlerts();calcWater();renderHistory();
+  alert(`✅ 賣出完成！損益：${pnl>=0?'+':''}${pnl.toLocaleString()} 元`);
+}
+
+// ── 歷史記錄 & 績效 ──────────────────────────────────────
+let histFilter='all';
+function setHistFilter(f){
+  histFilter=f;
+  ['all','win','loss','hn','kg'].forEach(x=>{
+    const b=document.getElementById('hf-'+x);
+    if(!b)return;
+    b.style.background=x===f?'var(--grn)':'';
+    b.style.color=x===f?'#000':'';
+    b.style.borderColor=x===f?'var(--grn)':'';
+  });
+  renderHistory();
+}
+function renderHistory(){
+  if(!S.history)S.history=[];
+  const hist=S.history;
+  // 績效統計
+  const perfEl=document.getElementById('perf-cards');
+  if(perfEl){
+    const wins=hist.filter(h=>h.pnl>0),losses=hist.filter(h=>h.pnl<=0);
+    const totalPnl=hist.reduce((s,h)=>s+h.pnl,0);
+    const winRate=hist.length?Math.round(wins.length/hist.length*100):0;
+    const avgWin=wins.length?Math.round(wins.reduce((s,h)=>s+h.pnl,0)/wins.length):0;
+    const avgLoss=losses.length?Math.round(losses.reduce((s,h)=>s+h.pnl,0)/losses.length):0;
+    perfEl.innerHTML=`
+      <div class="metric-row" style="grid-template-columns:repeat(4,1fr)">
+        <div class="metric"><div class="val" style="font-size:17px;color:${totalPnl>=0?'var(--sf)':'var(--nw)'}">${totalPnl>=0?'+':''}${Math.round(totalPnl/1000)}K</div><div class="lbl">總損益</div></div>
+        <div class="metric"><div class="val" style="font-size:17px;color:${winRate>=50?'var(--sf)':'var(--nw)'}">${winRate}%</div><div class="lbl">勝率(${hist.length}筆)</div></div>
+        <div class="metric"><div class="val" style="font-size:17px;color:var(--sf)">+${Math.round(avgWin/1000)}K</div><div class="lbl">平均獲利</div></div>
+        <div class="metric"><div class="val" style="font-size:17px;color:var(--nw)">${Math.round(avgLoss/1000)}K</div><div class="lbl">平均虧損</div></div>
+      </div>
+      ${hist.length?`<div style="font-size:11px;color:var(--txt3);text-align:right;margin-top:-4px;margin-bottom:8px">共${hist.length}筆　勝${wins.length}負${losses.length}</div>`:''}`;
+  }
+  // 篩選
+  let list=hist;
+  if(histFilter==='win')list=hist.filter(h=>h.pnl>0);
+  else if(histFilter==='loss')list=hist.filter(h=>h.pnl<=0);
+  else if(histFilter==='hn')list=hist.filter(h=>h.acct==='華南');
+  else if(histFilter==='kg')list=hist.filter(h=>h.acct==='凱基');
+  const el=document.getElementById('history-list');
+  if(!el)return;
+  if(!list.length){el.innerHTML='<div class="empty">尚無歷史記錄<br>賣出持倉後會自動出現在這裡</div>';return;}
+  el.innerHTML=list.map(h=>{
+    const pos=h.pnl>0;
+    return `<div class="pos-item">
+      <div class="pos-top">
+        <div>
+          <div class="pos-name">${h.name}${h.code?' ('+h.code+')':''}</div>
+          <div class="pos-sub">${h.buyDate}→${h.sellDate} · <span class="tag ${h.acct==='華南'?'blu':'amb'}" style="font-size:10px;padding:1px 7px">${h.acct}</span><br>${h.strat} · 買入${h.buyWind||'—'}</div>
+        </div>
+        <div class="pos-pnl">
+          <div class="pct" style="color:${pos?'var(--sf)':'var(--nw)'}">${pos?'+':''}${h.pct}%</div>
+          <div class="abs" style="color:${pos?'var(--sf)':'var(--nw)'};font-size:13px;font-weight:600">${pos?'+':''}${h.pnl.toLocaleString()}</div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--txt2);margin-top:2px">
+        買入均價 $${h.buyPrice.toFixed(1)}　賣出 $${h.sellPrice}　${h.sellQty.toLocaleString()}股<br>
+        原因：${h.reason}${h.note?' · '+h.note:''}
+      </div>
+      <div class="tags" style="margin-top:6px">
+        <span class="tag ${pos?'grn':'nwt'}">${pos?'獲利':'虧損'}</span>
+        <span class="tag gray">${h.strat.replace('型','').replace('強勢日','強勢').replace('廉價收購','廉價')}</span>
+      </div>
+      <div class="btn-row">
+        <button class="btn sm danger" onclick="deleteHistory(${h.id})">刪除紀錄</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function deleteHistory(id){
+  if(!confirm('確認刪除這筆歷史？'))return;
+  S.history=S.history.filter(h=>h.id!==id);
+  save();renderHistory();
+}
+
+
+function updatePrice(id){
+  const p=S.positions.find(x=>x.id===id);if(!p)return;
+  const v=prompt('輸入最新價格',p.cur);
+  if(v&&!isNaN(v)){p.cur=parseFloat(v);save();renderPositions();renderStats();renderAlerts();calcWater();}
+}
+
+function getHints(p,pct){
+  const h=[];
+  if(S.wind==='無風')h.push({c:'red',t:'無風：考慮縮部位'});
+  if(pct<=-5)h.push({c:'red',t:`虧${Math.abs(pct).toFixed(1)}% 確認停損!`});
+  if(pct>=10)h.push({c:'grn',t:'獲利≥10% 停利保護'}); // 停利=紅底(grn在台股習慣是紅)
+  // 獲利>20%不顯示停損提示，停損=綠底
+  if(p.stop&&pct<20)h.push({c:'nwt',t:'停損：'+p.stop});
+  if(p.batch)h.push({c:'amb',t:p.batch});
+  if(p.wind==='無風')h.push({c:'red',t:'⚠ 無風時買入'});
+  return h;
+}
+
+function closeCheckMsg(p){
+  const pct=(p.cur-p.buy)/p.buy*100;const s=p.strat;const msgs=[];
+  if(pct<=-5)msgs.push('🚨 虧損已達 -5%，策略建議直接出場！');
+  if(s.includes('打工')||s.includes('上班族')){
+    msgs.push('確認今天有無跌破當天買進的紅K？');
+    if(pct>=10)msgs.push('獲利≥10%！確認當週五是否低於上週五。');
+  }
+  if(s.includes('老闆')){
+    msgs.push('確認月MACD柱趨勢，縮短則考慮減倉。');
+    if(pct>=10)msgs.push('獲利≥10%！確認週MACD柱是否開始縮短。');
+  }
+  if(S.wind==='無風'||S.wind==='陣風')msgs.push(`目前${S.wind}，漲勢不易延續，可考慮提早出場。`);
+  return msgs;
+}
+
+function renderPositions(){
+  const el=document.getElementById('positions-list');
+  if(!S.positions.length){el.innerHTML='<div class="empty">尚無持倉，點下方按鈕新增</div>';return;}
+
+  // 先計算每筆平均成本
+  S.positions.forEach(p=>{
+    if(!p.lots||!p.lots.length)p.lots=[{price:p.buy||0,qty:p.qty||0,date:p.date||''}];
+    const {avgPrice,totalQty}=calcAvg(p.lots);
+    p.buy=avgPrice;p.qty=totalQty;
+  });
+
+  let html=`<button class="btn sm" style="margin-bottom:10px;width:100%" onclick="fetchAllPrices()">📡 一鍵更新所有股價</button>`;
+
+  // 表格
+  html+=`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+  <table class="pos-table">
+    <thead><tr>
+      <th>代號<br>名稱</th>
+      <th>買入日<br>買入價</th>
+      <th>即時<br>價位</th>
+      <th>股數</th>
+      <th>策略<br>條件</th>
+      <th>成本<br>(含稅)</th>
+      <th>損益</th>
+      <th></th>
+    </tr></thead>
+    <tbody>`;
+
+  html+=S.positions.map(p=>{
+    const {avgPrice,totalQty}=calcAvg(p.lots);
+    const tax=Math.round(avgPrice*totalQty*1.001425); // 含手續費0.1425%
+    const pnl=(p.cur-avgPrice)*totalQty,pct=(p.cur-avgPrice)/avgPrice*100,pos=pnl>=0;
+    const needsWarn=pct<=-5||(S.wind==='無風');
+    const stratShort=(p.strat||'').replace('型','').replace('強勢日','強勢').replace('日拉回','拉回').replace('廉價收購','廉價').replace('週拉回','週拉');
+    return `<tr onclick="openEdit(${p.id})" style="cursor:pointer">
+      <td>
+        <div class="pos-code">${p.code||'—'}</div>
+        <div class="pos-tname">${p.name}</div>
+        ${needsWarn?`<div style="font-size:10px;color:var(--sf);margin-top:2px">${pct<=-5?'⚠停損!':'⚠無風'}</div>`:''}
+      </td>
+      <td>
+        <div style="font-size:11px;color:var(--txt3)">${p.date||'—'}</div>
+        <div style="font-size:12px;color:var(--txt)">$${avgPrice.toFixed(0)}</div>
+      </td>
+      <td><div class="${pos?'pos-price-up':'pos-price-dn'}">$${p.cur}</div></td>
+      <td style="font-size:12px">${totalQty.toLocaleString()}</td>
+      <td class="pos-strat-cell">${stratShort}${p.timing?'<br><span style="color:var(--txt3)">'+p.timing+'</span>':''}</td>
+      <td style="font-size:12px;color:var(--txt)">${tax.toLocaleString()}</td>
+      <td>
+        <div class="${pos?'pos-pnl-up':'pos-pnl-dn'}">${pos?'+':''}${Math.round(pnl).toLocaleString()}</div>
+        <div style="font-size:11px;color:${pos?'var(--sf)':'var(--nw)'};">${pos?'+':''}${pct.toFixed(1)}%</div>
+      </td>
+      <td>
+        <button class="btn sm primary" onclick="event.stopPropagation();openSell(${p.id})" style="padding:4px 8px;margin-bottom:3px;width:100%">賣出</button>
+        <button class="btn sm danger" onclick="event.stopPropagation();deletePosition(${p.id})" style="padding:4px 8px;width:100%">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  html+=`</tbody></table></div>`;
+
+  // 加碼/警示區塊
+  S.positions.forEach(p=>{
+    const pct=(p.cur-p.buy)/p.buy*100;
+    const warnMsgs=closeCheckMsg(p);
+    if((pct<=-5||pct>=10)&&warnMsgs.length){
+      html+=`<div class="close-warn" style="margin-bottom:6px">⚡ ${p.name}：${warnMsgs[0]}</div>`;
+    }
+  });
+
+  el.innerHTML=html;
+}
+
+// ── 13:25提醒 ────────────────────────────────────────────
+function checkCloseTime(){
+  const now=new Date();const h=now.getHours(),m=now.getMinutes();
+  const wd=now.getDay();
+  if(wd>=1&&wd<=5&&h===13&&m===25&&S.positions.length){showCloseReminder();}
+}
+function showCloseReminder(){
+  const el=document.getElementById('close-check-list');
+  el.innerHTML=S.positions.map(p=>{
+    const pct=(p.cur-p.buy)/p.buy*100;
+    const msgs=closeCheckMsg(p);
+    return `<div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:9px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:7px">${p.name} · ${(pct>=0?'+':'')+pct.toFixed(1)}% · ${p.strat}</div>
+      ${msgs.map(m=>`<div style="font-size:13px;color:var(--txt2);padding:2px 0">• ${m}</div>`).join('')}
+      <div style="display:flex;gap:6px;margin-top:9px">
+        <input type="number" placeholder="現價" id="cr-${p.id}" style="flex:1;font-size:14px;padding:8px;border-radius:8px;background:var(--bg2);border:1px solid var(--bdr2);color:var(--txt)">
+        <button class="btn sm primary" onclick="updateFromClose(${p.id})">更新</button>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('close-modal').classList.remove('hidden');
+}
+function updateFromClose(id){
+  const v=parseFloat(document.getElementById('cr-'+id)?.value);
+  if(!v||isNaN(v))return;
+  const p=S.positions.find(x=>x.id===id);if(!p)return;
+  p.cur=v;save();renderPositions();renderStats();renderAlerts();calcWater();
+}
+setInterval(checkCloseTime,60000);
+
+// ── 提醒 & 統計 ──────────────────────────────────────────
+function renderAlerts(){
+  const el=document.getElementById('alerts-container');const a=[];
+  if(S.wind==='無風')a.push({c:'danger',t:'無風：暫停買進，現有部位積極設好停損。'});
+  if(S.wind==='陣風')a.push({c:'warn',t:'陣風：謹慎試單，不要追高。'});
+  S.positions.forEach(p=>{
+    const pct=(p.cur-p.buy)/p.buy*100;
+    if(pct<=-5)a.push({c:'nw',t:`${p.name} 虧損${Math.abs(pct).toFixed(1)}%，確認停損！`});
+    if(pct>=10)a.push({c:'sf',t:`${p.name} 獲利${pct.toFixed(1)}%，進入停利保護。`});
+    if(p.wind==='無風')a.push({c:'warn',t:`${p.name} 當時無風買入，特別注意。`});
+  });
+  if(!a.length){el.innerHTML='<div class="empty">今日無特別提醒 🎉</div>';return;}
+  el.innerHTML=a.map(x=>`<div class="alert ${x.c}">${x.t}</div>`).join('');
+}
+function renderStats(){
+  document.getElementById('m-pos').textContent=S.positions.length;
+  document.getElementById('m-plans').textContent=S.plans?S.plans.length:0;
+  const pnl=S.positions.reduce((s,p)=>s+(p.cur-p.buy)*p.qty,0);
+  const el=document.getElementById('m-pnl');
+  el.textContent=(pnl>=0?'+':'')+Math.round(pnl).toLocaleString();
+  el.style.color=pnl>=0?'var(--sf)':'var(--nw)';
+}
+
+// ── 水位 ────────────────────────────────────────────────
+function calcWater(){
+  const hn=parseFloat(document.getElementById('w-hn').value)||S.water.hn||0;
+  const kg=parseFloat(document.getElementById('w-kg').value)||S.water.kg||0;
+  S.water={hn,kg};save();
+  const total=hn+kg;
+  const invested=S.positions.reduce((s,p)=>s+p.buy*p.qty,0);
+  const pill=document.getElementById('header-water');
+  if(!total){pill.textContent='—%';document.getElementById('gauge-pct').textContent='—';document.getElementById('gauge-hint').textContent='請先設定帳戶資金';return;}
+  const pct=Math.min(Math.round(invested/total*100),999);
+  pill.textContent=pct+'%';
+  const wp=document.getElementById('water-pill');
+  wp.style.color=pct>80?'var(--sf)':pct>60?'var(--gf)':pct>40?'var(--lt)':'var(--nw)';
+  document.getElementById('gauge-pct').textContent=pct+'%';
+  document.getElementById('gauge-bar').style.width=Math.min(pct,100)+'%';
+  const lim=WCFG[S.wind].lim;
+  const bar=document.getElementById('gauge-bar');
+  let hint='';
+  if(pct>lim){bar.style.background='var(--nw)';hint=`⚠️ ${S.wind}建議上限${lim}%，目前超過，考慮減倉。`;}
+  else if(pct>lim*0.85){bar.style.background='var(--gf)';hint=`接近${S.wind}建議上限（${lim}%），謹慎補倉。`;}
+  else{bar.style.background='var(--sf)';hint=`水位健康。${S.wind}建議上限${lim}%，距上限還有${lim-pct}%。`;}
+  document.getElementById('gauge-hint').textContent=hint;
+}
+
+// ── 策略分頁 ─────────────────────────────────────────────
+const STRAT_DEF={
+  '上班族強勢週':{emoji:'📅',sub:'成值40%、營收60%｜週期：數週～月',
+    key:'買在日線起點（日MACD翻紅第1-2根）。越晚參與成本風險越高。',
+    buy:['確認日MACD、週MACD趨勢往上','10點以後找買點，或尾盤1點後（13:25掛最後一盤）','不要追漲，不要一開盤衝進'],
+    sell_b:['跌破當天買進的紅K','虧損達 -5% 就走','三天不漲就走（不用均線停損）'],
+    sell_a:['快跌回+10%→一律賺錢先賣','當週價格未再創新高','當週五尾盤低於上週五','跌破五日線'],
+    warn:'賣飛是必然的！賣出就找下一檔，不要想著買回來。'},
+  '上班族週趨勢':{emoji:'📈',sub:'成值40%、營收60%｜週期：數週～月，不看盤',
+    key:'買在週線起點（週MACD翻紅第1-2週）。',
+    buy:['確認週MACD在上漲趨勢','尾盤1點後買進，或當天尾盤是下跌的','靠近五日線買','不要看到大漲追進，不要一開盤衝'],
+    sell_b:['週MACD柱往下走（縮短）','週五收盤低於上週五','跌破週線五日線'],
+    sell_a:['快跌回+10%→賺錢先賣','當週價格未再創新高','當週五尾盤低於上週五','跌破自己設定的均線'],
+    warn:'加碼：週趨勢往上時，日線拉回5/10日線都可加碼。'},
+  '打工型強勢日':{emoji:'⚡',sub:'成值80%、營收20%｜週期：日',
+    key:'敢買敢賣，買高賣更高。金流最重要，確認成值在前十。',
+    buy:['確認離起漲點多遠（越遠波動越大）','10點以後再買，不要一開盤衝','看到就買，選一個你買得下去的地方','不要追漲，確認MACD往上'],
+    sell_b:['跌破當天買進的紅K','虧損達-5%就走','3天不漲且未達+5%就走','不要用均線設停損（追高後均線太遠）'],
+    sell_a:['快跌回+10%→一律賺錢先賣','當週五尾盤低於上週五','收盤跌破五日線'],
+    warn:'賠錢的源頭都是怕錯過！不確定就試單。不確定感是好事，猶豫才是最佳時機。'},
+  '打工型日拉回':{emoji:'↩️',sub:'成值80%、營收20%｜週期：日',
+    key:'飆股一定會休息拉回，等拉回再進。',
+    buy:['確認離起漲點遠不遠','10點以後買，不要一開盤衝','選一個你買得下去的位置進'],
+    sell_b:['跌破當天買進的紅K','虧損達-5%就走','3天不漲且未達+5%就走'],
+    sell_a:['快跌回+10%→賺錢先賣','當週五尾盤低於上週五','收盤跌破五日線'],
+    warn:'照策略做，不要用漲跌判斷對不對。'},
+  '老闆型廉價收購':{emoji:'🏢',sub:'成值20%、營收80%｜週期：數月',
+    key:'趁強勢股休息的階段布局，期望它再繼續強勢。分批是降低害怕的心態。',
+    buy:['設定一個持續買入的區間（用時間換空間）','分批建立成本（強風3-5批，陣風5-10批，無風10-15批）','尾盤12點後買進，或盤中看到大跌-5%以上','不要妄想第一筆買到最低點'],
+    sell_b:['跌破自己設定的均線','月MACD柱縮短（月底確認）'],
+    sell_a:['快跌回+10%→賺錢先賣','當週五尾盤低於上週五','週or月MACD柱往下'],
+    warn:'月底確認月MACD是否縮短。沒耐心不要做老闆型。'},
+  '老闆型週拉回':{emoji:'🏢',sub:'成值20%、營收80%｜週期：數週～數月',
+    key:'月線上揚但日線拉回才進。分批建立好的成本是關鍵。',
+    buy:['月線上揚但日線拉回才考慮進','分批建立成本（風度越差分越多筆）','尾盤12點後買進，或盤中大跌-5%以上'],
+    sell_b:['跌破設定的均線','週MACD柱往下'],
+    sell_a:['快跌回+10%→賺錢先賣','當週五尾盤低於上週五','當週or月MACD柱往下'],
+    warn:'強風3-5批，循環交界5-10批，陣風無風10-15批。'},
+  '自己挑股票':{emoji:'🎯',sub:'依個人判斷',
+    key:'根據你的歷史，這是勝率最高的模式（52%，平均+8,954）。',
+    buy:['確認當前風度（強風或陣風才積極）','確認營收YoY>30%，創高優先','成值排名前三優先','確認MACD方向往上'],
+    sell_b:['跌破五日線','虧損達-5%考慮出場'],
+    sell_a:['獲利>10%後跌破五/十日線出','風度轉差先縮部位'],
+    warn:'最大違紀：無風買入（5筆全賠）。保持紀律！'},
+  '配股':{emoji:'🎁',sub:'配股入帳',
+    key:'配股成本為零，計算損益時注意加回原持倉成本。',
+    buy:['確認配股入帳','確認持股成本'],
+    sell_b:['依原持倉策略'],sell_a:['依原持倉策略'],warn:''},
+};
+
+function toggleStrat(i){
+  const b=document.getElementById('sb-'+i),a=document.getElementById('sa-'+i);
+  b.classList.toggle('open');a.classList.toggle('open');
+}
+function togglePN(k){
+  const b=document.getElementById('pn-'+k),a=document.getElementById('pna-'+k);
+  b.classList.toggle('open');a.classList.toggle('open');
+}
+function addStratNote(k){
+  const inp=document.getElementById('pni-'+k);const t=inp.value.trim();if(!t)return;
+  if(!S.stratNotes[k])S.stratNotes[k]=[];
+  S.stratNotes[k].unshift({id:Date.now(),text:t,date:new Date().toLocaleDateString('zh-TW')});
+  if(S.stratNotes[k].length>10)S.stratNotes[k]=S.stratNotes[k].slice(0,10);
+  inp.value='';save();renderStrat();
+  setTimeout(()=>{
+    const b=document.getElementById('pn-'+k),a=document.getElementById('pna-'+k);
+    if(b)b.classList.add('open');if(a)a.classList.add('open');
+  },30);
+}
+function renderStrat(){
+  const wn={'強風':'目前強風：打工型、上班族強勢週最適合積極操作','陣風':'目前陣風：謹慎試單，老闆型可小量布局','亂流':'目前亂流：嚴守停損，賣飛是必然的，找下一檔','無風':'目前無風：所有策略暫停新增，老闆型極小量分批'}[S.wind];
+  const wc={'強風':'sf','陣風':'gf','亂流':'lt','無風':'nw'}[S.wind];
+  document.getElementById('strat-wind-note').className='alert '+wc;
+  document.getElementById('strat-wind-note').textContent=wn;
+  const el=document.getElementById('strat-content');
+  el.innerHTML=Object.keys(STRAT_DEF).map((k,i)=>{
+    const d=STRAT_DEF[k];const ns=S.stratNotes[k]||[];
+    return `<div class="strat-block">
+      <div class="strat-header" onclick="toggleStrat(${i})">
+        <div class="strat-hL"><span class="strat-emoji">${d.emoji}</span>
+        <div><div class="strat-name">${k}</div><div class="strat-sub">${d.sub}</div></div></div>
+        <span class="strat-arr" id="sa-${i}">›</span>
+      </div>
+      <div class="strat-body" id="sb-${i}">
+        <div class="sk">🎯 ${d.key}</div>
+        <div class="sl">買入條件</div>
+        ${d.buy.map(t=>`<div class="sr"><span class="si">▶</span><span>${t}</span></div>`).join('')}
+        <div class="sl">賣出 — 獲利 &lt; 10%</div>
+        ${d.sell_b.map(t=>`<div class="sr"><span class="si">✂</span><span>${t}</span></div>`).join('')}
+        <div class="sl">停利 — 獲利 ≥ 10%</div>
+        ${d.sell_a.map(t=>`<div class="sr"><span class="si">💰</span><span>${t}</span></div>`).join('')}
+        ${d.warn?`<div class="sw">⚠️ ${d.warn}</div>`:''}
+        <div class="nt" onclick="togglePN('${k}')">
+          <span class="nta" id="pna-${k}">›</span>
+          <span>我的筆記（${ns.length}則）</span>
+        </div>
+        <div class="pna" id="pn-${k}">
+          <div style="display:flex;gap:6px;margin-bottom:7px">
+            <input type="text" id="pni-${k}" placeholder="新增筆記…" style="flex:1;font-size:13px;padding:8px 10px;border-radius:8px;background:var(--bg2);border:1px solid var(--bdr2);color:var(--txt)">
+            <button class="btn sm primary" onclick="addStratNote('${k}')">+</button>
+          </div>
+          ${ns.length?ns.map(n=>`<div class="pni"><span style="color:var(--txt3);font-size:11px">${n.date}  </span>${n.text}</div>`).join(''):'<div style="font-size:12px;color:var(--txt3)">尚無筆記</div>'}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── 快速筆記 ─────────────────────────────────────────────
+function saveNote(){
+  const t=document.getElementById('note-input').value.trim();if(!t)return;
+  S.notes.unshift({id:Date.now(),text:t,date:new Date().toLocaleDateString('zh-TW')+' '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})});
+  if(S.notes.length>30)S.notes=S.notes.slice(0,30);
+  document.getElementById('note-input').value='';save();renderNotes();
+}
+let notesOpen=false;
+function toggleNotesHistory(){
+  notesOpen=!notesOpen;
+  document.getElementById('notes-history').classList.toggle('open',notesOpen);
+  document.getElementById('nha').style.transform=notesOpen?'rotate(90deg)':'';
+  renderNotes();
+}
+function renderNotes(){
+  const label=document.getElementById('nht-label');
+  label.textContent=`歷史筆記（${S.notes.length}則）`;
+  if(!notesOpen)return;
+  const el=document.getElementById('notes-history');
+  if(!S.notes.length){el.innerHTML='<div class="empty" style="padding:12px">尚無筆記</div>';return;}
+  el.innerHTML=S.notes.map(n=>`<div class="note-item"><div class="note-date">${n.date}</div>${n.text}</div>`).join('');
+}
+
+// ── AI顧問 ───────────────────────────────────────────────
+function quickAsk(q){document.getElementById('advisor-input').value=q;showTab('advisor',document.querySelectorAll('.tab-item')[4]);}
+function askPosition(id){
+  const p=S.positions.find(x=>x.id===id);if(!p)return;
+  const pct=((p.cur-p.buy)/p.buy*100).toFixed(1);
+  quickAsk(`我持有${p.name}（${p.acct}），策略${p.strat}，買入時${p.wind}，依據${p.basis}，停損${p.stop}，目前損益${pct}%，現在風度${S.wind}。根據放風箏策略應怎麼處理？`);
+}
+async function sendAdvisor(){
+  const q=document.getElementById('advisor-input').value.trim();if(!q)return;
+  const posStr=S.positions.length?S.positions.map(p=>`${p.name}(${p.acct},${p.strat},買入${p.wind},${((p.cur-p.buy)/p.buy*100).toFixed(1)}%,停損:${p.stop})`).join('、'):'無持倉';
+  const histEl=document.getElementById('advisor-history');
+  const mid='ai_'+Date.now();
+  histEl.insertAdjacentHTML('afterbegin',`<div class="ai-card" id="${mid}"><div class="ai-q">${q}</div><div class="ai-ans ai-loading"><span class="spinner"></span>分析中...</div></div>`);
+  document.getElementById('advisor-input').value='';
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      model:'claude-sonnet-4-20250514',max_tokens:1000,
+      system:`你是放風箏APP的AI交易顧問，繁體中文。風度順序：強風→陣風→亂流→無風。強風/亂流=月線以上，陣風/無風=以下。選股：YoY創高>200%>30%，搭配成值。無風不買新股。用戶最大違紀：無風買入5筆全賠。自己挑股票勝率最高（52%）。現狀：風度${S.wind}，持倉：${posStr}。給出清晰分點可立刻執行的建議。`,
+      messages:[{role:'user',content:q}]})});
+    const data=await resp.json();
+    document.querySelector(`#${mid} .ai-ans`).textContent=data.content?.[0]?.text||'無法取得回應';
+    document.querySelector(`#${mid} .ai-ans`).classList.remove('ai-loading');
+  }catch(e){
+    document.querySelector(`#${mid} .ai-ans`).textContent='連線錯誤，請稍後再試。';
+    document.querySelector(`#${mid} .ai-ans`).classList.remove('ai-loading');
+  }
+}
+
+// ── 初始化 ────────────────────────────────────────────────
+load();
+renderDate();
+setWind(S.wind);
+if(S.water.hn)document.getElementById('w-hn').value=S.water.hn;
+if(S.water.kg)document.getElementById('w-kg').value=S.water.kg;
+document.getElementById('e-add-date').value=new Date().toISOString().split('T')[0];
+renderStats();renderAlerts();renderNotes();renderPositions();renderPlans();renderStrat();calcWater();
+setWindView('d');renderHistory();
+updateStopOptions();
+// 開啟時自動從試算表同步風度（背景執行，不影響畫面）
+setTimeout(()=>syncSheet(),1000);
+</script>
+</body>
+</html>
