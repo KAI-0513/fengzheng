@@ -862,10 +862,10 @@ function renderWindStat(){
         <text x="${x}" y="${H-26}" text-anchor="middle" font-size="10" fill="${isWend?'#ffcc00':'#ccc'}">${wd}</text>
         <text x="${x}" y="${H-12}" text-anchor="middle" font-size="9" fill="#aaa">${yr}</text>`;
     } else {
-      // 年視圖：每個月的1號和15號都顯示
-      if(dd===1||dd===15){
-        return `<text x="${x}" y="${H-40}" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">${mo}/${dd}</text>
-          <text x="${x}" y="${H-26}" text-anchor="middle" font-size="10" fill="${isWend?'#ffcc00':'#ccc'}">${wd}</text>
+      // 年視圖：每7個資料點顯示一次，跳過週末
+      if(!isWend&&i%7===0){
+        return `<text x="${x}" y="${H-40}" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">${mo}/${String(dd).padStart(2,'0')}</text>
+          <text x="${x}" y="${H-26}" text-anchor="middle" font-size="10" fill="#ccc">${wd}</text>
           <text x="${x}" y="${H-12}" text-anchor="middle" font-size="9" fill="#aaa">${yr}</text>`;
       }
     }
