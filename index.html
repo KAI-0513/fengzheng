@@ -821,9 +821,9 @@ function renderWindStat(){
   const showKeys=validKeys; // 日和年都顯示全部，靠捲動看
   const WIND_Y={'強風':0,'陣風':1,'亂流':2,'無風':3};
   const dotSpacing=windView==='d'?28:14;
-  const PAD_T=10,PAD_B=96;
+  const PAD_T=10,PAD_B=70;
   const H=192;
-  const plotH=H-PAD_T-PAD_B; // 86px 給 4 條，日期完全在無風下方
+  const plotH=H-PAD_T-PAD_B; // 112px，日期貼近無風下方
   const rowH=plotH/3; // 3 段間距讓 index 0~3 的點等距分佈
 
   // mainSvg 的 x 座標從 0 開始（PAD_L 已移到 yAxisSvg）
