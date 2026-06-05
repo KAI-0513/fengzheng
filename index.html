@@ -463,7 +463,16 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
   </div>
 </div>
 
-<!-- WIND MODAL removed - wind is sync-only, no manual override -->
+<!-- WIND MODAL -->
+<div class="modal-overlay hidden" id="wind-modal" onclick="closeModal('wind-modal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">市場風度</div>
+    <div style="font-size:13px;color:var(--txt2);text-align:center;margin-bottom:14px;line-height:1.6">風度由試算表自動同步，無法手動修改</div>
+    <button class="btn" onclick="syncSheet()" id="sync-btn">📊 從試算表同步風度</button>
+    <button class="btn" style="margin-top:8px" onclick="closeModal('wind-modal')">關閉</button>
+  </div>
+</div>
 
 <!-- ADD POSITION MODAL -->
 <div class="modal-overlay hidden" id="pos-modal" onclick="closeModal('pos-modal')">
