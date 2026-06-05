@@ -1184,17 +1184,29 @@ function renderPlans(){
 async function fetchClosePrice(id){
   const p=S.positions.find(x=>x.id===id);if(!p||!p.code)return;
   try{
-    const url=`https://query1.finance.yahoo.com/v8/finance/chart/${p.code}.TW?interval=1d&range=1d`;
-    const r=await fetch(url);const data=await r.json();
+    const yahoo=`https://query1.finance.yahoo.com/v8/finance/chart/${p.code}.TW?interval=1d&range=1d`;
+    const proxy=`https://api.allorigins.win/get?url=${encodeURIComponent(yahoo)}`;
+    const r=await fetch(proxy);const outer=await r.json();
+    const data=JSON.parse(outer.contents);
     const price=data?.chart?.result?.[0]?.meta?.regularMarketPrice;
-    if(price){p.cur=price;save();renderPositions();renderStats();renderAlerts();calcWater();}
-    else alert('找不到股價，請確認代號正確');
-  }catch(e){alert('無法抓取股價，請手動更新');}
+    if(price){p.cur=price;save();renderPositions();renderStats();renderAlerts();calcWater();return true;}
+    return false;
+  }catch(e){return false;}
 }
 async function fetchAllPrices(){
+  const btn=document.querySelector('[onclick="fetchAllPrices()"]');
   const withCode=S.positions.filter(p=>p.code);
   if(!withCode.length){alert('請先在持倉編輯裡填入股票代號');return;}
-  for(const p of withCode)await fetchClosePrice(p.id);
+  if(btn){btn.textContent='⏳ 更新中...';btn.disabled=true;}
+  let ok=0,fail=0;
+  for(const p of withCode){
+    const res=await fetchClosePrice(p.id);
+    res?ok++:fail++;
+  }
+  if(btn){btn.textContent='📡 一鍵更新所有股價';btn.disabled=false;}
+  const msg=fail?`✅ ${ok}支更新成功，❌ ${fail}支失敗（確認代號是否正確）`:`✅ 全部 ${ok} 支更新成功`;
+  const status=document.getElementById('price-update-status');
+  if(status){status.textContent=msg;setTimeout(()=>status.textContent='',5000);}
 }
 
 // ── 賣出功能 ─────────────────────────────────────────────
@@ -1378,7 +1390,8 @@ function renderPositions(){
     p.buy=avgPrice;p.qty=totalQty;
   });
 
-  let html=`<button class="btn sm" style="margin-bottom:10px;width:100%" onclick="fetchAllPrices()">📡 一鍵更新所有股價</button>`;
+  let html=`<button class="btn sm" style="margin-bottom:4px;width:100%" onclick="fetchAllPrices()">📡 一鍵更新所有股價</button>
+  <div id="price-update-status" style="font-size:11px;color:var(--txt2);min-height:16px;margin-bottom:8px;text-align:center"></div>`;
 
   // 表格
   html+=`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
