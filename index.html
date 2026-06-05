@@ -958,7 +958,7 @@ async function syncSheet(){
     const latest=S.windLog[S.windLog.length-1];
     if(latest)setWind(latest.wind);
     save();
-    if(status)status.textContent=`✅ 同步成功！共${S.windLog.length}筆，最新：${latest?.date} ${latest?.wind}`;
+    if(status)status.textContent=`✅ 同步成功！共${S.windLog.length}筆，最新：${latest?.date} ${S.wind}`;
     setWindView(windView||'d');
     renderNoteWind();renderNotes();
   }catch(e){
