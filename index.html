@@ -278,9 +278,9 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
         </div>
         <div style="display:flex;align-items:center;gap:6px" onclick="event.stopPropagation()">
           <input id="notes-date-input" type="date" onchange="jumpToNoteDate(this.value.replace(/-/g,'/'))"
-            style="display:none;background:var(--bg3);border:1px solid var(--bdr2);border-radius:6px;color:var(--txt2);font-size:11px;padding:3px 6px;outline:none;width:120px">
+            style="display:none;background:var(--bg3);border:1px solid var(--bdr2);border-radius:6px;color:var(--txt);font-size:11px;padding:3px 6px;outline:none;width:120px;color-scheme:dark">
           <select id="notes-date-jump" onchange="jumpToNoteDate(this.value)"
-            style="display:none;background:var(--bg3);border:1px solid var(--bdr2);border-radius:6px;color:var(--txt2);font-size:11px;padding:3px 6px;outline:none;width:90px">
+            style="display:none;background:var(--bg3);border:1px solid var(--bdr2);border-radius:6px;color:var(--txt);font-size:11px;padding:3px 6px;outline:none;width:90px">
             <option value="">跳到日期</option>
           </select>
         </div>
