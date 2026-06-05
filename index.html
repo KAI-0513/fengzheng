@@ -821,9 +821,9 @@ function renderWindStat(){
   const showKeys=validKeys; // 日和年都顯示全部，靠捲動看
   const WIND_Y={'強風':0,'陣風':1,'亂流':2,'無風':3};
   const dotSpacing=windView==='d'?28:14;
-  const PAD_L=46,PAD_R=30,PAD_T=14,PAD_B=62;
-  const W=PAD_L+(showKeys.length-1)*dotSpacing+PAD_R+10;
-  const H=180;
+  const PAD_L=46,PAD_R=10,PAD_T=6,PAD_B=52;
+  const W=PAD_L+showKeys.length*dotSpacing+PAD_R;
+  const H=145;
   const PAD={l:PAD_L,r:PAD_R,t:PAD_T,b:PAD_B};
   const plotW=W-PAD.l-PAD.r;
   const plotH=H-PAD.t-PAD.b;
@@ -896,8 +896,9 @@ function renderWindStat(){
     }).join('')}
   </svg>`;
   // 主體SVG（可滑動，不含Y軸標籤）
-  const mainSvg=`<svg width="${W-PAD_L_W}" height="${H}" style="min-width:${W-PAD_L_W}px;display:block;background:rgba(255,255,255,0.06);border-radius:0 8px 8px 0">
-    ${yBands.replace(/text x="\${PAD\.l-8}"[^<]+<\/text>/g,'')}${lines}${dots}${xLabels}
+  const mainW=showKeys.length*dotSpacing+PAD_R;
+  const mainSvg=`<svg width="${mainW}" height="${H}" style="min-width:${mainW}px;display:block;background:rgba(255,255,255,0.06);border-radius:0 8px 8px 0">
+    ${yBands.replace(/text x="[^"]*" y/g,'text x="-999" y')}${lines}${dots}${xLabels}
   </svg>`;
   html+=`<div style="display:flex;margin-top:6px">
     ${yAxisSvg}
