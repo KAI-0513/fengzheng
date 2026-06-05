@@ -887,10 +887,24 @@ function renderWindStat(){
   }).join('');
 
   // 視窗全寬顯示，可左滑看更早，預設捲到最右
-  html+=`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:6px" id="wind-chart-scroll">
-    <svg width="${W}" height="${H}" style="min-width:${W}px;display:block;background:rgba(255,255,255,0.06);border-radius:8px">
-      ${yBands}${lines}${dots}${xLabels}
-    </svg>
+  // 左邊Y軸固定，右邊可滑動
+  const PAD_L_W=52; // Y軸寬度
+  // Y軸獨立SVG（不滑動）
+  const yAxisSvg=`<svg width="${PAD_L_W}" height="${H}" style="display:block;flex-shrink:0;background:rgba(255,255,255,0.06);border-radius:8px 0 0 8px">
+    ${WIND_ORDER.map((w,i)=>{
+      const cy=(PAD.t+i*rowH).toFixed(1);
+      return `<text x="${PAD_L_W-8}" y="${(parseFloat(cy)+4).toFixed(1)}" text-anchor="end" font-size="11" fill="${DC[w]}" font-weight="700">${w}</text>`;
+    }).join('')}
+  </svg>`;
+  // 主體SVG（可滑動，不含Y軸標籤）
+  const mainSvg=`<svg width="${W-PAD_L_W}" height="${H}" style="min-width:${W-PAD_L_W}px;display:block;background:rgba(255,255,255,0.06);border-radius:0 8px 8px 0">
+    ${yBands.replace(/text x="\${PAD\.l-8}"[^<]+<\/text>/g,'')}${lines}${dots}${xLabels}
+  </svg>`;
+  html+=`<div style="display:flex;margin-top:6px">
+    ${yAxisSvg}
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;flex:1" id="wind-chart-scroll">
+      ${mainSvg}
+    </div>
   </div>`;
   el.innerHTML=html;
   // 自動捲到最右（最新資料）
