@@ -821,28 +821,30 @@ function renderWindStat(){
   const showKeys=validKeys; // 日和年都顯示全部，靠捲動看
   const WIND_Y={'強風':0,'陣風':1,'亂流':2,'無風':3};
   const dotSpacing=windView==='d'?28:14;
-  const PAD_L=46,PAD_R=10,PAD_T=6,PAD_B=52;
-  const W=PAD_L+showKeys.length*dotSpacing+PAD_R;
-  const H=145;
-  const PAD={l:PAD_L,r:PAD_R,t:PAD_T,b:PAD_B};
-  const plotW=W-PAD.l-PAD.r;
-  const plotH=H-PAD.t-PAD.b;
-  const rowH=plotH/3;
+  const PAD_T=10,PAD_B=52;
+  const H=162;
+  const plotH=H-PAD_T-PAD_B; // 100px 給 4 條
+  const rowH=plotH/3; // 3 段間距讓 index 0~3 的點等距分佈
 
+  // mainSvg 的 x 座標從 0 開始（PAD_L 已移到 yAxisSvg）
+  const mPAD_L=8, mPAD_R=12, mPAD_T=PAD_T, mPAD_B=PAD_B;
   const points=showKeys.map((k,i)=>{
     const w=groups[k];
-    // 固定間距，第一點在左，最後一點在右
-    const x=PAD.l+i*dotSpacing;
-    const y=PAD.t+WIND_Y[w]*rowH;
+    const x=mPAD_L+i*dotSpacing+dotSpacing/2;
+    // 4條等距：rowH = plotH/3，y 置中於每個 band
+    const y=mPAD_T+(WIND_Y[w]+0.5)*rowH;
     return{x,y,w,k};
   });
 
-  // Y軸：每列加色塊背景讓區域更清楚
+  const mainW=mPAD_L+showKeys.length*dotSpacing+mPAD_R;
+  const mainPlotW=mainW-mPAD_L-mPAD_R;
+
+  // Y軸：每列加色塊背景讓區域更清楚（座標基於 mainSvg）
   const yBands=WIND_ORDER.map((w,i)=>{
-    const y=PAD.t+i*rowH-(rowH*0.5);
-    const bh=rowH;
-    return `<rect x="${PAD.l}" y="${y.toFixed(1)}" width="${plotW}" height="${bh.toFixed(1)}" fill="${DC[w]}" opacity="0.08" rx="3"/>
-    <line x1="${PAD.l}" y1="${(PAD.t+i*rowH).toFixed(1)}" x2="${(W-PAD.r).toFixed(1)}" y2="${(PAD.t+i*rowH).toFixed(1)}" stroke="${DC[w]}" stroke-width="0.8" opacity="0.35" stroke-dasharray="4,3"/>`;
+    const y=(mPAD_T+i*rowH).toFixed(1);
+    const bh=rowH.toFixed(1);
+    return `<rect x="${mPAD_L}" y="${y}" width="${mainPlotW}" height="${bh}" fill="${DC[w]}" opacity="0.08" rx="3"/>
+    <line x1="${mPAD_L}" y1="${(mPAD_T+(i+0.5)*rowH).toFixed(1)}" x2="${(mainW-mPAD_R).toFixed(1)}" y2="${(mPAD_T+(i+0.5)*rowH).toFixed(1)}" stroke="${DC[w]}" stroke-width="0.8" opacity="0.25" stroke-dasharray="4,3"/>`;
   }).join('');
 
   // 連線
@@ -854,19 +856,17 @@ function renderWindStat(){
   }
 
   const xLabels=showKeys.map((k,i)=>{
-    const x=PAD.l+i*dotSpacing;
+    const x=mPAD_L+i*dotSpacing+dotSpacing/2;
     const d=new Date(k.replace(/\//g,'-'));
     if(isNaN(d))return '';
     const wd=['日','一','二','三','四','五','六'][d.getDay()];
     const isWend=d.getDay()===0||d.getDay()===6;
     const yr=d.getFullYear();const mo=d.getMonth()+1;const dd=d.getDate();
     if(windView==='d'){
-      // 日視圖（近30天）：每天都顯示
       return `<text x="${x}" y="${H-40}" text-anchor="middle" font-size="10" fill="#fff" font-weight="600">${mo}/${dd}</text>
         <text x="${x}" y="${H-26}" text-anchor="middle" font-size="10" fill="${isWend?'#ffcc00':'#ccc'}">${wd}</text>
         <text x="${x}" y="${H-12}" text-anchor="middle" font-size="9" fill="#aaa">${yr}</text>`;
     } else {
-      // 年視圖：每7個資料點顯示一次，跳過週末
       if(!isWend&&i%7===0){
         return `<text x="${x}" y="${H-40}" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">${mo}/${String(dd).padStart(2,'0')}</text>
           <text x="${x}" y="${H-26}" text-anchor="middle" font-size="10" fill="#ccc">${wd}</text>
@@ -885,20 +885,18 @@ function renderWindStat(){
       <title>${p.k} ${p.w}</title></circle>`;
   }).join('');
 
-  // 視窗全寬顯示，可左滑看更早，預設捲到最右
   // 左邊Y軸固定，右邊可滑動
-  const PAD_L_W=48; // Y軸寬度
-  // Y軸獨立SVG（不滑動）
+  const PAD_L_W=48;
   const yAxisSvg=`<svg width="48" height="${H}" style="display:block;flex-shrink:0;background:rgba(255,255,255,0.06);border-radius:8px 0 0 8px">
     ${WIND_ORDER.map((w,i)=>{
-      const cy=(PAD.t+i*rowH).toFixed(1);
-      return `<text x="${PAD_L_W-8}" y="${(parseFloat(cy)+4).toFixed(1)}" text-anchor="end" font-size="11" fill="${DC[w]}" font-weight="700">${w}</text>`;
+      // 置中於每個 band
+      const cy=(mPAD_T+(i+0.5)*rowH+4).toFixed(1);
+      return `<text x="40" y="${cy}" text-anchor="end" font-size="11" fill="${DC[w]}" font-weight="700">${w}</text>`;
     }).join('')}
   </svg>`;
-  // 主體SVG（可滑動，不含Y軸標籤）
-  const mainW=showKeys.length*dotSpacing+PAD_R;
+  // 主體SVG（可滑動，x 座標從 0 開始）
   const mainSvg=`<svg width="${mainW}" height="${H}" style="min-width:${mainW}px;display:block;background:rgba(255,255,255,0.06);border-radius:0 8px 8px 0">
-    ${yBands.replace(/text x="[^"]*" y/g,'text x="-999" y')}${lines}${dots}${xLabels}
+    ${yBands}${lines}${dots}${xLabels}
   </svg>`;
   html+=`<div style="display:flex;margin-top:6px">
     ${yAxisSvg}
