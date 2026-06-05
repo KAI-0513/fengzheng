@@ -821,9 +821,9 @@ function renderWindStat(){
   const showKeys=validKeys; // 日和年都顯示全部，靠捲動看
   const WIND_Y={'強風':0,'陣風':1,'亂流':2,'無風':3};
   const dotSpacing=windView==='d'?28:14;
-  const PAD_L=46,PAD_R=20,PAD_T=14,PAD_B=62;
+  const PAD_L=46,PAD_R=20,PAD_T=8,PAD_B=56;
   const W=PAD_L+(showKeys.length-1)*dotSpacing+PAD_R+10;
-  const H=180;
+  const H=150;
   const PAD={l:PAD_L,r:PAD_R,t:PAD_T,b:PAD_B};
   const plotW=W-PAD.l-PAD.r;
   const plotH=H-PAD.t-PAD.b;
@@ -887,9 +887,9 @@ function renderWindStat(){
 
   // 視窗全寬顯示，可左滑看更早，預設捲到最右
   // 左邊Y軸固定，右邊可滑動
-  const PAD_L_W=52; // Y軸寬度
+  const PAD_L_W=48; // Y軸寬度
   // Y軸獨立SVG（不滑動）
-  const yAxisSvg=`<svg width="${PAD_L_W}" height="${H}" style="display:block;flex-shrink:0;background:rgba(255,255,255,0.06);border-radius:8px 0 0 8px">
+  const yAxisSvg=`<svg width="48" height="${H}" style="display:block;flex-shrink:0;background:rgba(255,255,255,0.06);border-radius:8px 0 0 8px">
     ${WIND_ORDER.map((w,i)=>{
       const cy=(PAD.t+i*rowH).toFixed(1);
       return `<text x="${PAD_L_W-8}" y="${(parseFloat(cy)+4).toFixed(1)}" text-anchor="end" font-size="11" fill="${DC[w]}" font-weight="700">${w}</text>`;
