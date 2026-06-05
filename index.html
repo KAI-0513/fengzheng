@@ -825,9 +825,9 @@ function renderWindStat(){
   const plotH=90; // 固定，讓無風點不要太低
   const H=plotH+PAD_T+PAD_B+42; // +42 給三行日期空間
   const rowH=plotH/3;
-  // 無風點 y + 圓點半徑8 + 間距6 = 日期起點
-  const noWindY=PAD_T+3.5*rowH;
-  const dateY1=noWindY+14;
+  // 無風色塊底邊 = PAD_T + 4*rowH，日期從這裡往下
+  const bandBottomY=PAD_T+4*rowH;
+  const dateY1=bandBottomY+12;
   const dateY2=dateY1+13;
   const dateY3=dateY2+12;
 
