@@ -1680,7 +1680,8 @@ function renderNoteWind(){
   const sLog=(S.windLog||[])
     .filter(l=>l&&l.date&&l.date<=todayISO)
     .sort((a,b)=>a.date.localeCompare(b.date));
-  const todayEntry=sLog.length?sLog[sLog.length-1]:null;
+  // 只找今天的記錄，不用最後一筆
+  const todayEntry=sLog.find(l=>l.date===todayISO)||null;
   const DC2={'強風':'var(--sf)','陣風':'var(--gf)','亂流':'var(--lt)','無風':'var(--nw)'};
   const BG2={'強風':'var(--sf-bg)','陣風':'var(--gf-bg)','亂流':'var(--lt-bg)','無風':'var(--nw-bg)'};
   const BD2={'強風':'var(--sf-bdr)','陣風':'var(--gf-bdr)','亂流':'var(--lt-bdr)','無風':'var(--nw-bdr)'};
