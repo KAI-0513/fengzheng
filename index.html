@@ -842,7 +842,6 @@ function renderWindStat(){
     const y=PAD.t+i*rowH-(rowH*0.5);
     const bh=rowH;
     return `<rect x="${PAD.l}" y="${y.toFixed(1)}" width="${plotW}" height="${bh.toFixed(1)}" fill="${DC[w]}" opacity="0.08" rx="3"/>
-    <text x="${PAD.l-8}" y="${(PAD.t+i*rowH+4).toFixed(1)}" text-anchor="end" font-size="11" fill="${DC[w]}" font-weight="700">${w}</text>
     <line x1="${PAD.l}" y1="${(PAD.t+i*rowH).toFixed(1)}" x2="${(W-PAD.r).toFixed(1)}" y2="${(PAD.t+i*rowH).toFixed(1)}" stroke="${DC[w]}" stroke-width="0.8" opacity="0.35" stroke-dasharray="4,3"/>`;
   }).join('');
 
