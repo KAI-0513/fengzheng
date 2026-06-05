@@ -1181,35 +1181,43 @@ function renderPlans(){
 }
 
 // ── 自動抓收盤價 ─────────────────────────────────────────
-async function fetchClosePrice(id){
-  const p=S.positions.find(x=>x.id===id);if(!p||!p.code)return;
+async function fetchOneSuffix(code,suffix){
   try{
-    const yahoo=`https://query1.finance.yahoo.com/v8/finance/chart/${p.code}.TW?interval=1d&range=1d`;
+    const yahoo=`https://query1.finance.yahoo.com/v8/finance/chart/${code}${suffix}?interval=1d&range=1d`;
     const proxy=`https://api.allorigins.win/get?url=${encodeURIComponent(yahoo)}`;
     const r=await fetch(proxy);const outer=await r.json();
     const data=JSON.parse(outer.contents);
-    const price=data?.chart?.result?.[0]?.meta?.regularMarketPrice;
-    if(price){p.cur=price;save();renderPositions();renderStats();renderAlerts();calcWater();return true;}
-    return false;
-  }catch(e){return false;}
+    return data?.chart?.result?.[0]?.meta?.regularMarketPrice||null;
+  }catch(e){return null;}
+}
+async function fetchClosePrice(id){
+  const p=S.positions.find(x=>x.id===id);if(!p||!p.code)return false;
+  let price=await fetchOneSuffix(p.code,'.TW');
+  if(!price)price=await fetchOneSuffix(p.code,'.TWO');
+  if(price){p.cur=price;save();renderPositions();renderStats();renderAlerts();calcWater();return true;}
+  return false;
 }
 async function fetchAllPrices(){
   const btn=document.querySelector('[onclick="fetchAllPrices()"]');
   const withCode=S.positions.filter(p=>p.code);
   if(!withCode.length){alert('請先在持倉編輯裡填入股票代號');return;}
   if(btn){btn.textContent='⏳ 更新中...';btn.disabled=true;}
-  let ok=0,fail=0;
-  for(const p of withCode){
-    const res=await fetchClosePrice(p.id);
-    res?ok++:fail++;
-  }
+  // 並行抓，速度快很多
+  const results=await Promise.all(withCode.map(p=>fetchClosePrice(p.id)));
+  const ok=results.filter(Boolean).length,fail=results.length-ok;
   if(btn){btn.textContent='📡 一鍵更新所有股價';btn.disabled=false;}
-  const msg=fail?`✅ ${ok}支更新成功，❌ ${fail}支失敗（確認代號是否正確）`:`✅ 全部 ${ok} 支更新成功`;
+  const msg=fail?`✅ ${ok}支成功　❌ ${fail}支失敗（確認代號）`:`✅ 全部 ${ok} 支更新成功`;
   const status=document.getElementById('price-update-status');
   if(status){status.textContent=msg;setTimeout(()=>status.textContent='',5000);}
 }
 
-// ── 賣出功能 ─────────────────────────────────────────────
+// ── 刪除持倉 ─────────────────────────────────────────────
+function deletePosition(id){
+  const p=S.positions.find(x=>x.id===id);if(!p)return;
+  if(!confirm(`確認刪除「${p.name}」？`))return;
+  S.positions=S.positions.filter(x=>x.id!==id);
+  save();renderPositions();renderStats();renderAlerts();calcWater();
+}
 function openSell(id){
   const p=S.positions.find(x=>x.id===id);if(!p)return;
   const {avgPrice,totalQty}=calcAvg(p.lots||[{price:p.buy,qty:p.qty,date:p.date}]);
@@ -1446,7 +1454,11 @@ function renderPositions(){
     const pct=(p.cur-p.buy)/p.buy*100;
     const warnMsgs=closeCheckMsg(p);
     if((pct<=-5||pct>=10)&&warnMsgs.length){
-      html+=`<div class="close-warn" style="margin-bottom:6px">⚡ ${p.name}：${warnMsgs[0]}</div>`;
+      const isProfit=pct>=10;
+      const warnStyle=isProfit
+        ?'background:var(--sf-bg);color:var(--sf);border:1px solid rgba(255,34,34,.2)'  // 停利=紅
+        :'background:var(--nw-bg);color:var(--nw);border:1px solid rgba(29,185,84,.2)'; // 停損=綠
+      html+=`<div class="close-warn" style="margin-bottom:6px;${warnStyle}">⚡ ${p.name}：${warnMsgs[0]}</div>`;
     }
   });
 
