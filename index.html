@@ -823,7 +823,7 @@ function renderWindStat(){
   const dotSpacing=windView==='d'?28:14;
   const PAD_L=46,PAD_R=20,PAD_T=14,PAD_B=44;
   const W=PAD_L+(showKeys.length-1)*dotSpacing+PAD_R+10;
-  const H=160;
+  const H=150;
   const PAD={l:PAD_L,r:PAD_R,t:PAD_T,b:PAD_B};
   const plotW=W-PAD.l-PAD.r;
   const plotH=H-PAD.t-PAD.b;
@@ -1672,18 +1672,21 @@ async function sendAdvisor(){
 function renderNoteWind(){
   const el=document.getElementById('note-wind-display');
   if(!el)return;
+  // 用sLog最新一筆的風度（跟連續天數計算一樣的邏輯）
   const now=new Date();
-  const todayStr=`${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}`;
-  const todayEntry=(S.windLog||[]).find(l=>l.date===todayStr);
-  const WCFG2={
-    '強風':'w-強風','陣風':'w-陣風','亂流':'w-亂流','無風':'w-無風'
-  };
+  const todayISO=`${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}`;
+  const sLog=(S.windLog||[])
+    .filter(l=>l&&l.date&&l.date<=todayISO)
+    .sort((a,b)=>a.date.localeCompare(b.date));
+  const todayEntry=sLog.length?sLog[sLog.length-1]:null;
+  const DC2={'強風':'var(--sf)','陣風':'var(--gf)','亂流':'var(--lt)','無風':'var(--nw)'};
+  const BG2={'強風':'var(--sf-bg)','陣風':'var(--gf-bg)','亂流':'var(--lt-bg)','無風':'var(--nw-bg)'};
+  const BD2={'強風':'var(--sf-bdr)','陣風':'var(--gf-bdr)','亂流':'var(--lt-bdr)','無風':'var(--nw-bdr)'};
   if(todayEntry){
-    // 有資料直接顯示badge
-    el.innerHTML=`<div class="wind-badge ${WCFG2[todayEntry.wind]||'w-強風'}" style="padding:3px 12px;font-size:12px;cursor:default">
-      <span style="width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;margin-right:5px;opacity:0.8"></span>${todayEntry.wind}</div>`;
+    const w=todayEntry.wind;
+    el.innerHTML=`<div style="display:inline-flex;align-items:center;gap:5px;padding:4px 13px;border-radius:99px;background:${BG2[w]};color:${DC2[w]};border:1.5px solid ${BD2[w]};font-size:13px;font-weight:700">
+      <span style="width:9px;height:9px;border-radius:50%;background:${DC2[w]};flex-shrink:0"></span>${w}</div>`;
   } else {
-    // 沒有資料顯示下拉
     el.innerHTML=`<select id="note-wind-sel" style="background:var(--bg3);border:1px solid var(--bdr2);border-radius:8px;color:var(--txt);font-size:13px;padding:4px 10px;outline:none">
       <option>強風</option><option>陣風</option><option>亂流</option><option>無風</option>
     </select>`;
