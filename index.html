@@ -821,9 +821,9 @@ function renderWindStat(){
   const showKeys=validKeys; // 日和年都顯示全部，靠捲動看
   const WIND_Y={'強風':0,'陣風':1,'亂流':2,'無風':3};
   const dotSpacing=windView==='d'?28:14;
-  const PAD_L=46,PAD_R=20,PAD_T=14,PAD_B=60;
+  const PAD_L=46,PAD_R=20,PAD_T=14,PAD_B=44;
   const W=PAD_L+(showKeys.length-1)*dotSpacing+PAD_R+10;
-  const H=240;
+  const H=160;
   const PAD={l:PAD_L,r:PAD_R,t:PAD_T,b:PAD_B};
   const plotW=W-PAD.l-PAD.r;
   const plotH=H-PAD.t-PAD.b;
@@ -1618,8 +1618,26 @@ function renderNotes(){
   if(!notesOpen)return;
   const el=document.getElementById('notes-history');
   if(!S.notes.length){el.innerHTML='<div class="empty" style="padding:12px">尚無筆記</div>';return;}
-  const WCFG3={'強風':'var(--sf)','陣風':'var(--gf)','亂流':'var(--lt)','無風':'var(--nw)'};
-  el.innerHTML=S.notes.map(n=>`<div class="note-item"><div class="note-date">${n.date}${n.wind?` <span style="font-size:10px;padding:1px 7px;border-radius:99px;border:1px solid ${WCFG3[n.wind]||'#888'};color:${WCFG3[n.wind]||'#888'};margin-left:4px">${n.wind}</span>`:''}</div>${n.text}</div>`).join('');
+  const WCOL={'強風':'var(--sf)','陣風':'var(--gf)','亂流':'var(--lt)','無風':'var(--nw)'};
+  el.innerHTML=S.notes.map((n,i)=>{
+    const wc=WCOL[n.wind]||'';
+    const windBadge=n.wind?`<span style="font-size:10px;padding:1px 8px;border-radius:99px;border:1px solid ${wc};color:${wc};margin-left:5px">${n.wind}</span>`:'';
+    return `<div class="note-item">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div class="note-date">${n.date}${windBadge}</div>
+        <button class="btn sm" onclick="editNote(${i})" style="padding:2px 8px;font-size:11px">編輯</button>
+      </div>
+      <div id="note-text-${i}">${n.text}</div>
+      <div id="note-edit-${i}" style="display:none;margin-top:6px">
+        <textarea id="note-edit-input-${i}" style="width:100%;min-height:60px;font-size:13px;padding:8px;border-radius:8px;background:var(--bg2);border:1px solid var(--bdr2);color:var(--txt)">${n.text}</textarea>
+        <div style="display:flex;gap:6px;margin-top:5px">
+          <button class="btn sm primary" onclick="saveEditNote(${i})">儲存</button>
+          <button class="btn sm" onclick="cancelEditNote(${i})">取消</button>
+          <button class="btn sm danger" onclick="deleteNote(${i})">刪除</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ── AI顧問 ───────────────────────────────────────────────
@@ -1670,6 +1688,27 @@ function renderNoteWind(){
       <option>強風</option><option>陣風</option><option>亂流</option><option>無風</option>
     </select>`;
   }
+}
+
+// ── 筆記編輯函式 ──────────────────────────────────────────
+function editNote(i){
+  document.getElementById('note-text-'+i).style.display='none';
+  document.getElementById('note-edit-'+i).style.display='block';
+}
+function cancelEditNote(i){
+  document.getElementById('note-text-'+i).style.display='block';
+  document.getElementById('note-edit-'+i).style.display='none';
+}
+function saveEditNote(i){
+  const val=document.getElementById('note-edit-input-'+i).value.trim();
+  if(!val)return;
+  S.notes[i].text=val;
+  save();renderNotes();
+}
+function deleteNote(i){
+  if(!confirm('確認刪除？'))return;
+  S.notes.splice(i,1);
+  save();renderNotes();
 }
 
 // ── 初始化 ────────────────────────────────────────────────
