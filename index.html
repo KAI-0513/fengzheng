@@ -1194,7 +1194,7 @@ async function fetchClosePrice(id){
   const p=S.positions.find(x=>x.id===id);if(!p||!p.code)return false;
   let price=await fetchOneSuffix(p.code,'.TW');
   if(!price)price=await fetchOneSuffix(p.code,'.TWO');
-  if(price){p.cur=price;save();renderPositions();renderStats();renderAlerts();calcWater();return true;}
+  if(price){p.cur=price;return true;}
   return false;
 }
 async function fetchAllPrices(){
@@ -1202,8 +1202,9 @@ async function fetchAllPrices(){
   const withCode=S.positions.filter(p=>p.code);
   if(!withCode.length){alert('請先在持倉編輯裡填入股票代號');return;}
   if(btn){btn.textContent='⏳ 更新中...';btn.disabled=true;}
-  // 並行抓，速度快很多
   const results=await Promise.all(withCode.map(p=>fetchClosePrice(p.id)));
+  // 全部抓完才一次儲存和渲染
+  save();renderPositions();renderStats();renderAlerts();calcWater();
   const ok=results.filter(Boolean).length,fail=results.length-ok;
   if(btn){btn.textContent='📡 一鍵更新所有股價';btn.disabled=false;}
   const msg=fail?`✅ ${ok}支成功　❌ ${fail}支失敗（確認代號）`:`✅ 全部 ${ok} 支更新成功`;
