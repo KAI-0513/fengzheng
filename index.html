@@ -1636,11 +1636,17 @@ function renderNotes(){
   const el=document.getElementById('notes-history');
   if(!S.notes.length){el.innerHTML='<div class="empty" style="padding:12px">尚無筆記</div>';return;}
   const WCOL={'強風':'var(--sf)','陣風':'var(--gf)','亂流':'var(--lt)','無風':'var(--nw)'};
+  const WBG={'強風':'var(--sf-bg)','陣風':'var(--gf-bg)','亂流':'var(--lt-bg)','無風':'var(--nw-bg)'};
+  const WBDR={'強風':'var(--sf-bdr)','陣風':'var(--gf-bdr)','亂流':'var(--lt-bdr)','無風':'var(--nw-bdr)'};
+  // 建立 windLog 的日期快查表（yyyy/MM/dd → wind）
+  const windByDate={};
+  (S.windLog||[]).forEach(l=>{if(l&&l.date)windByDate[l.date]=l.wind;});
   el.innerHTML=S.notes.map((n,i)=>{
-    const wc=WCOL[n.wind]||'';
-    const wbg={'強風':'var(--sf-bg)','陣風':'var(--gf-bg)','亂流':'var(--lt-bg)','無風':'var(--nw-bg)'}[n.wind]||'';
-    const wbdr={'強風':'var(--sf-bdr)','陣風':'var(--gf-bdr)','亂流':'var(--lt-bdr)','無風':'var(--nw-bdr)'}[n.wind]||'';
-    const windBadge=n.wind?`<span style="font-size:11px;padding:2px 10px;border-radius:99px;border:1px solid ${wbdr};color:${wc};background:${wbg};margin-right:6px;font-weight:600">${n.wind}</span>`:'';
+    // 從筆記日期字串取出 yyyy/MM/dd 部分來查 windLog
+    const dateKey=n.date?n.date.replace(/^(\d{4})\/(\d{1,2})\/(\d{1,2}).*/,(m,y,mo,d)=>
+      `${y}/${mo.padStart(2,'0')}/${d.padStart(2,'0')}`):'';
+    const w=windByDate[dateKey]||n.wind||'';
+    const windBadge=w?`<span style="font-size:11px;padding:2px 10px;border-radius:99px;border:1px solid ${WBDR[w]||'transparent'};color:${WCOL[w]||'#fff'};background:${WBG[w]||'transparent'};margin-right:6px;font-weight:600">${w}</span>`:'<span style="display:inline-block;width:36px;margin-right:6px"></span>';
     return `<div class="note-item">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div class="note-date">${windBadge}${n.date}</div>
@@ -1691,26 +1697,32 @@ async function sendAdvisor(){
 function renderNoteWind(){
   const el=document.getElementById('note-wind-display');
   if(!el)return;
-  // 用sLog最新一筆的風度（跟連續天數計算一樣的邏輯）
   const now=new Date();
   const todayISO=`${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}`;
-  const sLog=(S.windLog||[])
-    .filter(l=>l&&l.date&&l.date<=todayISO)
-    .sort((a,b)=>a.date.localeCompare(b.date));
-  // 只找今天的記錄，不用最後一筆
+  const sLog=(S.windLog||[]).filter(l=>l&&l.date&&l.date<=todayISO).sort((a,b)=>a.date.localeCompare(b.date));
   const todayEntry=sLog.find(l=>l.date===todayISO)||null;
   const DC2={'強風':'var(--sf)','陣風':'var(--gf)','亂流':'var(--lt)','無風':'var(--nw)'};
   const BG2={'強風':'var(--sf-bg)','陣風':'var(--gf-bg)','亂流':'var(--lt-bg)','無風':'var(--nw-bg)'};
   const BD2={'強風':'var(--sf-bdr)','陣風':'var(--gf-bdr)','亂流':'var(--lt-bdr)','無風':'var(--nw-bdr)'};
   if(todayEntry){
+    // 已有今日資料 → 顯示 badge（跟右上角一樣的顏色）
     const w=todayEntry.wind;
-    el.innerHTML=`<div style="display:inline-flex;align-items:center;gap:5px;padding:4px 13px;border-radius:99px;background:${BG2[w]};color:${DC2[w]};border:1.5px solid ${BD2[w]};font-size:13px;font-weight:700">
-      <span style="width:9px;height:9px;border-radius:50%;background:${DC2[w]};flex-shrink:0"></span>${w}</div>`;
+    el.innerHTML=`<div class="wind-badge w-${w}" style="font-size:13px;padding:4px 13px">
+      <span style="width:9px;height:9px;border-radius:50%;background:${DC2[w]};flex-shrink:0;display:inline-block"></span>${w}</div>`;
   } else {
-    el.innerHTML=`<select id="note-wind-sel" style="background:var(--bg3);border:1px solid var(--bdr2);border-radius:8px;color:var(--txt);font-size:13px;padding:4px 10px;outline:none">
-      <option>強風</option><option>陣風</option><option>亂流</option><option>無風</option>
-    </select>`;
+    // 未有今日資料 → 下拉，預選 S.wind（跟右上角一致）
+    const cur=S.wind||'強風';
+    const winds=['強風','陣風','亂流','無風'];
+    const opts=winds.map(w=>`<option value="${w}"${w===cur?'selected':''}>${w}</option>`).join('');
+    el.innerHTML=`<select id="note-wind-sel" onchange="updateNoteWindColor(this)" style="background:${BG2[cur]};border:1.5px solid ${BD2[cur]};border-radius:8px;color:${DC2[cur]};font-size:13px;font-weight:700;padding:4px 10px;outline:none">${opts}</select>`;
   }
+}
+function updateNoteWindColor(sel){
+  const w=sel.value;
+  const BG2={'強風':'var(--sf-bg)','陣風':'var(--gf-bg)','亂流':'var(--lt-bg)','無風':'var(--nw-bg)'};
+  const BD2={'強風':'var(--sf-bdr)','陣風':'var(--gf-bdr)','亂流':'var(--lt-bdr)','無風':'var(--nw-bdr)'};
+  const DC2={'強風':'var(--sf)','陣風':'var(--gf)','亂流':'var(--lt)','無風':'var(--nw)'};
+  sel.style.background=BG2[w];sel.style.borderColor=BD2[w];sel.style.color=DC2[w];
 }
 
 // ── 筆記編輯函式 ──────────────────────────────────────────
