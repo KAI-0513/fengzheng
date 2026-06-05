@@ -821,10 +821,15 @@ function renderWindStat(){
   const showKeys=validKeys; // 日和年都顯示全部，靠捲動看
   const WIND_Y={'強風':0,'陣風':1,'亂流':2,'無風':3};
   const dotSpacing=windView==='d'?28:14;
-  const PAD_T=10,PAD_B=70;
-  const H=192;
-  const plotH=H-PAD_T-PAD_B; // 112px，日期貼近無風下方
-  const rowH=plotH/3; // 3 段間距讓 index 0~3 的點等距分佈
+  const PAD_T=10,PAD_B=52;
+  const plotH=90; // 固定，讓無風點不要太低
+  const H=plotH+PAD_T+PAD_B+42; // +42 給三行日期空間
+  const rowH=plotH/3;
+  // 無風點 y + 圓點半徑8 + 間距6 = 日期起點
+  const noWindY=PAD_T+3.5*rowH;
+  const dateY1=noWindY+14;
+  const dateY2=dateY1+13;
+  const dateY3=dateY2+12;
 
   // mainSvg 的 x 座標從 0 開始（PAD_L 已移到 yAxisSvg）
   const mPAD_L=8, mPAD_R=12, mPAD_T=PAD_T, mPAD_B=PAD_B;
@@ -863,14 +868,14 @@ function renderWindStat(){
     const isWend=d.getDay()===0||d.getDay()===6;
     const yr=d.getFullYear();const mo=d.getMonth()+1;const dd=d.getDate();
     if(windView==='d'){
-      return `<text x="${x}" y="${H-40}" text-anchor="middle" font-size="10" fill="#fff" font-weight="600">${mo}/${dd}</text>
-        <text x="${x}" y="${H-26}" text-anchor="middle" font-size="10" fill="${isWend?'#ffcc00':'#ccc'}">${wd}</text>
-        <text x="${x}" y="${H-12}" text-anchor="middle" font-size="9" fill="#aaa">${yr}</text>`;
+      return `<text x="${x}" y="${dateY1.toFixed(1)}" text-anchor="middle" font-size="10" fill="#fff" font-weight="600">${mo}/${dd}</text>
+        <text x="${x}" y="${dateY2.toFixed(1)}" text-anchor="middle" font-size="10" fill="${isWend?'#ffcc00':'#ccc'}">${wd}</text>
+        <text x="${x}" y="${dateY3.toFixed(1)}" text-anchor="middle" font-size="9" fill="#aaa">${yr}</text>`;
     } else {
       if(!isWend&&i%7===0){
-        return `<text x="${x}" y="${H-40}" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">${mo}/${String(dd).padStart(2,'0')}</text>
-          <text x="${x}" y="${H-26}" text-anchor="middle" font-size="10" fill="#ccc">${wd}</text>
-          <text x="${x}" y="${H-12}" text-anchor="middle" font-size="9" fill="#aaa">${yr}</text>`;
+        return `<text x="${x}" y="${dateY1.toFixed(1)}" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">${mo}/${String(dd).padStart(2,'0')}</text>
+          <text x="${x}" y="${dateY2.toFixed(1)}" text-anchor="middle" font-size="10" fill="#ccc">${wd}</text>
+          <text x="${x}" y="${dateY3.toFixed(1)}" text-anchor="middle" font-size="9" fill="#aaa">${yr}</text>`;
       }
     }
     return '';
