@@ -814,7 +814,7 @@ function renderWindStat(){
   // 日=近30天可左滑看全部，年=近365天
   const todayKey=(()=>{const t=new Date();return t.getFullYear()+'/'+(String(t.getMonth()+1).padStart(2,'0'))+'/'+String(t.getDate()).padStart(2,'0');})();
   const validKeys=keys.filter(k=>k<=todayKey);
-  const showKeys=windView==='d'?validKeys.slice(-30):validKeys.slice(-365);
+  const showKeys=validKeys; // 日和年都顯示全部，靠捲動看
   const WIND_Y={'強風':0,'陣風':1,'亂流':2,'無風':3};
   const dotSpacing=windView==='d'?28:14;
   const PAD_L=46,PAD_R=20,PAD_T=14,PAD_B=60;
