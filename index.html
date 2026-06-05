@@ -783,13 +783,14 @@ function renderWindStat(){
   // 日=全部（可左滑），月=近30天，季=近90天
   const show=windView==='d'?keys:windView==='m'?keys.slice(-30):keys.slice(-90);
 
-  // 連續天數：只用有效記錄，過濾未來日期
-  const cur=S.wind;
+  // 連續天數：以最新一筆的風度為基準，往前數相同風度的筆數
   const todayD=new Date();
   const todayISO=`${todayD.getFullYear()}/${String(todayD.getMonth()+1).padStart(2,'0')}/${String(todayD.getDate()).padStart(2,'0')}`;
   const sLog=(S.windLog||[])
     .filter(l=>l&&l.date&&l.date<=todayISO)
     .sort((a,b)=>a.date.localeCompare(b.date));
+  // 用最新一筆的風度（不是badge的風度）
+  const cur=sLog.length?sLog[sLog.length-1].wind:S.wind;
   let streak=0;
   for(let i=sLog.length-1;i>=0;i--){
     if(sLog[i].wind===cur)streak++;
@@ -804,7 +805,7 @@ function renderWindStat(){
   let html=`<div class="streak-card" style="margin-bottom:10px">
     <div class="streak-dot" style="background:${DC[cur]}"></div>
     <div class="streak-info">
-      <div class="streak-name" style="color:${DC[cur]}">${cur} 已連續 ${streak} 天</div>
+      <div class="streak-name" style="color:${DC[cur]||'#fff'}">${cur} 已連續 ${streak} 天</div>
       <div class="streak-detail">共記錄 ${total} 天</div>
     </div>
     <div class="streak-days" style="color:${DC[cur]}">${streak}天</div>
