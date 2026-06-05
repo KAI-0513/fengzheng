@@ -1621,10 +1621,12 @@ function renderNotes(){
   const WCOL={'強風':'var(--sf)','陣風':'var(--gf)','亂流':'var(--lt)','無風':'var(--nw)'};
   el.innerHTML=S.notes.map((n,i)=>{
     const wc=WCOL[n.wind]||'';
-    const windBadge=n.wind?`<span style="font-size:10px;padding:1px 8px;border-radius:99px;border:1px solid ${wc};color:${wc};margin-left:5px">${n.wind}</span>`:'';
+    const wbg={'強風':'var(--sf-bg)','陣風':'var(--gf-bg)','亂流':'var(--lt-bg)','無風':'var(--nw-bg)'}[n.wind]||'';
+    const wbdr={'強風':'var(--sf-bdr)','陣風':'var(--gf-bdr)','亂流':'var(--lt-bdr)','無風':'var(--nw-bdr)'}[n.wind]||'';
+    const windBadge=n.wind?`<span style="font-size:11px;padding:2px 10px;border-radius:99px;border:1px solid ${wbdr};color:${wc};background:${wbg};margin-right:6px;font-weight:600">${n.wind}</span>`:'';
     return `<div class="note-item">
       <div style="display:flex;align-items:center;justify-content:space-between">
-        <div class="note-date">${n.date}${windBadge}</div>
+        <div class="note-date">${windBadge}${n.date}</div>
         <button class="btn sm" onclick="editNote(${i})" style="padding:2px 8px;font-size:11px">編輯</button>
       </div>
       <div id="note-text-${i}">${n.text}</div>
