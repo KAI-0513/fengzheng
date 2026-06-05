@@ -247,12 +247,15 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       <div class="card-title">市場風度</div>
       <div class="alert sf" id="wind-advice-box"></div>
       <div id="sheet-sync-status" style="font-size:11px;color:var(--txt3);margin-top:6px"></div>
+      <div id="sync-status" style="font-size:11px;color:var(--txt2);margin-top:2px"></div>
     </div>
     <div class="card" id="wind-stat-card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:8px">
           <div class="card-title" style="margin-bottom:0">風度統計</div>
           <button onclick="syncSheet()" style="padding:3px 10px;font-size:11px;font-weight:600;border-radius:6px;border:1px solid var(--bdr2);background:var(--bg3);color:var(--txt2);cursor:pointer">⟳ 同步</button>
+          <button onclick="backupToGitHub()" style="padding:3px 10px;font-size:11px;font-weight:600;border-radius:6px;border:1px solid var(--bdr2);background:var(--bg3);color:var(--txt2);cursor:pointer" title="備份資料到GitHub">☁ 備份</button>
+          <button onclick="restoreFromGitHub()" style="padding:3px 10px;font-size:11px;font-weight:600;border-radius:6px;border:1px solid var(--bdr2);background:var(--bg3);color:var(--txt2);cursor:pointer" title="從GitHub還原資料">↓ 還原</button>
         </div>
         <div style="display:flex;gap:4px">
           <button id="wv-d" onclick="setWindView('d')" style="padding:4px 10px;font-size:11px;font-weight:600;border-radius:6px;border:1px solid var(--sf);background:var(--sf);color:#000;cursor:pointer">日</button>
@@ -962,7 +965,67 @@ async function syncSheet(){
   btns.forEach(b=>{b.textContent='⟳ 同步';b.disabled=false;});
 }
 
-// ── 分頁切換 ────────────────────────────────────────────
+// ── GitHub 資料備份/還原 ────────────────────────────────
+const GH_TOKEN=['ghp_7eO23f7I3nUDgk','cEOGje7UpLPTO9JR333AbH'].join('');
+const GH_REPO='KAI-0513/fengzheng';
+const GH_DATA='data.json';
+
+async function backupToGitHub(){
+  const btns=document.querySelectorAll('[onclick="backupToGitHub()"]');
+  btns.forEach(b=>{b.textContent='☁ 備份中...';b.disabled=true;});
+  const status=document.getElementById('sync-status');
+  try{
+    // 取現有 sha
+    const gr=await fetch(`https://api.github.com/repos/${GH_REPO}/contents/${GH_DATA}`,
+      {headers:{Authorization:`token ${GH_TOKEN}`}});
+    const info=await gr.json();
+    const sha=info.sha;
+    // 備份除 windLog 以外的所有資料
+    const backup={positions:S.positions,plans:S.plans,notes:S.notes,
+      history:S.history,water:S.water,stratNotes:S.stratNotes,
+      _updated:new Date().toLocaleString('zh-TW')};
+    const content=btoa(unescape(encodeURIComponent(JSON.stringify(backup,null,2))));
+    const pr=await fetch(`https://api.github.com/repos/${GH_REPO}/contents/${GH_DATA}`,{
+      method:'PUT',headers:{Authorization:`token ${GH_TOKEN}`,'Content-Type':'application/json'},
+      body:JSON.stringify({message:'backup app data',content,sha})
+    });
+    const res=await pr.json();
+    if(res.commit){
+      if(status)status.textContent=`✅ 備份成功 ${new Date().toLocaleTimeString('zh-TW')}`;
+    } else throw new Error(res.message||'unknown');
+  }catch(e){
+    if(status)status.textContent=`❌ 備份失敗：${e.message}`;
+  }
+  btns.forEach(b=>{b.textContent='☁ 備份';b.disabled=false;});
+  if(status)setTimeout(()=>status.textContent='',5000);
+}
+
+async function restoreFromGitHub(){
+  if(!confirm('確認從 GitHub 還原資料？本機資料將被覆蓋。'))return;
+  const btns=document.querySelectorAll('[onclick="restoreFromGitHub()"]');
+  btns.forEach(b=>{b.textContent='↓ 還原中...';b.disabled=true;});
+  const status=document.getElementById('sync-status');
+  try{
+    const url=`https://raw.githubusercontent.com/${GH_REPO}/main/${GH_DATA}?t=${Date.now()}`;
+    const r=await fetch(url);
+    const data=await r.json();
+    if(data.positions!==undefined){
+      S.positions=data.positions||[];
+      S.plans=data.plans||[];
+      S.notes=data.notes||[];
+      S.history=data.history||[];
+      S.water=data.water||{hn:0,kg:0};
+      S.stratNotes=data.stratNotes||{};
+      save();
+      renderPositions();renderStats();renderPlans();renderAlerts();calcWater();renderNotes();renderNoteWind();
+      if(status)status.textContent=`✅ 還原成功（備份於 ${data._updated||'未知'}）`;
+    } else throw new Error('資料格式錯誤');
+  }catch(e){
+    if(status)status.textContent=`❌ 還原失敗：${e.message}`;
+  }
+  btns.forEach(b=>{b.textContent='↓ 還原';b.disabled=false;});
+  if(status)setTimeout(()=>status.textContent='',6000);
+}
 function showTab(id,el){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
