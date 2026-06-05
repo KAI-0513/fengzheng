@@ -821,9 +821,9 @@ function renderWindStat(){
   const showKeys=validKeys; // 日和年都顯示全部，靠捲動看
   const WIND_Y={'強風':0,'陣風':1,'亂流':2,'無風':3};
   const dotSpacing=windView==='d'?28:14;
-  const PAD_L=46,PAD_R=20,PAD_T=8,PAD_B=56;
+  const PAD_L=46,PAD_R=30,PAD_T=14,PAD_B=62;
   const W=PAD_L+(showKeys.length-1)*dotSpacing+PAD_R+10;
-  const H=150;
+  const H=180;
   const PAD={l:PAD_L,r:PAD_R,t:PAD_T,b:PAD_B};
   const plotW=W-PAD.l-PAD.r;
   const plotH=H-PAD.t-PAD.b;
