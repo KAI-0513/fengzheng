@@ -951,8 +951,6 @@ async function syncSheet(){
     if(status)status.textContent=`❌ 同步失敗：${e.message}`;
   }
   btns.forEach(b=>{b.textContent='⟳ 同步';b.disabled=false;});
-  const mainBtn=document.getElementById('sync-btn');
-  if(mainBtn)mainBtn.innerHTML='📊 從試算表同步風度';
 }
 
 // ── 分頁切換 ────────────────────────────────────────────
