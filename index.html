@@ -68,7 +68,7 @@ input,select,textarea,button{font-family:inherit}
 
 /* ── CARDS ── */
 .card{background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:14px;margin-bottom:10px}
-.card-title{font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.9px;margin-bottom:12px}
+.card-title{font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.9px;margin-bottom:12px}
 .section-header{font-size:20px;font-weight:700;margin-bottom:14px;letter-spacing:-.5px}
 .metric-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
 .metric{background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:11px;text-align:center}
@@ -1639,21 +1639,14 @@ function toggleNotesHistory(){
   renderNotes();
 }
 function jumpToNoteDate(val){
-  // 統一格式 yyyy/MM/dd
-  const norm=val?val.replace(/-/g,'/').replace(/\/(\d)(?=\/|$)/g,'/$1').replace(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/,(m,y,mo,d)=>`${y}/${mo.padStart(2,'0')}/${d.padStart(2,'0')}`):'';
+  // date input 給 2026-06-05，select 給 2026/06/05，統一成 2026/06/05
+  const norm=val?val.replace(/-/g,'/'):'' ;
   notesFilterDate=norm;
-  // 同步兩個控件
   const jumpSel=document.getElementById('notes-date-jump');
   const dateInput=document.getElementById('notes-date-input');
   if(jumpSel)jumpSel.value=norm||'';
   if(dateInput&&norm)dateInput.value=norm.replace(/\//g,'-');
   renderNotes();
-  if(norm){
-    setTimeout(()=>{
-      const el=document.getElementById('note-anchor-'+norm);
-      if(el)el.scrollIntoView({behavior:'smooth',block:'center'});
-    },50);
-  }
 }
 function renderNotes(){
   const label=document.getElementById('nht-label');
@@ -1680,7 +1673,12 @@ function renderNotes(){
   // 決定顯示哪些筆記
   let filtered;
   if(notesFilterDate){
-    filtered=S.notes.map((n,i)=>({n,i})).filter(({n})=>n.date&&n.date.startsWith(notesFilterDate));
+    filtered=S.notes.map((n,i)=>({n,i})).filter(({n})=>{
+      const m=n.date&&n.date.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+      if(!m)return false;
+      const dk=`${m[1]}/${m[2].padStart(2,'0')}/${m[3].padStart(2,'0')}`;
+      return dk===notesFilterDate;
+    });
   } else {
     // 預設：本週7天
     const now=new Date();
