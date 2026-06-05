@@ -271,9 +271,15 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       <textarea id="note-input" placeholder="記錄今天的操作、觀察、想法..." style="min-height:68px"></textarea>
       <button class="btn primary" style="margin-top:9px" onclick="saveNote()">儲存筆記</button>
       <!-- 歷史筆記展開 -->
-      <div class="notes-toggle" onclick="toggleNotesHistory()">
-        <span id="nha" style="transition:transform .2s">›</span>
-        <span id="nht-label">歷史筆記（0則）</span>
+      <div class="notes-toggle" onclick="toggleNotesHistory()" style="justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span id="nha" style="transition:transform .2s">›</span>
+          <span id="nht-label">歷史筆記</span>
+        </div>
+        <select id="notes-date-jump" onclick="event.stopPropagation()" onchange="jumpToNoteDate(this.value)"
+          style="display:none;background:var(--bg3);border:1px solid var(--bdr2);border-radius:6px;color:var(--txt2);font-size:11px;padding:3px 8px;outline:none">
+          <option value="">跳到日期</option>
+        </select>
       </div>
       <div class="notes-history" id="notes-history"></div>
     </div>
@@ -950,6 +956,7 @@ async function syncSheet(){
     save();
     if(status)status.textContent=`✅ 同步成功！共${S.windLog.length}筆，最新：${latest?.date} ${latest?.wind}`;
     setWindView(windView||'d');
+    renderNoteWind();renderNotes();
   }catch(e){
     if(status)status.textContent=`❌ 同步失敗：${e.message}`;
   }
@@ -1623,31 +1630,74 @@ function saveNote(){
   document.getElementById('note-input').value='';save();renderNotes();
 }
 let notesOpen=false;
+let notesFilterDate=''; // '' = 本週7天，'YYYY/MM/DD' = 指定日期
 function toggleNotesHistory(){
   notesOpen=!notesOpen;
   document.getElementById('notes-history').classList.toggle('open',notesOpen);
   document.getElementById('nha').style.transform=notesOpen?'rotate(90deg)':'';
+  const jumpSel=document.getElementById('notes-date-jump');
+  if(jumpSel)jumpSel.style.display=notesOpen?'block':'none';
   renderNotes();
+}
+function jumpToNoteDate(val){
+  notesFilterDate=val;
+  renderNotes();
+  if(val){
+    // 捲到該筆記
+    setTimeout(()=>{
+      const el=document.getElementById('note-anchor-'+val);
+      if(el)el.scrollIntoView({behavior:'smooth',block:'center'});
+    },50);
+  }
 }
 function renderNotes(){
   const label=document.getElementById('nht-label');
-  label.textContent=`歷史筆記（${S.notes.length}則）`;
+  label.textContent='歷史筆記';
   if(!notesOpen)return;
   const el=document.getElementById('notes-history');
-  if(!S.notes.length){el.innerHTML='<div class="empty" style="padding:12px">尚無筆記</div>';return;}
-  const WCOL={'強風':'var(--sf)','陣風':'var(--gf)','亂流':'var(--lt)','無風':'var(--nw)'};
-  const WBG={'強風':'var(--sf-bg)','陣風':'var(--gf-bg)','亂流':'var(--lt-bg)','無風':'var(--nw-bg)'};
-  const WBDR={'強風':'var(--sf-bdr)','陣風':'var(--gf-bdr)','亂流':'var(--lt-bdr)','無風':'var(--nw-bdr)'};
-  // 建立 windLog 的日期快查表（yyyy/MM/dd → wind）
+  // 建立 windLog 快查表
   const windByDate={};
   (S.windLog||[]).forEach(l=>{if(l&&l.date)windByDate[l.date]=l.wind;});
-  el.innerHTML=S.notes.map((n,i)=>{
-    // 從筆記日期字串取出 yyyy/MM/dd 部分來查 windLog
-    const dateKey=n.date?n.date.replace(/^(\d{4})\/(\d{1,2})\/(\d{1,2}).*/,(m,y,mo,d)=>
-      `${y}/${mo.padStart(2,'0')}/${d.padStart(2,'0')}`):'';
+  // 更新日期跳轉下拉（列出所有有筆記的日期）
+  const jumpSel=document.getElementById('notes-date-jump');
+  if(jumpSel){
+    const noteDates=[...new Set(S.notes.map(n=>{
+      const m=n.date&&n.date.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+      return m?`${m[1]}/${m[2].padStart(2,'0')}/${m[3].padStart(2,'0')}`:'';
+    }).filter(Boolean))].sort().reverse();
+    jumpSel.innerHTML='<option value="">跳到日期</option>'+
+      noteDates.map(d=>`<option value="${d}"${d===notesFilterDate?' selected':''}>${d}</option>`).join('');
+  }
+  if(!S.notes.length){el.innerHTML='<div class="empty" style="padding:12px">尚無筆記</div>';return;}
+  const WCOL={'強風':'#ff2222','陣風':'#ff9999','亂流':'#86efb8','無風':'#1db954'};
+  const WBG={'強風':'#3d0000','陣風':'#2d1010','亂流':'#092a16','無風':'#052e14'};
+  const WBDR={'強風':'#ff2222','陣風':'rgba(255,153,153,.55)','亂流':'rgba(134,239,184,.45)','無風':'#1db954'};
+  // 決定顯示哪些筆記
+  let filtered;
+  if(notesFilterDate){
+    filtered=S.notes.map((n,i)=>({n,i})).filter(({n})=>n.date&&n.date.startsWith(notesFilterDate));
+  } else {
+    // 預設：本週7天
+    const now=new Date();
+    const cutoff=new Date(now);cutoff.setDate(now.getDate()-6);
+    const cutISO=`${cutoff.getFullYear()}/${String(cutoff.getMonth()+1).padStart(2,'0')}/${String(cutoff.getDate()).padStart(2,'0')}`;
+    filtered=S.notes.map((n,i)=>({n,i})).filter(({n})=>{
+      const m=n.date&&n.date.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+      if(!m)return false;
+      const dk=`${m[1]}/${m[2].padStart(2,'0')}/${m[3].padStart(2,'0')}`;
+      return dk>=cutISO;
+    });
+  }
+  if(!filtered.length){
+    el.innerHTML=`<div class="empty" style="padding:12px">${notesFilterDate?'該日無筆記':'本週無筆記'}</div>`;
+    return;
+  }
+  el.innerHTML=filtered.map(({n,i})=>{
+    const m=n.date&&n.date.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+    const dateKey=m?`${m[1]}/${m[2].padStart(2,'0')}/${m[3].padStart(2,'0')}`:'';
     const w=windByDate[dateKey]||n.wind||'';
     const windBadge=w?`<span style="font-size:11px;padding:2px 10px;border-radius:99px;border:1px solid ${WBDR[w]||'transparent'};color:${WCOL[w]||'#fff'};background:${WBG[w]||'transparent'};margin-right:6px;font-weight:600">${w}</span>`:'<span style="display:inline-block;width:36px;margin-right:6px"></span>';
-    return `<div class="note-item">
+    return `<div class="note-item" id="note-anchor-${dateKey}">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div class="note-date">${windBadge}${n.date}</div>
         <button class="btn sm" onclick="editNote(${i})" style="padding:2px 8px;font-size:11px">編輯</button>
@@ -1694,35 +1744,38 @@ async function sendAdvisor(){
 }
 
 // ── 快速筆記風度欄位 ──────────────────────────────────────
+const WIND_STYLE={
+  '強風':{c:'#ff2222',bg:'#3d0000',bdr:'#ff2222'},
+  '陣風':{c:'#ff9999',bg:'#2d1010',bdr:'rgba(255,153,153,.55)'},
+  '亂流':{c:'#86efb8',bg:'#092a16',bdr:'rgba(134,239,184,.45)'},
+  '無風':{c:'#1db954',bg:'#052e14',bdr:'#1db954'},
+};
 function renderNoteWind(){
   const el=document.getElementById('note-wind-display');
   if(!el)return;
   const now=new Date();
   const todayISO=`${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}`;
-  const sLog=(S.windLog||[]).filter(l=>l&&l.date&&l.date<=todayISO).sort((a,b)=>a.date.localeCompare(b.date));
-  const todayEntry=sLog.find(l=>l.date===todayISO)||null;
-  const DC2={'強風':'var(--sf)','陣風':'var(--gf)','亂流':'var(--lt)','無風':'var(--nw)'};
-  const BG2={'強風':'var(--sf-bg)','陣風':'var(--gf-bg)','亂流':'var(--lt-bg)','無風':'var(--nw-bg)'};
-  const BD2={'強風':'var(--sf-bdr)','陣風':'var(--gf-bdr)','亂流':'var(--lt-bdr)','無風':'var(--nw-bdr)'};
+  const todayEntry=(S.windLog||[]).find(l=>l&&l.date===todayISO)||null;
   if(todayEntry){
-    // 已有今日資料 → 顯示 badge（跟右上角一樣的顏色）
-    const w=todayEntry.wind;
-    el.innerHTML=`<div class="wind-badge w-${w}" style="font-size:13px;padding:4px 13px">
-      <span style="width:9px;height:9px;border-radius:50%;background:${DC2[w]};flex-shrink:0;display:inline-block"></span>${w}</div>`;
+    const w=todayEntry.wind;const ws=WIND_STYLE[w]||WIND_STYLE['強風'];
+    el.innerHTML=`<div class="wind-badge w-${w}"><span style="width:9px;height:9px;border-radius:50%;background:${ws.c};flex-shrink:0;display:inline-block"></span>${w}</div>`;
   } else {
-    // 未有今日資料 → 下拉，預選 S.wind（跟右上角一致）
     const cur=S.wind||'強風';
     const winds=['強風','陣風','亂流','無風'];
-    const opts=winds.map(w=>`<option value="${w}"${w===cur?'selected':''}>${w}</option>`).join('');
-    el.innerHTML=`<select id="note-wind-sel" onchange="updateNoteWindColor(this)" style="background:${BG2[cur]};border:1.5px solid ${BD2[cur]};border-radius:8px;color:${DC2[cur]};font-size:13px;font-weight:700;padding:4px 10px;outline:none">${opts}</select>`;
+    // 每個 option 用各自的顏色（select 本體跟著目前選項變色）
+    const ws=WIND_STYLE[cur]||WIND_STYLE['強風'];
+    const opts=winds.map(w=>{
+      const s=WIND_STYLE[w];
+      return `<option value="${w}"${w===cur?' selected':''}
+        style="background:${s.bg};color:${s.c}">${w}</option>`;
+    }).join('');
+    el.innerHTML=`<select id="note-wind-sel" onchange="updateNoteWindColor(this)"
+      style="background:${ws.bg};border:1.5px solid ${ws.bdr};border-radius:8px;color:${ws.c};font-size:13px;font-weight:700;padding:4px 10px;outline:none">${opts}</select>`;
   }
 }
 function updateNoteWindColor(sel){
-  const w=sel.value;
-  const BG2={'強風':'var(--sf-bg)','陣風':'var(--gf-bg)','亂流':'var(--lt-bg)','無風':'var(--nw-bg)'};
-  const BD2={'強風':'var(--sf-bdr)','陣風':'var(--gf-bdr)','亂流':'var(--lt-bdr)','無風':'var(--nw-bdr)'};
-  const DC2={'強風':'var(--sf)','陣風':'var(--gf)','亂流':'var(--lt)','無風':'var(--nw)'};
-  sel.style.background=BG2[w];sel.style.borderColor=BD2[w];sel.style.color=DC2[w];
+  const ws=WIND_STYLE[sel.value]||WIND_STYLE['強風'];
+  sel.style.background=ws.bg;sel.style.borderColor=ws.bdr;sel.style.color=ws.c;
 }
 
 // ── 筆記編輯函式 ──────────────────────────────────────────
