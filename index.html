@@ -276,10 +276,14 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
           <span id="nha" style="transition:transform .2s">›</span>
           <span id="nht-label">歷史筆記</span>
         </div>
-        <select id="notes-date-jump" onclick="event.stopPropagation()" onchange="jumpToNoteDate(this.value)"
-          style="display:none;background:var(--bg3);border:1px solid var(--bdr2);border-radius:6px;color:var(--txt2);font-size:11px;padding:3px 8px;outline:none">
-          <option value="">跳到日期</option>
-        </select>
+        <div style="display:flex;align-items:center;gap:6px" onclick="event.stopPropagation()">
+          <input id="notes-date-input" type="date" onchange="jumpToNoteDate(this.value.replace(/-/g,'/'))"
+            style="display:none;background:var(--bg3);border:1px solid var(--bdr2);border-radius:6px;color:var(--txt2);font-size:11px;padding:3px 6px;outline:none;width:120px">
+          <select id="notes-date-jump" onchange="jumpToNoteDate(this.value)"
+            style="display:none;background:var(--bg3);border:1px solid var(--bdr2);border-radius:6px;color:var(--txt2);font-size:11px;padding:3px 6px;outline:none;width:90px">
+            <option value="">跳到日期</option>
+          </select>
+        </div>
       </div>
       <div class="notes-history" id="notes-history"></div>
     </div>
@@ -1636,16 +1640,24 @@ function toggleNotesHistory(){
   document.getElementById('notes-history').classList.toggle('open',notesOpen);
   document.getElementById('nha').style.transform=notesOpen?'rotate(90deg)':'';
   const jumpSel=document.getElementById('notes-date-jump');
+  const dateInput=document.getElementById('notes-date-input');
   if(jumpSel)jumpSel.style.display=notesOpen?'block':'none';
+  if(dateInput)dateInput.style.display=notesOpen?'block':'none';
   renderNotes();
 }
 function jumpToNoteDate(val){
-  notesFilterDate=val;
+  // 統一格式 yyyy/MM/dd
+  const norm=val?val.replace(/-/g,'/').replace(/\/(\d)(?=\/|$)/g,'/$1').replace(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/,(m,y,mo,d)=>`${y}/${mo.padStart(2,'0')}/${d.padStart(2,'0')}`):'';
+  notesFilterDate=norm;
+  // 同步兩個控件
+  const jumpSel=document.getElementById('notes-date-jump');
+  const dateInput=document.getElementById('notes-date-input');
+  if(jumpSel)jumpSel.value=norm||'';
+  if(dateInput&&norm)dateInput.value=norm.replace(/\//g,'-');
   renderNotes();
-  if(val){
-    // 捲到該筆記
+  if(norm){
     setTimeout(()=>{
-      const el=document.getElementById('note-anchor-'+val);
+      const el=document.getElementById('note-anchor-'+norm);
       if(el)el.scrollIntoView({behavior:'smooth',block:'center'});
     },50);
   }
