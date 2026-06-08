@@ -519,6 +519,13 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       <select id="p-basis"><option>成值營收創高</option><option>成值營收</option><option>成值</option><option>營收</option><option>無成值營收</option></select>
     </div>
     <div class="field">
+      <label>停利條件（依策略自動建議）</label>
+      <select id="p-profit-sel" onchange="updateCustomProfit()">
+        <option value="">請選擇策略後自動更新</option>
+      </select>
+      <input type="text" id="p-profit-custom" placeholder="輸入自訂停利" style="margin-top:8px;display:none">
+    </div>
+    <div class="field">
       <label>停損條件（依策略自動建議）</label>
       <select id="p-stop-sel" onchange="updateCustomStop()">
         <option value="">請選擇策略後自動更新</option>
@@ -564,7 +571,18 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     <div class="field"><label>買入時風度</label>
       <select id="e-wind"><option>強風</option><option>陣風</option><option>亂流</option><option>無風</option></select>
     </div>
-    <div class="field"><label>停損條件</label><input type="text" id="e-stop"></div>
+    <div class="field"><label>停利條件</label>
+      <select id="e-profit-sel" onchange="document.getElementById('e-profit-custom').style.display=this.value==='自訂…'?'block':'none'">
+        <option value="">—</option>
+      </select>
+      <input type="text" id="e-profit-custom" placeholder="輸入自訂停利" style="margin-top:8px;display:none">
+    </div>
+    <div class="field"><label>停損條件</label>
+      <select id="e-stop-sel" onchange="document.getElementById('e-stop-custom').style.display=this.value==='自訂…'?'block':'none'">
+        <option value="">—</option>
+      </select>
+      <input type="text" id="e-stop-custom" placeholder="輸入自訂停損" style="margin-top:8px;display:none">
+    </div>
     <div class="field"><label>備註</label><input type="text" id="e-note"></div>
     <!-- 加碼區 -->
     <div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:12px">
@@ -1050,6 +1068,16 @@ const STOP_OPTS={
   '自己挑股票':['跌破五日線','虧損達 -5%','跌破月線(20MA)','自訂…'],
   '配股':['依原持倉策略','自訂…'],
 };
+const PROFIT_OPTS={
+  '打工型強勢日':['收盤跌破五日線','收盤跌破十日線','獲利達10%賣出','有賺錢就賣','自訂…'],
+  '打工型日拉回':['收盤跌破五日線','收盤跌破十日線','獲利達10%賣出','有賺錢就賣','自訂…'],
+  '上班族強勢週':['收盤跌破五日線','收盤跌破十日線','獲利達10%賣出','有賺錢就賣','自訂…'],
+  '上班族週趨勢':['週MACD柱開始往下','跌破月線(20MA)','獲利達10%賣出','有賺錢就賣','自訂…'],
+  '老闆型廉價收購':['守一條均線(10日/月線)','週五收盤低於上週五','有賺錢就賣光','自訂…'],
+  '老闆型週拉回':['守一條均線(10日/月線)','週五收盤低於上週五','有賺錢就賣光','自訂…'],
+  '自己挑股票':['收盤跌破五日線','跌破月線(20MA)','獲利達10%賣出','有賺錢就賣','自訂…'],
+  '配股':['依原持倉策略','自訂…'],
+};
 const TIMING_OPTS={
   '打工型強勢日':['10點以後再買','看到就買進','選買得下去的價格','確認離起漲點不太遠'],
   '打工型日拉回':['10點以後買','看到拉回就買','選買得下去的位置','靠近五日線買'],
@@ -1059,21 +1087,24 @@ const TIMING_OPTS={
   '老闆型週拉回':['尾盤12點後買進','盤中大跌-5%以上','日線拉回月線上方','量縮後進場'],
 };
 function updateStopOptions(){
-  const strat=document.getElementById('p-strat').value;
+  const strat=document.getElementById('p-strat')?.value||'';
   const sel=document.getElementById('p-stop-sel');
-  const opts=STOP_OPTS[strat]||['自訂…'];
-  sel.innerHTML=opts.map(o=>`<option value="${o}">${o}</option>`).join('');
-  // 買入時間條件改為下拉
+  if(sel){const opts=STOP_OPTS[strat]||['自訂…'];sel.innerHTML=opts.map(o=>`<option value="${o}">${o}</option>`).join('');}
+  const psel=document.getElementById('p-profit-sel');
+  if(psel){const opts=PROFIT_OPTS[strat]||['自訂…'];psel.innerHTML=opts.map(o=>`<option value="${o}">${o}</option>`).join('');}
   const tsel=document.getElementById('p-timing');
-  if(tsel){
-    const topts=TIMING_OPTS[strat]||['參考策略說明'];
-    tsel.innerHTML=topts.map(o=>`<option value="${o}">${o}</option>`).join('');
-  }
-  updateCustomStop();
+  if(tsel){const topts=TIMING_OPTS[strat]||['參考策略說明'];tsel.innerHTML=topts.map(o=>`<option value="${o}">${o}</option>`).join('');}
+  updateCustomStop();updateCustomProfit();
 }
 function updateCustomStop(){
-  const v=document.getElementById('p-stop-sel').value;
-  document.getElementById('p-stop-custom').style.display=v==='自訂…'?'block':'none';
+  const v=document.getElementById('p-stop-sel')?.value;
+  const el=document.getElementById('p-stop-custom');
+  if(el)el.style.display=v==='自訂…'?'block':'none';
+}
+function updateCustomProfit(){
+  const v=document.getElementById('p-profit-sel')?.value;
+  const el=document.getElementById('p-profit-custom');
+  if(el)el.style.display=v==='自訂…'?'block':'none';
 }
 
 // ── 新增持倉 ────────────────────────────────────────────
@@ -1092,6 +1123,8 @@ function addPosition(){
   const yoy=document.getElementById('chk-yoy').checked;
   const stopV=document.getElementById('p-stop-sel').value;
   const stop=stopV==='自訂…'?document.getElementById('p-stop-custom').value.trim():stopV;
+  const profitV=document.getElementById('p-profit-sel').value;
+  const profit=profitV==='自訂…'?document.getElementById('p-profit-custom').value.trim():profitV;
   const dateVal=document.getElementById('p-date').value||new Date().toISOString().split('T')[0];
   S.positions.push({id:Date.now(),name,
     lots:[{price:buy,qty,date:dateVal}],
@@ -1101,11 +1134,11 @@ function addPosition(){
     timing:document.getElementById('p-timing').value,
     wind:document.getElementById('p-wind').value,
     basis:(yoy?'YOY30%+ / ':'')+document.getElementById('p-basis').value,
-    stop,memo:document.getElementById('p-note').value.trim(),
+    stop,profit,memo:document.getElementById('p-note').value.trim(),
     batch:document.getElementById('p-batch').value.trim(),
     date:dateVal
   });
-  ['p-name','p-buy','p-qty','p-cur','p-note','p-batch','p-stop-custom','p-code'].forEach(id=>document.getElementById(id).value='');
+  ['p-name','p-buy','p-qty','p-cur','p-note','p-batch','p-stop-custom','p-profit-custom','p-code'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('chk-yoy').checked=false;
   closeModal('pos-modal');save();renderPositions();renderStats();renderAlerts();calcWater();
 }
@@ -1129,13 +1162,25 @@ function openEdit(id){
   document.getElementById('e-acct').value=p.acct||'華南';
   document.getElementById('e-strat').value=p.strat||'自己挑股票';
   document.getElementById('e-wind').value=p.wind||'強風';
-  document.getElementById('e-stop').value=p.stop||'';
   document.getElementById('e-note').value=p.memo||'';
   document.getElementById('e-add-date').value=new Date().toISOString().split('T')[0];
+  // 停利/停損下拉（依策略填選項，再選到目前值或設自訂）
+  const strat=p.strat||'';
+  const stopOpts=STOP_OPTS[strat]||['自訂…'];
+  const profitOpts=PROFIT_OPTS[strat]||['自訂…'];
+  const stopSel=document.getElementById('e-stop-sel');
+  const profitSel=document.getElementById('e-profit-sel');
+  stopSel.innerHTML=['—',...stopOpts].map(o=>`<option value="${o}">${o}</option>`).join('');
+  profitSel.innerHTML=['—',...profitOpts].map(o=>`<option value="${o}">${o}</option>`).join('');
+  // 嘗試選到已存的值，否則設自訂
+  if(p.stop&&stopOpts.includes(p.stop)){stopSel.value=p.stop;document.getElementById('e-stop-custom').style.display='none';}
+  else if(p.stop){stopSel.value='自訂…';document.getElementById('e-stop-custom').style.display='block';document.getElementById('e-stop-custom').value=p.stop;}
+  else{stopSel.value='—';document.getElementById('e-stop-custom').style.display='none';}
+  if(p.profit&&profitOpts.includes(p.profit)){profitSel.value=p.profit;document.getElementById('e-profit-custom').style.display='none';}
+  else if(p.profit){profitSel.value='自訂…';document.getElementById('e-profit-custom').style.display='block';document.getElementById('e-profit-custom').value=p.profit;}
+  else{profitSel.value='—';document.getElementById('e-profit-custom').style.display='none';}
   // lots相容舊資料
-  if(!p.lots||!p.lots.length){
-    p.lots=[{price:p.buy||0,qty:p.qty||0,date:p.date||''}];
-  }
+  if(!p.lots||!p.lots.length){p.lots=[{price:p.buy||0,qty:p.qty||0,date:p.date||''}];}
   renderEditLots(p.lots);
   document.getElementById('edit-modal').classList.remove('hidden');
 }
@@ -1180,7 +1225,12 @@ function saveEdit(){
   p.acct=document.getElementById('e-acct').value;
   p.strat=document.getElementById('e-strat').value;
   p.wind=document.getElementById('e-wind').value;
-  p.stop=document.getElementById('e-stop').value.trim();
+  // 停損
+  const stopSel=document.getElementById('e-stop-sel').value;
+  p.stop=stopSel==='自訂…'?document.getElementById('e-stop-custom').value.trim():stopSel==='—'?'':stopSel;
+  // 停利
+  const profitSel=document.getElementById('e-profit-sel').value;
+  p.profit=profitSel==='自訂…'?document.getElementById('e-profit-custom').value.trim():profitSel==='—'?'':profitSel;
   p.memo=document.getElementById('e-note').value.trim();
   const {avgPrice,totalQty}=calcAvg(p.lots);
   p.buy=avgPrice;p.qty=totalQty; // 用平均成本更新
@@ -1248,7 +1298,8 @@ async function fetchOneSuffix(code,suffix){
   try{
     const yahoo=`https://query1.finance.yahoo.com/v8/finance/chart/${code}${suffix}?interval=1d&range=1d`;
     const proxy=`https://api.allorigins.win/get?url=${encodeURIComponent(yahoo)}`;
-    const r=await fetch(proxy);const outer=await r.json();
+    const r=await fetch(proxy,{signal:AbortSignal.timeout(8000)});
+    const outer=await r.json();
     const data=JSON.parse(outer.contents);
     return data?.chart?.result?.[0]?.meta?.regularMarketPrice||null;
   }catch(e){return null;}
@@ -1265,14 +1316,50 @@ async function fetchAllPrices(){
   const withCode=S.positions.filter(p=>p.code);
   if(!withCode.length){alert('請先在持倉編輯裡填入股票代號');return;}
   if(btn){btn.textContent='⏳ 更新中...';btn.disabled=true;}
-  const results=await Promise.all(withCode.map(p=>fetchClosePrice(p.id)));
-  // 全部抓完才一次儲存和渲染
-  save();renderPositions();renderStats();renderAlerts();calcWater();
-  const ok=results.filter(Boolean).length,fail=results.length-ok;
-  if(btn){btn.textContent='📡 一鍵更新所有股價';btn.disabled=false;}
-  const msg=fail?`✅ ${ok}支成功　❌ ${fail}支失敗（確認代號）`:`✅ 全部 ${ok} 支更新成功`;
-  const status=document.getElementById('price-update-status');
-  if(status){status.textContent=msg;setTimeout(()=>status.textContent='',5000);}
+  // 先嘗試批次查詢（速度最快）
+  try{
+    // 上市(.TW) 和上櫃(.TWO) 各一次 batch 查
+    const twSymbols=withCode.map(p=>`${p.code}.TW`).join(',');
+    const twoSymbols=withCode.map(p=>`${p.code}.TWO`).join(',');
+    const batchYahoo=`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${twSymbols},${twoSymbols}&fields=regularMarketPrice`;
+    const proxy=`https://api.allorigins.win/get?url=${encodeURIComponent(batchYahoo)}`;
+    const r=await fetch(proxy,{signal:AbortSignal.timeout(10000)});
+    const outer=await r.json();
+    const data=JSON.parse(outer.contents);
+    const quotes=data?.quoteResponse?.result||[];
+    const priceMap={};
+    quotes.forEach(q=>{
+      // key 去掉 suffix
+      const code=q.symbol.replace(/\.(TW|TWO)$/,'');
+      if(q.regularMarketPrice&&!priceMap[code])priceMap[code]=q.regularMarketPrice;
+    });
+    let ok=0,fail=0;
+    withCode.forEach(p=>{
+      if(priceMap[p.code]){p.cur=priceMap[p.code];ok++;}
+      else fail++;
+    });
+    // 失敗的個別重試
+    if(fail>0){
+      const retries=withCode.filter(p=>!priceMap[p.code]);
+      const retryResults=await Promise.all(retries.map(p=>fetchClosePrice(p.id)));
+      const retryOk=retryResults.filter(Boolean).length;
+      ok+=retryOk;fail=retries.length-retryOk;
+    }
+    save();renderPositions();renderStats();renderAlerts();calcWater();
+    if(btn){btn.textContent='📡 一鍵更新所有股價';btn.disabled=false;}
+    const msg=fail?`✅ ${ok}支成功　❌ ${fail}支失敗（確認代號）`:`✅ 全部 ${ok} 支更新成功`;
+    const status=document.getElementById('price-update-status');
+    if(status){status.textContent=msg;setTimeout(()=>status.textContent='',5000);}
+  }catch(e){
+    // batch 失敗改逐一抓
+    const results=await Promise.all(withCode.map(p=>fetchClosePrice(p.id)));
+    save();renderPositions();renderStats();renderAlerts();calcWater();
+    const ok=results.filter(Boolean).length,fail=results.length-ok;
+    if(btn){btn.textContent='📡 一鍵更新所有股價';btn.disabled=false;}
+    const msg=fail?`✅ ${ok}支成功　❌ ${fail}支失敗`:`✅ 全部 ${ok} 支更新成功`;
+    const status=document.getElementById('price-update-status');
+    if(status){status.textContent=msg;setTimeout(()=>status.textContent='',5000);}
+  }
 }
 
 // ── 刪除持倉 ─────────────────────────────────────────────
