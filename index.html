@@ -298,18 +298,14 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     <div id="positions-list"></div>
     <button class="btn" onclick="openAddPos()">＋ 新增持倉</button>  </div>
 
-  <!-- 歷史記錄 -->
+  <!-- 候選股 -->
   <div class="section" id="sec-history">
-    <div class="section-header">歷史記錄</div>
-    <div style="display:flex;gap:8px;margin-bottom:10px;overflow-x:auto;padding-bottom:4px">
-      <button class="btn sm" id="hf-all" onclick="setHistFilter('all')" style="white-space:nowrap;background:var(--grn);color:#000;border-color:var(--grn)">全部</button>
-      <button class="btn sm" id="hf-win" onclick="setHistFilter('win')" style="white-space:nowrap">獲利</button>
-      <button class="btn sm" id="hf-loss" onclick="setHistFilter('loss')" style="white-space:nowrap">虧損</button>
-      <button class="btn sm" id="hf-hn" onclick="setHistFilter('hn')" style="white-space:nowrap">華南</button>
-      <button class="btn sm" id="hf-kg" onclick="setHistFilter('kg')" style="white-space:nowrap">凱基</button>
+    <div class="section-header">候選股</div>
+    <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:20px;text-align:center;color:var(--txt3)">
+      <div style="font-size:32px;margin-bottom:10px">📋</div>
+      <div style="font-size:14px;color:var(--txt2);margin-bottom:6px">候選股功能建置中</div>
+      <div style="font-size:12px;line-height:1.7">把試算表格式傳給 Claude<br>就會自動串接並判斷符合策略的股票</div>
     </div>
-    <div id="history-list"></div>
-    <button class="btn" style="margin-top:4px" onclick="openAddPlan()">📋 候選清單</button>
   </div>
 
   <!-- 策略 -->
@@ -397,8 +393,8 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     <span>持倉</span>
   </div>
   <div class="tab-item" onclick="showTab('history',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-    <span>歷史</span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+    <span>候選</span>
   </div>
   <div class="tab-item" onclick="showTab('strat',this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
