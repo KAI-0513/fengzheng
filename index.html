@@ -1635,30 +1635,49 @@ function renderPositions(){
 
   html+=`</tbody></table></div>`;
 
-  // 警示區塊：停利=紅色 停損=綠色
+  // 警示區塊
   S.positions.forEach(p=>{
     const {avgPrice}=calcAvg(p.lots);
     const pct=(p.cur-avgPrice)/avgPrice*100;
-    const warnMsgs=closeCheckMsg(p);
-    if((pct<=-5||pct>=10)&&warnMsgs.length){
-      const isProfit=pct>=10;
-      const warnStyle=isProfit
-        ?'background:var(--sf-bg);color:var(--sf);border:1px solid rgba(255,34,34,.3)'
-        :'background:var(--nw-bg);color:var(--nw);border:1px solid rgba(29,185,84,.3)';
-      html+=`<div class="close-warn" style="margin-bottom:6px;${warnStyle}">⚡ ${p.name}：${warnMsgs[0]}</div>`;
+    const pos=pct>=0;
+    const profitTarget=p.profit&&p.profit.match(/^[\d,]+$/)?parseFloat(p.profit.replace(/,/g,'')):null;
+    const stopTarget=p.stop&&p.stop.match(/^[\d,]+$/)?parseFloat(p.stop.replace(/,/g,'')):null;
+
+    if(pos){
+      // 獲利中 → 只顯示停利相關
+      if(profitTarget&&p.cur>=profitTarget)
+        html+=`<div class="close-warn" style="margin-bottom:6px;background:var(--sf-bg);color:var(--sf);border:1px solid rgba(255,34,34,.3)">🔔 ${p.name} 已達停利目標 $${profitTarget}，現價 $${p.cur}</div>`;
+      else if(p.profit&&!profitTarget){
+        // 文字型停利：依策略顯示不同訊息
+        const s=p.strat||'';
+        let msg=p.profit;
+        if(pct>=20){
+          // 20%以上改顯示策略進階條件
+          if(s.includes('打工')||s.includes('上班族'))msg='獲利已達20%+ — 確認週五收盤是否低於上週五，是則出場';
+          else if(s.includes('老闆'))msg='獲利已達20%+ — 確認月MACD柱是否開始縮短';
+        }
+        html+=`<div class="close-warn" style="margin-bottom:6px;background:var(--sf-bg);color:var(--sf);border:1px solid rgba(255,34,34,.2)">⚠ ${p.name} 停利：${msg}</div>`;
+      } else if(pct>=10&&!p.profit){
+        // 沒設停利但已達10%，用預設策略邏輯
+        const s=p.strat||'';
+        let msg='獲利≥10%，確認停利條件';
+        if(pct>=20){
+          if(s.includes('打工')||s.includes('上班族'))msg='獲利已達20%+ — 確認週五收盤是否低於上週五';
+          else if(s.includes('老闆'))msg='獲利已達20%+ — 確認月MACD柱是否縮短';
+        } else {
+          if(s.includes('打工')||s.includes('上班族'))msg='獲利≥10% — 確認今天有無跌破當天買進的紅K';
+        }
+        html+=`<div class="close-warn" style="margin-bottom:6px;background:var(--sf-bg);color:var(--sf);border:1px solid rgba(255,34,34,.2)">⚡ ${p.name}：${msg}</div>`;
+      }
+    } else {
+      // 虧損中 → 只顯示停損相關
+      if(stopTarget&&p.cur<=stopTarget)
+        html+=`<div class="close-warn" style="margin-bottom:6px;background:var(--nw-bg);color:var(--nw);border:1px solid rgba(29,185,84,.3)">🔔 ${p.name} 已觸及停損目標 $${stopTarget}，現價 $${p.cur}</div>`;
+      else if(p.stop&&!stopTarget)
+        html+=`<div class="close-warn" style="margin-bottom:6px;background:var(--nw-bg);color:var(--nw);border:1px solid rgba(29,185,84,.2)">⚠ ${p.name} 停損：${p.stop}，請確認</div>`;
+      else if(pct<=-5&&!p.stop)
+        html+=`<div class="close-warn" style="margin-bottom:6px;background:var(--nw-bg);color:var(--nw);border:1px solid rgba(29,185,84,.3)">🚨 ${p.name} 虧損已達${pct.toFixed(1)}%，建議直接出場</div>`;
     }
-    // 數值停利/停損命中提醒
-    const profitTarget=p.profit&&p.profit.match(/[\d,]+/)?parseFloat(p.profit.replace(/,/g,'')):null;
-    const stopTarget=p.stop&&p.stop.match(/[\d,]+/)?parseFloat(p.stop.replace(/,/g,'')):null;
-    if(profitTarget&&p.cur>=profitTarget)
-      html+=`<div class="close-warn" style="margin-bottom:6px;background:var(--sf-bg);color:var(--sf);border:1px solid rgba(255,34,34,.3)">🔔 ${p.name} 已達停利目標 $${profitTarget}，現價 $${p.cur}</div>`;
-    if(stopTarget&&p.cur<=stopTarget)
-      html+=`<div class="close-warn" style="margin-bottom:6px;background:var(--nw-bg);color:var(--nw);border:1px solid rgba(29,185,84,.3)">🔔 ${p.name} 已觸及停損目標 $${stopTarget}，現價 $${p.cur}</div>`;
-    // 文字型停利/停損：每次都顯示「請確認」提示
-    if(p.profit&&!profitTarget)
-      html+=`<div class="close-warn" style="margin-bottom:6px;background:var(--sf-bg);color:var(--sf);border:1px solid rgba(255,34,34,.2)">⚠ ${p.name} 停利條件：${p.profit}，請自行確認</div>`;
-    if(p.stop&&!stopTarget)
-      html+=`<div class="close-warn" style="margin-bottom:6px;background:var(--nw-bg);color:var(--nw);border:1px solid rgba(29,185,84,.2)">⚠ ${p.name} 停損條件：${p.stop}，請自行確認</div>`;
   });
 
   el.innerHTML=html;
