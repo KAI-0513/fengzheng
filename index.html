@@ -1343,25 +1343,39 @@ async function fetchAllPrices(){
   try{
     const twS=withCode.map(p=>`${p.code}.TW`).join(',');
     const twoS=withCode.map(p=>`${p.code}.TWO`).join(',');
-    const batchUrl=`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${twS},${twoS}&fields=regularMarketPrice,symbol`;
+    const batchUrl=`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${twS},${twoS}&fields=regularMarketPrice,symbol,shortName,longName`;
     const data=await fetchViaProxy(batchUrl);
     const quotes=data?.quoteResponse?.result||[];
-    const pm={};
-    quotes.forEach(q=>{const c=q.symbol.replace(/\.(TW|TWO)$/,'');if(q.regularMarketPrice&&!pm[c])pm[c]=q.regularMarketPrice;});
-    let ok=0,fail=0;
+    const pm={};const nm={};
+    quotes.forEach(q=>{
+      const c=q.symbol.replace(/\.(TW|TWO)$/,'');
+      if(q.regularMarketPrice&&!pm[c]){pm[c]=q.regularMarketPrice;nm[c]=q.shortName||q.longName||'';}
+    });
+    let ok=0,fail=0;const nameWarns=[];
     for(const p of withCode){
-      if(pm[p.code]){p.cur=pm[p.code];ok++;}
-      else{
-        // 個別重試
+      if(pm[p.code]){
+        p.cur=pm[p.code];ok++;
+        // 名稱比對：去掉空白和常見後綴再比較
+        const yName=(nm[p.code]||'').replace(/\s/g,'').replace(/(股份有限公司|Inc\.|Corp\.|Ltd\.)/gi,'');
+        const myName=(p.name||'').replace(/\s/g,'');
+        if(yName&&myName&&!yName.includes(myName)&&!myName.includes(yName.substring(0,3)))
+          nameWarns.push(`${p.code} 你填「${p.name}」，Yahoo顯示「${nm[p.code]}」，請確認代號是否正確`);
+      }else{
         const res=await fetchClosePrice(p.id);
         res?ok++:fail++;
       }
     }
     save();renderPositions();renderStats();renderAlerts();calcWater();
     if(btn){btn.textContent='📡 一鍵更新所有股價';btn.disabled=false;}
-    const msg=fail?`✅${ok}支成功 ❌${fail}支失敗`:`✅ 全部${ok}支更新成功`;
+    let msg=fail?`✅${ok}支成功 ❌${fail}支失敗`:`✅ 全部${ok}支更新成功`;
+    if(nameWarns.length)msg+='\n⚠ 名稱不符：'+nameWarns.join('；');
     const st=document.getElementById('price-update-status');
-    if(st){st.textContent=msg;setTimeout(()=>st.textContent='',5000);}
+    if(st){
+      st.style.whiteSpace='pre-line';
+      st.textContent=msg;
+      if(nameWarns.length)st.style.color='#f6ad55';
+      setTimeout(()=>{st.textContent='';st.style.color='';},nameWarns.length?10000:5000);
+    }
   }catch(e){
     const results=await Promise.all(withCode.map(p=>fetchClosePrice(p.id)));
     save();renderPositions();renderStats();renderAlerts();calcWater();
@@ -1640,6 +1654,11 @@ function renderPositions(){
       html+=`<div class="close-warn" style="margin-bottom:6px;background:var(--sf-bg);color:var(--sf);border:1px solid rgba(255,34,34,.3)">🔔 ${p.name} 已達停利目標 $${profitTarget}，現價 $${p.cur}</div>`;
     if(stopTarget&&p.cur<=stopTarget)
       html+=`<div class="close-warn" style="margin-bottom:6px;background:var(--nw-bg);color:var(--nw);border:1px solid rgba(29,185,84,.3)">🔔 ${p.name} 已觸及停損目標 $${stopTarget}，現價 $${p.cur}</div>`;
+    // 文字型停利/停損：每次都顯示「請確認」提示
+    if(p.profit&&!profitTarget)
+      html+=`<div class="close-warn" style="margin-bottom:6px;background:var(--sf-bg);color:var(--sf);border:1px solid rgba(255,34,34,.2)">⚠ ${p.name} 停利條件：${p.profit}，請自行確認</div>`;
+    if(p.stop&&!stopTarget)
+      html+=`<div class="close-warn" style="margin-bottom:6px;background:var(--nw-bg);color:var(--nw);border:1px solid rgba(29,185,84,.2)">⚠ ${p.name} 停損條件：${p.stop}，請自行確認</div>`;
   });
 
   el.innerHTML=html;
