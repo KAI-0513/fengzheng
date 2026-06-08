@@ -300,12 +300,18 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 
   <!-- 候選股 -->
   <div class="section" id="sec-history">
-    <div class="section-header">候選股</div>
-    <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:20px;text-align:center;color:var(--txt3)">
-      <div style="font-size:32px;margin-bottom:10px">📋</div>
-      <div style="font-size:14px;color:var(--txt2);margin-bottom:6px">候選股功能建置中</div>
-      <div style="font-size:12px;line-height:1.7">把試算表格式傳給 Claude<br>就會自動串接並判斷符合策略的股票</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="section-header" style="margin-bottom:0">候選股</div>
+      <button onclick="loadCandidates()" style="padding:4px 12px;font-size:11px;font-weight:600;border-radius:6px;border:1px solid var(--bdr2);background:var(--bg3);color:var(--txt2);cursor:pointer" id="cand-refresh-btn">⟳ 更新</button>
     </div>
+    <div id="cand-date-row" style="font-size:11px;color:var(--txt3);margin-bottom:10px"></div>
+    <!-- 人格切換 -->
+    <div style="display:flex;gap:6px;margin-bottom:12px">
+      <button onclick="setCandTab('worker')" id="ctab-worker" style="flex:1;padding:7px;font-size:12px;font-weight:700;border-radius:8px;border:1.5px solid var(--sf);background:var(--sf-bg);color:var(--sf);cursor:pointer">上班族型</button>
+      <button onclick="setCandTab('boss')" id="ctab-boss" style="flex:1;padding:7px;font-size:12px;font-weight:700;border-radius:8px;border:1px solid var(--bdr2);background:var(--bg3);color:var(--txt3);cursor:pointer">老闆型</button>
+      <button onclick="setCandTab('top6')" id="ctab-top6" style="flex:1;padding:7px;font-size:12px;font-weight:700;border-radius:8px;border:1px solid var(--bdr2);background:var(--bg3);color:var(--txt3);cursor:pointer">成值TOP6</button>
+    </div>
+    <div id="cand-content"><div class="empty" style="padding:30px;text-align:center">點右上角「⟳ 更新」載入候選股</div></div>
   </div>
 
   <!-- 策略 -->
@@ -1040,6 +1046,112 @@ async function restoreFromGitHub(){
   btns.forEach(b=>{b.textContent='↓ 還原';b.disabled=false;});
   if(status)setTimeout(()=>status.textContent='',6000);
 }
+// ── 候選股 ───────────────────────────────────────────────
+let candData=null,candTab='worker';
+const STOCK_MAP_STATIC={'台積電':'2330','鴻海':'2317','聯發科':'2454','台達電':'2308','廣達':'2382','聯電':'2303','中華電':'2412','富邦金':'2881','國泰金':'2882','南亞':'1303','台塑':'1301','台化':'1326','中鋼':'2002','元大金':'2885','兆豐金':'2886','第一金':'2892','合庫金':'5880','玉山金':'2884','永豐金':'2890','台新金':'2887','中信金':'2891','開發金':'2883','華南金':'2880','台灣大':'3045','遠傳':'4904','欣興':'3037','景碩':'3189','臻鼎':'4958','台光電':'2383','南電':'8046','聯茂':'6213','華通':'2313','群聯':'8299','威剛':'3260','創見':'2451','宜鼎':'5289','信驊':'5274','祥碩':'5269','譜瑞':'4966','慧榮':'6286','南亞科':'2408','華邦電':'2344','旺宏':'2337','力積電':'6770','矽力':'6415','聯詠':'3034','瑞昱':'2379','智原':'3035','晶心科':'6533','日月光':'3711','京元電':'2449','欣銓':'3264','矽格':'6257','緯創':'3231','緯穎':'6669','英業達':'2356','仁寶':'2324','和碩':'4938','鴻準':'2354','奇鋐':'3017','建準':'2421','雙鴻':'3324','超眾':'6230','長榮':'2603','陽明':'2609','萬海':'2615','慧洋':'2637','長榮航':'2618','華航':'2610','國巨':'2327','禾伸堂':'3026','大毅':'2478','台半':'5425','強茂':'2481','杰力':'5299','中美晶':'5483','環球晶':'6488','合晶':'6182','嘉晶':'3016','漢磊':'3707','大立光':'3008','玉晶光':'3406','先進光':'3362','亞光':'3019','晶電':'2448','億光':'2393','璨圓':'3061','光磊':'2340','聯鈞':'3450','全新':'2455','宏捷科':'8086','智邦':'2345','合勤':'3704','神達':'3706','正文':'4906','啟碁':'6285','智易':'3596','信音':'3234','雅特力-KY':'4296','晶豪科':'3006','新唐':'4919','旺矽':'6223','帆宣':'6196','精測':'6510','均豪':'5443','大成鋼':'2027','豐興':'2015','燁輝':'2023','牧德':'3563','創意':'3443','世芯-KY':'3661','金居':'8358','達運':'6120','友達':'2409','群創':'3481','彩晶':'6116','元太':'8069','正崴':'2392','技嘉':'2376','微星':'2377','聯強':'2347','大聯大':'3702','文曄':'3036','益登':'3048','尖點':'6117','佳世達':'2352','東元':'1504','光寶科':'2301','台表科':'6278','全漢':'3015','康舒':'6282','義隆':'2458','凌通':'4952','盛群':'6202','凌陽':'2401','晶相光':'3530','旭曜':'3545','聯陽':'3014','笙科':'5272','新光金':'2888','台壽保':'2833','國票金':'2889','亞德客-KY':'1590','上銀':'2049','廣隆':'1537','鉅祥':'2476','裕日車':'2227','中華車':'2204','三陽工業':'2206','瓦城':'2729','王品':'2727','六角':'2732','八方雲集':'2753','統一超':'2912','全家':'5903','大潤發':'2946','遠百':'2903','地產股':'9945','大同':'2371','聲寶':'1604','士電':'1503','中興電':'1513','亞力電機':'1514','歌林':'1606','燦坤':'2430','精英':'2362','中磊':'5388','正祐':'2394','川湖':'2059','正航':'4149','中租-KY':'5871','裕融':'9941','和潤企業':'6592','正新':'2105','建大':'2106','南港':'2101','台橡':'2103','台苯':'1310','聯成':'1313','台塑化':'6505','上緯投控':'3708','富鼎':'8261','宏正':'2484','佳格':'1227','大統益':'1232','卜蜂':'1215','泰山':'1218','愛之味':'1217','聯華食':'1231','黑松':'1234','崇越電':'3388','茂達':'6138','帝凱':'3410','太極':'4934','啟基':'3010','鼎翰':'3611','虹光':'2380','金寶':'2312','致伸':'4915','精碟':'2396','豐達科':'3149','朋程':'8255','同泰':'6271','光鼎':'3230','達方':'8163','先豐':'5349','達鋼':'2028','百和':'9938','豐泰':'9910','健亞':'4130','聯合':'4129','長科':'3138','閎康':'3587','京鼎':'3413','弘塑':'3131','聯成化科':'1313','南僑':'1702','帆宣系統':'6196','印能科技':'6583','博智':'8155','宇膽':'6265','聯亞':'3081','鈺太':'4971','正弦':'4987','安集':'6477','長榮航空':'2618','漢翔':'2634','大成股份':'1210','統一企業':'1216','旺旺':'1229','健格':'3130','德律':'3030','旺旺中時':'1229','力晶投資':'5346','上詮光纖':'3441','正弦積體電路':'4987','金益鼎':'8499','家登精密':'6598','穩懋半導體':'3105','信昌電':'6173','世紀鋼':'9958','農林':'2913','兆赫':'2485','台泥':'1101','亞泥':'1102','嘉泥':'1103','達達':'6698','雄獅':'2731','崇越科技':'5434','帛漢':'3299','大千世界':'0','達電':'3042','佳邦':'6284','宏致':'3605','竹德電子':'6234','博大':'4960','橘子':'6180','晶彩科':'3535','合泰半導體':'4745','普萊德':'6263','詮欣':'6205','昇佳電子':'6732','盛達電業':'6493','大塚':'3567','力士科技':'5464','達爾科技':'3707','中保科':'9917','富邦媒':'8454','美律':'2439','晶技':'3042','大業科技':'0','泰升橡膠':'2108','定穎投控':'6411','博智電子':'8155','健策':'3653','鑫通興業':'1567','宏遠興業':'1460','台南企業':'1473','儒鴻':'1476','聚陽實業':'1477','南緯實業':'1467','力士科技股份':'5464','順德':'2351','正合精密':'1566','宇環精密':'1558','大榮貨運':'2608','榮運':'2607','台灣大車隊':'2640','大台北瓦斯':'9908','欣天然':'9918','信義房屋':'9940','中鼎工程':'9933','康全電訊':'0','台灣高鐵':'2633','達明':'0','中信兄弟':'0','麥達斯':'4922','達智互聯':'6148','崇友實業':'1597','盟立自動化':'2464','東鋼':'2006','達運精密':'6120','鑫龍騰':'5366','美德醫療-DR':'0','達達國際':'6698','智崴':'5263','宏碁':'2353','金麗科':'3228','連展科技':'3302','台驊':'2636','大船':'2601','正德':'2641','兆豐金融':'2886','益航':'2601','正峰工業':'1538','永大機電':'1507','達達國際物流':'6698','長虹':'5534','興富發':'2542','冠德':'2520','日勝生':'2535','遠雄':'5522','太子':'2511','力麒':'5512','大陸建設':'2516','皇翔':'2545','磐亞':'5284','三發地產':'6153','鄉林':'5531','甲山林':'5543','信義房屋股份':'9940','國建':'2501','良維':'6290','元晶':'6443','穩得':'8433','大全科技':'3447','榮剛':'5009','榮新科技':'0','旭東機械':'0','長科精密':'3138','泰林':'3082','致遠互連':'4916','安泰銀行':'2817','土地銀行':'2801','彰化銀行':'2809','京城銀':'2809','台中銀行':'2812','高雄銀行':'2836','元大銀行':'2885','富邦銀行':'2881','台灣工銀':'2833','第一銀行':'2892','廣越科技':'4438','友輝光電':'3429','維熹科技':'3501','同欣電子':'6271','光鼎電子':'3230','緯升科技':'4968','明泰科技':'3380','眾達-KY':'4977','群電':'6412','新日興':'3376','力智電子':'3452','志豐電子':'6416','捷波通訊':'6160','迎輝科技':'5383','達明光電':'0','生技醫療':'0','基因科技':'0','奇力新':'2456','正隆':'1904','永豐餘':'1907','榮成':'1909','景興紙業':'1752','台灣合成橡膠':'2103','大連化工':'1711','弘光科大':'0','義守大學':'0','大洋塑膠':'1526','正崴精密':'2392','英誠':'0','明昌國際':'4420','英特磊':'3625','遠通電收':'2636','中保無限':'9917','建興電子':'6208','光陽工業':'1227','裕隆汽車':'2201','東南汽車':'2207','台灣山葉':'2211','正道汽車':'2213','台灣精品':'0','金利科技':'5460','艾笛森光電':'3591','達方電子':'8163','合一生技':'4743','浩鼎生技':'4174','中天生技':'4128','泰博科技':'4736','百略醫學':'4103','盟源生技':'6654','永昕生醫':'4726','三生醫學':'4108','創見資訊':'2451','宜鼎國際':'5289','威剛科技':'3260','智邦科技':'2345','合勤控股':'3704','神達電腦':'3706','正文科技':'4906','啟碁科技':'6285','德律科技':'3030','精英電腦':'2362','精英集團':'2362','達電股份':'3042','佳邦科技':'6284','宏致電子':'3605','竹德電子股份':'6234','台灣精銳科技':'5284','崇越電通':'3388','達智互聯網':'6148','系統電子工業':'2409','大成鋼企業':'2027','南亞科技':'2408','旺宏電子':'2337','京元電子':'2449','廣達電腦':'2382','仁寶電腦':'2324','緯創資通':'3231','英業達公司':'2356','和碩聯合':'4938','鴻準精密':'2354','聯強國際':'2347','大聯大控股':'3702','文曄科技':'3036','益登科技':'3048','力旺電子':'4961','群電控股':'6412','智易科技':'3596','中磊電子':'5388','旺旺食品':'1229','泰山企業':'1218','統一超商':'2912','全家便利商店':'5903','大成長城':'1210','聯發科技':'2454','台灣積體電路':'2330','大毅科技':'2478','國巨股份':'2327','奇力新電子':'2456','南亞電路板':'8046','欣興電子':'3037','景碩科技':'3189','超豐電子':'2441','菱生精密':'2369','世界先進':'5347','矽品精密':'2325','日月光投控':'3711','聯合微電子':'2303','台灣光罩':'2338','合晶科技':'6182','昱晶能源':'3514','茂迪股份':'6244','力旺':'4961','力積電股份':'6770','漢磊科技':'3707','達明機器人':'0','穩懋半導體股份':'3105','宏捷科技股份':'8086','全新光電':'2455','砷化鎵晶圓':'1563','日月光半導體':'3711','強生電子':'6020','旺宏電子股份':'2337','聯電股份':'2303','台積電股份':'2330','聯發科技股份':'2454','台達電子工業':'2308','廣達電腦股份':'2382','鴻海精密工業':'2317','中鋼股份':'2002','國巨股份有限公司':'2327','禾伸堂企業':'3026','日友環保科技':'1525','可寧衛':'8422','聯穎光電':'4966','精拓科技':'3354','迅傑科技':'6292','智易科技股份':'3596','台灣高科大':'0','金益鼎焊材':'8499','宏捷科技股份有限公司':'8086','達鑫化學':'0','台微體':'4152','基亞生技':'3176','永昕生醫藥':'4726','智擎生技':'4162','中裕新藥':'4147','太景生技':'4157','亞帝歐':'4133','鑽全實業':'1535','永彰機電':'1529','盟立自動化股份':'2464','上銀科技':'2049','崇友實業股份':'1597','大台電力':'9929','台汽電':'8926','中台灣電力':'9929','博智資訊':'8155','健策精密':'3653','定穎投控股份':'6411','達見':'3086','正凌':'3118','帝寶':'6605','博智電子股份':'8155','橘子軟件':'6180','漢康科技':'3576','兆赫電子':'2485','是方電訊':'6561','普訊光電股份':'6285','台揚科技':'2340','精材科技':'3374','精聯電子':'3550','金鼎科技':'0','大塚化工':'3567','力士科技股份有限公司':'5464','家登精密工業':'6598','帆宣系統科技':'6196','聯亞光電':'3081','上詮光電':'3441','昇達科技':'3491','信立科技':'3351','精確應用':'6162','台灣神隆':'1789','合一生技股份':'4743','聯合再生能源':'3576','元晶太陽能':'6443','聯成化工':'1313','台灣石化合成':'1310','大連化工股份':'1711','台塑石化':'6505','正德海運':'2641','台灣大型ETF':'0050','京城銀行':'2809','安泰商業銀行':'2817','台灣工業銀行':'2833','奇鋐科技':'3017','健策':'3653','達運精密股份':'6120','大成鋼股份':'2027','豐興鋼鐵':'2015','東鋼股份':'2006','美亞鋼管':'2009','台灣化工':'1320','永豐化學工業':'1907','達明光電工業':'0','南亞科技股份':'2408','旺宏電子股份有限公司':'2337','廣越科技股份':'4438','友輝光電股份':'3429','維熹科技股份':'3501','同泰電子':'6271','光鼎電子股份':'3230','緯升科技股份':'4968','明泰科技股份':'3380','眾達-KY股份':'4977','群電控股股份':'6412','新日興股份':'3376','力智電子股份':'3452','志豐電子股份':'6416','捷波通訊股份':'6160','迎輝科技股份':'5383','大業科技股份':'0','泰升橡膠股份':'2108','正合精密工業':'1566','宇環精密工業':'1558','大榮貨運股份':'2608','榮運股份':'2607','台灣大車隊股份':'2640','大台北瓦斯股份':'9908','欣天然氣股份':'9918','信義房屋股份有限公司':'9940','中鼎工程股份':'9933','台灣高鐵股份':'2633','台灣神隆股份有限公司':'1789','合一生技股份有限公司':'4743','浩鼎生技股份':'4174','中天生技股份':'4128','泰博科技股份':'4736','百略醫學股份':'4103','新穎生醫股份':'4745','永昕生醫股份':'4726','三生醫學股份':'4108','中裕新藥股份':'4147','太景生技股份':'4157','智擎生技製藥股份':'4162','基亞生技股份':'3176','台微體股份':'4152','建準電機':'2421','超眾科技':'6230','力致科技':'3483','兩岸電商':'0','跨境電商':'0','台灣聯準':'6951','聯準科技':'6951','亨泰光學':'6766','金舒緯科技':'6775','大漢工程':'1537','達展工業':'1584','鑫通興業股份有限公司':'1567','敬業精密工業股份':'1560','大連化工股份有限公司':'1711','台灣橡膠':'2103','大洋塑膠工業':'1526','正隆股份':'1904','永豐餘投資控股':'1907','榮成紙業':'1909','景興紙業股份':'1752','台灣化學纖維':'1320','南僑化學工業':'1702','達電子股份有限公司':'0'};
+
+async function loadCandidates(){
+  const btn=document.getElementById('cand-refresh-btn');
+  if(btn){btn.textContent='載入中...';btn.disabled=true;}
+  const el=document.getElementById('cand-content');
+  try{
+    const url=`https://raw.githubusercontent.com/KAI-0513/fengzheng/main/candidates.json?t=${Date.now()}`;
+    const r=await fetch(url);
+    candData=await r.json();
+    document.getElementById('cand-date-row').textContent=`資料日期：${candData.date}　風度：${candData.wind}`;
+    renderCandidates();
+  }catch(e){
+    if(el)el.innerHTML=`<div class="empty" style="padding:20px;text-align:center">載入失敗：${e.message}</div>`;
+  }
+  if(btn){btn.textContent='⟳ 更新';btn.disabled=false;}
+}
+function setCandTab(tab){
+  candTab=tab;
+  ['worker','boss','top6'].forEach(t=>{
+    const b=document.getElementById('ctab-'+t);if(!b)return;
+    const active=t===tab;
+    b.style.borderColor=active?'var(--sf)':'var(--bdr2)';
+    b.style.background=active?'var(--sf-bg)':'var(--bg3)';
+    b.style.color=active?'var(--sf)':'var(--txt3)';
+    b.style.borderWidth=active?'1.5px':'1px';
+  });
+  renderCandidates();
+}
+function renderCandidates(){
+  const el=document.getElementById('cand-content');
+  if(!candData||!el)return;
+  let stocks=[],subtitle='';
+  if(candTab==='worker'){
+    const all=[...(candData.worker_strong_week||[]).map(n=>({name:n,strat:'強勢週'})),...(candData.worker_week_trend||[]).map(n=>({name:n,strat:'週趨勢'}))];
+    const seen=new Set();stocks=all.filter(s=>{if(seen.has(s.name))return false;seen.add(s.name);return true;});
+    subtitle='強勢週 + 週趨勢';
+  }else if(candTab==='boss'){
+    const all=[...(candData.boss_week_pullback||[]).map(n=>({name:n,strat:'週拉回'})),...(candData.boss_cheap_buy||[]).map(n=>({name:n,strat:'廉價收購'}))];
+    const seen=new Set();stocks=all.filter(s=>{if(seen.has(s.name))return false;seen.add(s.name);return true;});
+    subtitle='週拉回 + 廉價收購';
+  }else{
+    stocks=(candData.top6_volume||[]).map((n,i)=>({name:n,strat:`成值#${i+1}`}));
+    subtitle='依成值排行';
+  }
+  if(!stocks.length){el.innerHTML='<div class="empty" style="padding:20px;text-align:center">此策略暫無候選股</div>';return;}
+  el.innerHTML=`<div style="font-size:11px;color:var(--txt3);margin-bottom:8px">${subtitle}　共${stocks.length}支　點擊載入技術面</div>`+
+    stocks.map(s=>{
+      const code=STOCK_MAP_STATIC[s.name]||'';
+      const tid='tech-'+s.name.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g,'_');
+      return `<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;padding:11px 14px;margin-bottom:8px;cursor:pointer" onclick="loadCandTech('${s.name}','${code}','${s.strat}','${tid}')">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <span style="font-size:14px;font-weight:700;color:var(--txt)">${s.name}</span>
+            ${code&&code!=='0'?`<span style="font-size:11px;color:var(--txt3);margin-left:6px">${code}</span>`:'<span style="font-size:10px;color:#f6ad55;margin-left:6px">代號待查</span>'}
+          </div>
+          <span style="font-size:11px;padding:2px 8px;border-radius:99px;background:var(--sf-bg);color:var(--sf);border:1px solid var(--sf-bdr)">${s.strat}</span>
+        </div>
+        <div id="${tid}" style="margin-top:6px;font-size:11px;color:var(--txt3)">▶ 點擊載入技術面分析</div>
+      </div>`;
+    }).join('');
+}
+async function loadCandTech(name,code,strat,tid){
+  const techEl=document.getElementById(tid);
+  if(!techEl)return;
+  if(techEl.dataset.loaded==='1'){techEl.style.display=techEl.style.display==='none'?'block':'none';return;}
+  if(!code||code==='0'){techEl.textContent='❓ 找不到股票代號，暫無法分析';return;}
+  techEl.textContent='📡 載入中...';
+  try{
+    let data=await fetchViaProxy(`https://query1.finance.yahoo.com/v8/finance/chart/${code}.TW?interval=1d&range=3mo`);
+    if(!data?.chart?.result?.[0])data=await fetchViaProxy(`https://query1.finance.yahoo.com/v8/finance/chart/${code}.TWO?interval=1d&range=3mo`);
+    if(!data?.chart?.result?.[0]){techEl.textContent='❌ 無法取得技術資料（可能非交易日）';return;}
+    const closes=data.chart.result[0].indicators.quote[0].close.filter(Boolean);
+    const cur=closes.at(-1),ma5=closes.slice(-5).reduce((a,b)=>a+b,0)/5,ma20=closes.slice(-20).reduce((a,b)=>a+b,0)/20;
+    const ma60=closes.length>=60?closes.slice(-60).reduce((a,b)=>a+b,0)/60:null;
+    function ema(arr,n){let k=2/(n+1),e=arr[0];for(let i=1;i<arr.length;i++)e=arr[i]*k+e*(1-k);return e;}
+    const macd=ema(closes,12)-ema(closes,26),prevMacd=ema(closes.slice(0,-1),12)-ema(closes.slice(0,-1),26);
+    const macdUp=macd>prevMacd,near5=(cur-ma5)/ma5*100,aboveMa20=cur>ma20;
+    let judge='',color='var(--txt2)';
+    if(strat.includes('強勢')||strat.includes('週趨勢')){
+      if(Math.abs(near5)<=3&&macdUp&&aboveMa20){judge='✅ 符合：貼近5日線＋MACD翻多＋月線以上';color='var(--sf)';}
+      else if(Math.abs(near5)<=6&&aboveMa20){judge='🟡 部分符合：月線以上，觀察MACD';color='#f6ad55';}
+      else{judge='❌ 暫不符：'+(!aboveMa20?'低於月線':(Math.abs(near5)>6?'距5日線遠':'MACD未翻多'));color='var(--nw)';}
+    }else if(strat.includes('拉回')||strat.includes('廉價')){
+      const nearMa20=Math.abs((cur-ma20)/ma20*100)<=8;
+      if(nearMa20){judge='✅ 符合：接近月線，老闆型可分批布局';color='var(--sf)';}
+      else if(aboveMa20&&macdUp){judge='🟡 月線以上MACD翻多，等待拉回';color='#f6ad55';}
+      else{judge='❌ 暫不符：距月線較遠';color='var(--nw)';}
+    }else{
+      if(aboveMa20&&macdUp){judge='✅ 月線以上＋MACD翻多';color='var(--sf)';}
+      else if(aboveMa20){judge='🟡 月線以上，觀察MACD';color='#f6ad55';}
+      else{judge='❌ 低於月線，謹慎';color='var(--nw)';}
+    }
+    techEl.dataset.loaded='1';
+    techEl.innerHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:6px 0">
+      <div style="background:var(--bg3);border-radius:6px;padding:5px;text-align:center"><div style="font-size:9px;color:var(--txt3)">現價</div><div style="font-size:13px;font-weight:700;color:var(--txt)">$${cur.toFixed(1)}</div></div>
+      <div style="background:var(--bg3);border-radius:6px;padding:5px;text-align:center"><div style="font-size:9px;color:var(--txt3)">5日線</div><div style="font-size:12px;font-weight:700;color:${Math.abs(near5)<=3?'var(--sf)':'var(--txt)'}">$${ma5.toFixed(1)}</div><div style="font-size:9px;color:var(--txt3)">${near5>=0?'+':''}${near5.toFixed(1)}%</div></div>
+      <div style="background:var(--bg3);border-radius:6px;padding:5px;text-align:center"><div style="font-size:9px;color:var(--txt3)">20日線</div><div style="font-size:12px;font-weight:700;color:${aboveMa20?'var(--sf)':'var(--nw)'}">$${ma20.toFixed(1)}</div></div>
+      <div style="background:var(--bg3);border-radius:6px;padding:5px;text-align:center"><div style="font-size:9px;color:var(--txt3)">MACD柱</div><div style="font-size:12px;font-weight:700;color:${macdUp?'var(--sf)':'var(--nw)'}">${macdUp?'↑翻多':'↓翻空'}</div></div>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:${color};padding:6px 10px;background:var(--bg3);border-radius:6px">${judge}</div>`;
+  }catch(e){techEl.textContent='❌ 技術資料載入失敗';}
+}
+
 let _autoPriceDone=false;
 function showTab(id,el){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
