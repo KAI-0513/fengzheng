@@ -1044,12 +1044,18 @@ async function restoreFromGitHub(){
   btns.forEach(b=>{b.textContent='↓ 還原';b.disabled=false;});
   if(status)setTimeout(()=>status.textContent='',6000);
 }
+let _autoPriceDone=false;
 function showTab(id,el){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
   document.getElementById('sec-'+id).classList.add('active');
   el.classList.add('active');
   document.getElementById('content').scrollTop=0;
+  // 切到持倉頁自動更新一次
+  if(id==='positions'&&!_autoPriceDone&&S.positions.some(p=>p.code)){
+    _autoPriceDone=true;
+    setTimeout(()=>fetchAllPrices(),600);
+  }
   if(id==='water')calcWater();
   if(id==='strat')renderStrat();
   if(id==='history')renderHistory();
@@ -1294,15 +1300,32 @@ function renderPlans(){
 }
 
 // ── 自動抓收盤價 ─────────────────────────────────────────
+const PROXIES=[
+  u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+  u=>`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+  u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+];
+async function fetchViaProxy(yahooUrl){
+  for(const makeProxy of PROXIES){
+    try{
+      const r=await fetch(makeProxy(yahooUrl),{signal:AbortSignal.timeout(6000)});
+      if(!r.ok)continue;
+      const text=await r.text();
+      // allorigins 回 {contents:...}，其他直接回 JSON
+      let data;
+      try{const outer=JSON.parse(text);data=outer.contents?JSON.parse(outer.contents):outer;}
+      catch{continue;}
+      return data;
+    }catch{continue;}
+  }
+  return null;
+}
 async function fetchOneSuffix(code,suffix){
   try{
     const yahoo=`https://query1.finance.yahoo.com/v8/finance/chart/${code}${suffix}?interval=1d&range=1d`;
-    const proxy=`https://api.allorigins.win/get?url=${encodeURIComponent(yahoo)}`;
-    const r=await fetch(proxy,{signal:AbortSignal.timeout(8000)});
-    const outer=await r.json();
-    const data=JSON.parse(outer.contents);
+    const data=await fetchViaProxy(yahoo);
     return data?.chart?.result?.[0]?.meta?.regularMarketPrice||null;
-  }catch(e){return null;}
+  }catch{return null;}
 }
 async function fetchClosePrice(id){
   const p=S.positions.find(x=>x.id===id);if(!p||!p.code)return false;
@@ -1314,51 +1337,38 @@ async function fetchClosePrice(id){
 async function fetchAllPrices(){
   const btn=document.querySelector('[onclick="fetchAllPrices()"]');
   const withCode=S.positions.filter(p=>p.code);
-  if(!withCode.length){alert('請先在持倉編輯裡填入股票代號');return;}
+  if(!withCode.length)return;
   if(btn){btn.textContent='⏳ 更新中...';btn.disabled=true;}
-  // 先嘗試批次查詢（速度最快）
+  // 批次查詢（快）
   try{
-    // 上市(.TW) 和上櫃(.TWO) 各一次 batch 查
-    const twSymbols=withCode.map(p=>`${p.code}.TW`).join(',');
-    const twoSymbols=withCode.map(p=>`${p.code}.TWO`).join(',');
-    const batchYahoo=`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${twSymbols},${twoSymbols}&fields=regularMarketPrice`;
-    const proxy=`https://api.allorigins.win/get?url=${encodeURIComponent(batchYahoo)}`;
-    const r=await fetch(proxy,{signal:AbortSignal.timeout(10000)});
-    const outer=await r.json();
-    const data=JSON.parse(outer.contents);
+    const twS=withCode.map(p=>`${p.code}.TW`).join(',');
+    const twoS=withCode.map(p=>`${p.code}.TWO`).join(',');
+    const batchUrl=`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${twS},${twoS}&fields=regularMarketPrice,symbol`;
+    const data=await fetchViaProxy(batchUrl);
     const quotes=data?.quoteResponse?.result||[];
-    const priceMap={};
-    quotes.forEach(q=>{
-      // key 去掉 suffix
-      const code=q.symbol.replace(/\.(TW|TWO)$/,'');
-      if(q.regularMarketPrice&&!priceMap[code])priceMap[code]=q.regularMarketPrice;
-    });
+    const pm={};
+    quotes.forEach(q=>{const c=q.symbol.replace(/\.(TW|TWO)$/,'');if(q.regularMarketPrice&&!pm[c])pm[c]=q.regularMarketPrice;});
     let ok=0,fail=0;
-    withCode.forEach(p=>{
-      if(priceMap[p.code]){p.cur=priceMap[p.code];ok++;}
-      else fail++;
-    });
-    // 失敗的個別重試
-    if(fail>0){
-      const retries=withCode.filter(p=>!priceMap[p.code]);
-      const retryResults=await Promise.all(retries.map(p=>fetchClosePrice(p.id)));
-      const retryOk=retryResults.filter(Boolean).length;
-      ok+=retryOk;fail=retries.length-retryOk;
+    for(const p of withCode){
+      if(pm[p.code]){p.cur=pm[p.code];ok++;}
+      else{
+        // 個別重試
+        const res=await fetchClosePrice(p.id);
+        res?ok++:fail++;
+      }
     }
     save();renderPositions();renderStats();renderAlerts();calcWater();
     if(btn){btn.textContent='📡 一鍵更新所有股價';btn.disabled=false;}
-    const msg=fail?`✅ ${ok}支成功　❌ ${fail}支失敗（確認代號）`:`✅ 全部 ${ok} 支更新成功`;
-    const status=document.getElementById('price-update-status');
-    if(status){status.textContent=msg;setTimeout(()=>status.textContent='',5000);}
+    const msg=fail?`✅${ok}支成功 ❌${fail}支失敗`:`✅ 全部${ok}支更新成功`;
+    const st=document.getElementById('price-update-status');
+    if(st){st.textContent=msg;setTimeout(()=>st.textContent='',5000);}
   }catch(e){
-    // batch 失敗改逐一抓
     const results=await Promise.all(withCode.map(p=>fetchClosePrice(p.id)));
     save();renderPositions();renderStats();renderAlerts();calcWater();
     const ok=results.filter(Boolean).length,fail=results.length-ok;
     if(btn){btn.textContent='📡 一鍵更新所有股價';btn.disabled=false;}
-    const msg=fail?`✅ ${ok}支成功　❌ ${fail}支失敗`:`✅ 全部 ${ok} 支更新成功`;
-    const status=document.getElementById('price-update-status');
-    if(status){status.textContent=msg;setTimeout(()=>status.textContent='',5000);}
+    const st=document.getElementById('price-update-status');
+    if(st){st.textContent=fail?`✅${ok}支成功 ❌${fail}支失敗`:`✅ 全部${ok}支更新成功`;setTimeout(()=>st.textContent='',5000);}
   }
 }
 
@@ -1561,6 +1571,8 @@ function renderPositions(){
       <th>即時<br>價位</th>
       <th>股數</th>
       <th>策略<br>條件</th>
+      <th style="color:#ff2222">停利</th>
+      <th style="color:#1db954">停損</th>
       <th>成本<br>(含稅)</th>
       <th>損益</th>
       <th></th>
@@ -1569,10 +1581,17 @@ function renderPositions(){
 
   html+=S.positions.map(p=>{
     const {avgPrice,totalQty}=calcAvg(p.lots);
-    const tax=Math.round(avgPrice*totalQty*1.001425); // 含手續費0.1425%
+    const tax=Math.round(avgPrice*totalQty*1.001425);
     const pnl=(p.cur-avgPrice)*totalQty,pct=(p.cur-avgPrice)/avgPrice*100,pos=pnl>=0;
     const needsWarn=pct<=-5||(S.wind==='無風');
     const stratShort=p.strat||'';
+    // 停利提醒：數值型（含元）才判斷
+    const profitNumMatch=p.profit&&p.profit.match(/[\d,]+/);
+    const profitTarget=profitNumMatch?parseFloat(p.profit.replace(/,/g,'')):null;
+    const profitHit=profitTarget&&p.cur>=profitTarget;
+    const stopNumMatch=p.stop&&p.stop.match(/[\d,]+/);
+    const stopTarget=stopNumMatch?parseFloat(p.stop.replace(/,/g,'')):null;
+    const stopHit=stopTarget&&p.cur<=stopTarget;
     return `<tr onclick="openEdit(${p.id})" style="cursor:pointer">
       <td>
         <div class="pos-code">${p.code||'—'}</div>
@@ -1586,6 +1605,8 @@ function renderPositions(){
       <td><div class="${pos?'pos-price-up':'pos-price-dn'}">$${p.cur}</div></td>
       <td style="font-size:12px">${totalQty.toLocaleString()}</td>
       <td class="pos-strat-cell">${stratShort}${p.timing?'<br><span style="color:var(--txt3)">'+p.timing+'</span>':''}</td>
+      <td style="font-size:11px;color:${profitHit?'#ff2222':'var(--sf)'};font-weight:${profitHit?'700':'400'}">${p.profit||'—'}${profitHit?' 🔔':''}</td>
+      <td style="font-size:11px;color:${stopHit?'#1db954':'var(--nw)'};font-weight:${stopHit?'700':'400'}">${p.stop||'—'}${stopHit?' 🔔':''}</td>
       <td style="font-size:12px;color:var(--txt)">${tax.toLocaleString()}</td>
       <td>
         <div class="${pos?'pos-pnl-up':'pos-pnl-dn'}">${pos?'+':''}${Math.round(pnl).toLocaleString()}</div>
@@ -1600,17 +1621,25 @@ function renderPositions(){
 
   html+=`</tbody></table></div>`;
 
-  // 加碼/警示區塊
+  // 警示區塊：停利=紅色 停損=綠色
   S.positions.forEach(p=>{
-    const pct=(p.cur-p.buy)/p.buy*100;
+    const {avgPrice}=calcAvg(p.lots);
+    const pct=(p.cur-avgPrice)/avgPrice*100;
     const warnMsgs=closeCheckMsg(p);
     if((pct<=-5||pct>=10)&&warnMsgs.length){
       const isProfit=pct>=10;
       const warnStyle=isProfit
-        ?'background:var(--sf-bg);color:var(--sf);border:1px solid rgba(255,34,34,.2)'  // 停利=紅
-        :'background:var(--nw-bg);color:var(--nw);border:1px solid rgba(29,185,84,.2)'; // 停損=綠
+        ?'background:var(--sf-bg);color:var(--sf);border:1px solid rgba(255,34,34,.3)'
+        :'background:var(--nw-bg);color:var(--nw);border:1px solid rgba(29,185,84,.3)';
       html+=`<div class="close-warn" style="margin-bottom:6px;${warnStyle}">⚡ ${p.name}：${warnMsgs[0]}</div>`;
     }
+    // 數值停利/停損命中提醒
+    const profitTarget=p.profit&&p.profit.match(/[\d,]+/)?parseFloat(p.profit.replace(/,/g,'')):null;
+    const stopTarget=p.stop&&p.stop.match(/[\d,]+/)?parseFloat(p.stop.replace(/,/g,'')):null;
+    if(profitTarget&&p.cur>=profitTarget)
+      html+=`<div class="close-warn" style="margin-bottom:6px;background:var(--sf-bg);color:var(--sf);border:1px solid rgba(255,34,34,.3)">🔔 ${p.name} 已達停利目標 $${profitTarget}，現價 $${p.cur}</div>`;
+    if(stopTarget&&p.cur<=stopTarget)
+      html+=`<div class="close-warn" style="margin-bottom:6px;background:var(--nw-bg);color:var(--nw);border:1px solid rgba(29,185,84,.3)">🔔 ${p.name} 已觸及停損目標 $${stopTarget}，現價 $${p.cur}</div>`;
   });
 
   el.innerHTML=html;
