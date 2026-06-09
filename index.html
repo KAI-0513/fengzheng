@@ -226,9 +226,22 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6 10 4 13.5 4 16a8 8 0 0 0 16 0c0-2.5-2-6-8-14z"/></svg>
         <span id="header-water">—%</span>
       </div>
-      <div class="wind-badge w-強風" id="wind-badge" style="cursor:default">
-        <span id="wind-dot" style="width:9px;height:9px;border-radius:50%;background:var(--sf);flex-shrink:0;display:inline-block"></span>
-        <span id="wind-label">強風</span>
+      <div style="position:relative">
+        <div class="wind-badge w-強風" id="wind-badge" onclick="toggleWindPicker()" style="cursor:pointer">
+          <span id="wind-dot" style="width:9px;height:9px;border-radius:50%;background:var(--sf);flex-shrink:0;display:inline-block"></span>
+          <span id="wind-label">強風</span>
+        </div>
+        <!-- 風度選擇器（唯讀提示，同步才能改） -->
+        <div id="wind-picker" style="display:none;position:absolute;right:0;top:36px;z-index:999;background:var(--bg2);border:1px solid var(--bdr2);border-radius:12px;padding:8px;width:200px;box-shadow:0 8px 24px rgba(0,0,0,.5)">
+          <div style="font-size:10px;color:var(--txt3);text-align:center;margin-bottom:6px">風度由試算表同步，無法手動修改</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <div style="padding:8px;border-radius:8px;background:var(--sf-bg);border:1.5px solid var(--sf);text-align:center;font-size:12px;font-weight:700;color:var(--sf)"><span style="width:8px;height:8px;border-radius:50%;background:var(--sf);display:inline-block;margin-right:4px"></span>強風</div>
+            <div style="padding:8px;border-radius:8px;background:var(--gf-bg);border:1.5px solid var(--gf-bdr);text-align:center;font-size:12px;font-weight:700;color:var(--gf)"><span style="width:8px;height:8px;border-radius:50%;background:var(--gf);display:inline-block;margin-right:4px"></span>陣風</div>
+            <div style="padding:8px;border-radius:8px;background:var(--lt-bg);border:1.5px solid var(--lt-bdr);text-align:center;font-size:12px;font-weight:700;color:var(--lt)"><span style="width:8px;height:8px;border-radius:50%;background:var(--lt);display:inline-block;margin-right:4px"></span>亂流</div>
+            <div style="padding:8px;border-radius:8px;background:var(--nw-bg);border:1.5px solid var(--nw-bdr);text-align:center;font-size:12px;font-weight:700;color:var(--nw)"><span style="width:8px;height:8px;border-radius:50%;background:var(--nw);display:inline-block;margin-right:4px"></span>無風</div>
+          </div>
+          <button onclick="syncSheet();toggleWindPicker()" style="width:100%;margin-top:8px;padding:7px;border-radius:8px;background:var(--bg3);border:1px solid var(--bdr2);color:var(--txt2);font-size:12px;cursor:pointer">⟳ 立即同步</button>
+        </div>
       </div>
     </div>
   </div>
@@ -777,7 +790,16 @@ function setWind(w){
   closeModal('wind-modal');
   renderWindStat();renderAlerts();calcWater();renderStrat();
 }
-function openWindModal(){document.getElementById('wind-modal').classList.remove('hidden');}
+function toggleWindPicker(){
+  const p=document.getElementById('wind-picker');
+  if(!p)return;
+  p.style.display=p.style.display==='none'?'block':'none';
+}
+document.addEventListener('click',e=>{
+  const p=document.getElementById('wind-picker');
+  const b=document.getElementById('wind-badge');
+  if(p&&b&&!p.contains(e.target)&&!b.contains(e.target))p.style.display='none';
+});
 
 // ── 風度統計（日/週/月格狀圖） ───────────────────────────
 let windView='d';
@@ -1167,16 +1189,30 @@ function renderCandidates(){
       </div>`;
     }).join('');
 }
-async function loadCandTech(name,code,strat,tid){
+async function loadCandTech(name,code,strat,tid,period){
   const techEl=document.getElementById(tid);
   if(!techEl)return;
-  if(techEl.dataset.loaded==='1'){techEl.style.display=techEl.style.display==='none'?'block':'none';return;}
   if(!code||code==='0'){techEl.textContent='❓ 找不到股票代號';return;}
-  techEl.textContent='📡 載入K線中...';
+  const p=period||'d';
+  // 依策略決定預設週期
+  const defPeriod=strat.includes('拉回')||strat.includes('廉價')?'w':'d';
+  const activePeriod=period||defPeriod;
+  techEl.innerHTML=`
+    <div style="display:flex;gap:6px;margin-bottom:6px">
+      ${['d','w','m'].map(pp=>`<button onclick="loadCandTech('${name}','${code}','${strat}','${tid}','${pp}')"
+        style="padding:3px 10px;font-size:11px;border-radius:6px;cursor:pointer;font-weight:600;
+        background:${pp===activePeriod?'var(--sf-bg)':'var(--bg3)'};
+        color:${pp===activePeriod?'var(--sf)':'var(--txt3)'};
+        border:1px solid ${pp===activePeriod?'var(--sf)':'var(--bdr2)'}">${pp==='d'?'日':pp==='w'?'週':'月'}</button>`).join('')}
+    </div>
+    <div style="font-size:11px;color:var(--txt3)">📡 載入K線中...</div>`;
+  const techContent=techEl.querySelector('div:last-child');
   try{
-    let data=await fetchViaProxy(`https://query1.finance.yahoo.com/v8/finance/chart/${code}.TW?interval=1d&range=3mo`);
-    if(!data?.chart?.result?.[0])data=await fetchViaProxy(`https://query1.finance.yahoo.com/v8/finance/chart/${code}.TWO?interval=1d&range=3mo`);
-    if(!data?.chart?.result?.[0]){techEl.textContent='❌ 無法取得K線資料';return;}
+    const interval=activePeriod==='d'?'1d':activePeriod==='w'?'1wk':'1mo';
+    const range=activePeriod==='d'?'3mo':activePeriod==='w'?'1y':'2y';
+    let data=await fetchViaProxy(`https://query1.finance.yahoo.com/v8/finance/chart/${code}.TW?interval=${interval}&range=${range}`);
+    if(!data?.chart?.result?.[0])data=await fetchViaProxy(`https://query1.finance.yahoo.com/v8/finance/chart/${code}.TWO?interval=${interval}&range=${range}`);
+    if(!data?.chart?.result?.[0]){techContent.textContent='❌ 無法取得K線資料';return;}
     const res=data.chart.result[0];
     const q=res.indicators.quote[0];
     const bars=res.timestamp.map((t,i)=>({t,o:q.open[i],h:q.high[i],l:q.low[i],c:q.close[i]}))
@@ -1206,7 +1242,6 @@ async function loadCandTech(name,code,strat,tid){
       else if(aboveMa20){judge='🟡 月線以上，觀察MACD';jc='#f6ad55';}
       else{judge='❌ 低於月線，謹慎';jc='var(--nw)';}
     }
-    // K棒圖 SVG - 全寬 + 價格Y軸
     const W=Math.min(window.innerWidth-32,600),KH=200,MH=60,YPAD=44,PAD=6;
     const plotW=W-YPAD;
     const bw=Math.max(2,Math.floor(plotW/recent.length)-1);
@@ -1215,18 +1250,15 @@ async function loadCandTech(name,code,strat,tid){
     const py=v=>KH-PAD-(v-minP)/rng*(KH-PAD*2);
     const mvals=hist.filter(v=>v!=null),maxM=Math.max(...mvals.map(Math.abs))||1;
     const my=v=>MH/2-v/maxM*(MH/2-3);
-    let kbars='',maLines='',macdBars='',sigLine='',yAxis='';
-    // 價格Y軸刻度（5條橫線）
+    let kbars='',maLines='',macdBars='',sigPath='',yAxis='';
     for(let i=0;i<=4;i++){
-      const pv=minP+rng*i/4;
-      const y=py(pv);
+      const pv=minP+rng*i/4,y=py(pv);
       yAxis+=`<line x1="${YPAD}" y1="${y.toFixed(1)}" x2="${W}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>`;
-      yAxis+=`<text x="${(YPAD-3)}" y="${(y+3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#777">${pv>=1000?Math.round(pv):pv.toFixed(1)}</text>`;
+      yAxis+=`<text x="${YPAD-3}" y="${(y+3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#777">${pv>=1000?Math.round(pv):pv.toFixed(1)}</text>`;
     }
-    // 現價虛線
     const curY=py(cur);
     yAxis+=`<line x1="${YPAD}" y1="${curY.toFixed(1)}" x2="${W}" y2="${curY.toFixed(1)}" stroke="rgba(255,255,0,0.5)" stroke-width="1" stroke-dasharray="3,2"/>`;
-    yAxis+=`<text x="${(YPAD-3)}" y="${(curY+3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#ff0" font-weight="700">${Math.round(cur)}</text>`;
+    yAxis+=`<text x="${YPAD-3}" y="${(curY+3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#ff0" font-weight="700">${Math.round(cur)}</text>`;
     recent.forEach((b,i)=>{
       const x=YPAD+i*(bw+1),up=b.c>=b.o,col=up?'#e53e3e':'#38a169';
       const y1=py(Math.max(b.o,b.c)),y2=py(Math.min(b.o,b.c)),bh=Math.max(1,y2-y1);
@@ -1238,24 +1270,15 @@ async function loadCandTech(name,code,strat,tid){
       }
     });
     [[ma5,'#fbbf24'],[ma20,'#f87171'],[ma60,'#60a5fa']].forEach(([ma,c])=>{
-      let pts='',started=false;
-      recent.forEach((b,i)=>{
-        if(ma[i]==null)return;
-        const x=(YPAD+i*(bw+1)+bw/2).toFixed(1),y=py(ma[i]).toFixed(1);
-        if(!started){pts+=`M${x},${y}`;started=true;}
-        else pts+=` L${x},${y}`;
-      });
-      if(pts)maLines+=`<path d="${pts}" fill="none" stroke="${c}" stroke-width="1.4" opacity="0.9"/>`;
+      let d='';
+      recent.forEach((b,i)=>{if(ma[i]!=null){const x=(YPAD+i*(bw+1)+bw/2).toFixed(1),y=py(ma[i]).toFixed(1);d+=d?` L${x},${y}`:`M${x},${y}`;}});
+      if(d)maLines+=`<path d="${d}" fill="none" stroke="${c}" stroke-width="1.4" opacity="0.9"/>`;
     });
-    let sigPath='';
-    sig.forEach((v,i)=>{
-      if(v==null)return;
-      const x=(YPAD+i*(bw+1)+bw/2).toFixed(1),y=my(v).toFixed(1);
-      sigPath+=sigPath?` L${x},${y}`:`M${x},${y}`;
-    });
-    techEl.dataset.loaded='1';
-    techEl.innerHTML=`
-      <div style="font-size:10px;color:var(--txt3);margin:4px 0;display:flex;gap:10px;flex-wrap:wrap">
+    sig.forEach((v,i)=>{if(v!=null){const x=(YPAD+i*(bw+1)+bw/2).toFixed(1),y=my(v).toFixed(1);sigPath+=sigPath?` L${x},${y}`:`M${x},${y}`;}});
+    const periodLabel=activePeriod==='d'?'日K':activePeriod==='w'?'週K':'月K';
+    techContent.innerHTML=`
+      <div style="font-size:10px;color:var(--txt3);margin:2px 0 4px;display:flex;gap:8px;flex-wrap:wrap">
+        <b style="color:var(--txt2)">${periodLabel}</b>
         <span>現價 <b style="color:#ff0">${cur.toFixed(0)}</b></span>
         <span style="color:#fbbf24">MA5 ${m5.toFixed(0)}</span>
         <span style="color:#f87171">MA20 ${m20.toFixed(0)}</span>
@@ -1264,14 +1287,13 @@ async function loadCandTech(name,code,strat,tid){
       </div>
       <svg width="${W}" height="${KH}" style="display:block;background:#111;border-radius:6px 6px 0 0">${yAxis}${kbars}${maLines}</svg>
       <svg width="${W}" height="${MH}" style="display:block;background:#0d0d0d;border-radius:0 0 6px 6px;margin-bottom:6px">
-        <line x1="${YPAD}" y1="${(MH/2).toFixed(0)}" x2="${W}" y2="${(MH/2).toFixed(0)}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+        <line x1="${YPAD}" y1="${MH/2}" x2="${W}" y2="${MH/2}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
         ${macdBars}
         ${sigPath?`<path d="${sigPath}" fill="none" stroke="#f6ad55" stroke-width="1.2"/>`:''}
       </svg>
       <div style="font-size:12px;font-weight:700;color:${jc};padding:5px 10px;background:var(--bg3);border-radius:6px">${judge}</div>`;
-  }catch(e){techEl.textContent='❌ K線載入失敗：'+e.message;}
+  }catch(e){techContent.textContent='❌ K線載入失敗：'+e.message;}
 }
-
 let _autoPriceDone=false;
 function showTab(id,el){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
