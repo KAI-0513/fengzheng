@@ -1048,7 +1048,7 @@ async function restoreFromGitHub(){
 }
 // ── 候選股 ───────────────────────────────────────────────
 let candData=null,candTab='worker';
-const STOCK_MAP_STATIC={'家登':'6598','台積電':'2330','鴻海':'2317','聯發科':'2454','台達電':'2308','廣達':'2382','聯電':'2303','中華電':'2412','富邦金':'2881','國泰金':'2882','南亞':'1303','台塑':'1301','台化':'1326','中鋼':'2002','元大金':'2885','兆豐金':'2886','第一金':'2892','合庫金':'5880','玉山金':'2884','永豐金':'2890','台新金':'2887','中信金':'2891','開發金':'2883','華南金':'2880','台灣大':'3045','遠傳':'4904','欣興':'3037','景碩':'3189','臻鼎':'4958','台光電':'2383','南電':'8046','聯茂':'6213','華通':'2313','群聯':'8299','威剛':'3260','創見':'2451','宜鼎':'5289','信驊':'5274','祥碩':'5269','譜瑞':'4966','慧榮':'6286','南亞科':'2408','華邦電':'2344','旺宏':'2337','力積電':'6770','矽力':'6415','聯詠':'3034','瑞昱':'2379','智原':'3035','晶心科':'6533','日月光':'3711','京元電':'2449','欣銓':'3264','矽格':'6257','緯創':'3231','緯穎':'6669','英業達':'2356','仁寶':'2324','和碩':'4938','鴻準':'2354','奇鋐':'3017','建準':'2421','雙鴻':'3324','超眾':'6230','長榮':'2603','陽明':'2609','萬海':'2615','慧洋':'2637','長榮航':'2618','華航':'2610','國巨':'2327','禾伸堂':'3026','大毅':'2478','台半':'5425','強茂':'2481','杰力':'5299','中美晶':'5483','環球晶':'6488','合晶':'6182','嘉晶':'3016','漢磊':'3707','大立光':'3008','玉晶光':'3406','先進光':'3362','亞光':'3019','晶電':'2448','億光':'2393','璨圓':'3061','光磊':'2340','聯鈞':'3450','全新':'2455','宏捷科':'8086','智邦':'2345','合勤':'3704','神達':'3706','正文':'4906','啟碁':'6285','智易':'3596','信音':'3234','雅特力-KY':'4296','晶豪科':'3006','新唐':'4919','旺矽':'6223','帆宣':'6196','精測':'6510','均豪':'5443','大成鋼':'2027','豐興':'2015','燁輝':'2023','牧德':'3563','創意':'3443','世芯-KY':'3661','金居':'8358','達運':'6120','友達':'2409','群創':'3481','彩晶':'6116','元太':'8069','正崴':'2392','技嘉':'2376','微星':'2377','聯強':'2347','大聯大':'3702','文曄':'3036','益登':'3048','尖點':'6117','佳世達':'2352','東元':'1504','光寶科':'2301','台表科':'6278','全漢':'3015','康舒':'6282','義隆':'2458','凌通':'4952','盛群':'6202','凌陽':'2401','晶相光':'3530','旭曜':'3545','聯陽':'3014','笙科':'5272','新光金':'2888','台壽保':'2833','國票金':'2889','亞德客-KY':'1590','上銀':'2049','廣隆':'1537','鉅祥':'2476','裕日車':'2227','中華車':'2204','三陽工業':'2206','瓦城':'2729','王品':'2727','六角':'2732','八方雲集':'2753','統一超':'2912','全家':'5903','大潤發':'2946','遠百':'2903','大同':'2371','聲寶':'1604','士電':'1503','中興電':'1513','亞力電機':'1514','歌林':'1606','燦坤':'2430','精英':'2362','中磊':'5388','川湖':'2059','中租-KY':'5871','裕融':'9941','和潤企業':'6592','正新':'2105','建大':'2106','南港':'2101','台橡':'2103','台苯':'1310','聯成':'1313','台塑化':'6505','茂達':'6138','帝凱':'3410','太極':'4934','啟基':'3010','鼎翰':'3611','虹光':'2380','金寶':'2312','致伸':'4915','精碟':'2396','豐達科':'3149','朋程':'8255','同泰':'6271','光鼎':'3230','達方':'8163','先豐':'5349','百和':'9938','豐泰':'9910','健亞':'4130','聯合':'4129','長科':'3138','閎康':'3587','京鼎':'3413','弘塑':'3131','南僑':'1702','印能科技':'6583','博智':'8155','宇膽':'6265','聯亞':'3081','鈺太':'4971','正弦':'4987','安集':'6477','長榮航空':'2618','漢翔':'2634','統一企業':'1216','旺旺':'1229','健格':'3130','德律':'3030','金益鼎':'8499','家登精密':'6598','穩懋半導體':'3105','台泥':'1101','亞泥':'1102','嘉泥':'1103','達達':'6698','雄獅':'2731','崇越科技':'5434','達電':'3042','佳邦':'6284','宏致':'3605','博大':'4960','詮欣':'6205','昇佳電子':'6732','盛達電業':'6493','大塚':'3567','力士科技':'5464','中保科':'9917','富邦媒':'8454','美律':'2439','定穎投控':'6411','健策':'3653','儒鴻':'1476','聚陽實業':'1477','南緯實業':'1467','宏遠興業':'1460','奇力新':'2456','正隆':'1904','永豐餘':'1907','榮成':'1909','世界先進':'5347','矽品精密':'2325','台灣光罩':'2338','茂迪股份':'6244','力旺':'4961','宏碁':'2353','台驊':'2636','長虹':'5534','興富發':'2542','冠德':'2520','日勝生':'2535','遠雄':'5522','元晶':'6443','穩得':'8433','廣越科技':'4438','友輝光電':'3429','維熹科技':'3501','群電':'6412','新日興':'3376','合一生技':'4743','浩鼎生技':'4174','中天生技':'4128','穩懋半導體股份':'3105','建準電機':'2421','超眾科技':'6230','力致科技':'3483','亨泰光學':'6766','奇鋐科技':'3017'};
+const STOCK_MAP_STATIC={'家登':'6598','京元電子':'2449','京元電':'2449','台積電':'2330','鴻海':'2317','聯發科':'2454','台達電':'2308','廣達':'2382','聯電':'2303','中華電':'2412','富邦金':'2881','國泰金':'2882','南亞':'1303','台塑':'1301','台化':'1326','中鋼':'2002','元大金':'2885','兆豐金':'2886','第一金':'2892','合庫金':'5880','玉山金':'2884','永豐金':'2890','台新金':'2887','中信金':'2891','開發金':'2883','華南金':'2880','台灣大':'3045','遠傳':'4904','欣興':'3037','景碩':'3189','臻鼎':'4958','台光電':'2383','南電':'8046','聯茂':'6213','華通':'2313','群聯':'8299','威剛':'3260','創見':'2451','宜鼎':'5289','信驊':'5274','祥碩':'5269','譜瑞':'4966','慧榮':'6286','南亞科':'2408','華邦電':'2344','旺宏':'2337','力積電':'6770','矽力':'6415','聯詠':'3034','瑞昱':'2379','智原':'3035','晶心科':'6533','日月光':'3711','京元電':'2449','欣銓':'3264','矽格':'6257','緯創':'3231','緯穎':'6669','英業達':'2356','仁寶':'2324','和碩':'4938','鴻準':'2354','奇鋐':'3017','建準':'2421','雙鴻':'3324','超眾':'6230','長榮':'2603','陽明':'2609','萬海':'2615','慧洋':'2637','長榮航':'2618','華航':'2610','國巨':'2327','禾伸堂':'3026','大毅':'2478','台半':'5425','強茂':'2481','杰力':'5299','中美晶':'5483','環球晶':'6488','合晶':'6182','嘉晶':'3016','漢磊':'3707','大立光':'3008','玉晶光':'3406','先進光':'3362','亞光':'3019','晶電':'2448','億光':'2393','璨圓':'3061','光磊':'2340','聯鈞':'3450','全新':'2455','宏捷科':'8086','智邦':'2345','合勤':'3704','神達':'3706','正文':'4906','啟碁':'6285','智易':'3596','信音':'3234','雅特力-KY':'4296','晶豪科':'3006','新唐':'4919','旺矽':'6223','帆宣':'6196','精測':'6510','均豪':'5443','大成鋼':'2027','豐興':'2015','燁輝':'2023','牧德':'3563','創意':'3443','世芯-KY':'3661','金居':'8358','達運':'6120','友達':'2409','群創':'3481','彩晶':'6116','元太':'8069','正崴':'2392','技嘉':'2376','微星':'2377','聯強':'2347','大聯大':'3702','文曄':'3036','益登':'3048','尖點':'6117','佳世達':'2352','東元':'1504','光寶科':'2301','台表科':'6278','全漢':'3015','康舒':'6282','義隆':'2458','凌通':'4952','盛群':'6202','凌陽':'2401','晶相光':'3530','旭曜':'3545','聯陽':'3014','笙科':'5272','新光金':'2888','台壽保':'2833','國票金':'2889','亞德客-KY':'1590','上銀':'2049','廣隆':'1537','鉅祥':'2476','裕日車':'2227','中華車':'2204','三陽工業':'2206','瓦城':'2729','王品':'2727','六角':'2732','八方雲集':'2753','統一超':'2912','全家':'5903','大潤發':'2946','遠百':'2903','大同':'2371','聲寶':'1604','士電':'1503','中興電':'1513','亞力電機':'1514','歌林':'1606','燦坤':'2430','精英':'2362','中磊':'5388','川湖':'2059','中租-KY':'5871','裕融':'9941','和潤企業':'6592','正新':'2105','建大':'2106','南港':'2101','台橡':'2103','台苯':'1310','聯成':'1313','台塑化':'6505','茂達':'6138','帝凱':'3410','太極':'4934','啟基':'3010','鼎翰':'3611','虹光':'2380','金寶':'2312','致伸':'4915','精碟':'2396','豐達科':'3149','朋程':'8255','同泰':'6271','光鼎':'3230','達方':'8163','先豐':'5349','百和':'9938','豐泰':'9910','健亞':'4130','聯合':'4129','長科':'3138','閎康':'3587','京鼎':'3413','弘塑':'3131','南僑':'1702','印能科技':'6583','博智':'8155','宇膽':'6265','聯亞':'3081','鈺太':'4971','正弦':'4987','安集':'6477','長榮航空':'2618','漢翔':'2634','統一企業':'1216','旺旺':'1229','健格':'3130','德律':'3030','金益鼎':'8499','家登精密':'6598','穩懋半導體':'3105','台泥':'1101','亞泥':'1102','嘉泥':'1103','達達':'6698','雄獅':'2731','崇越科技':'5434','達電':'3042','佳邦':'6284','宏致':'3605','博大':'4960','詮欣':'6205','昇佳電子':'6732','盛達電業':'6493','大塚':'3567','力士科技':'5464','中保科':'9917','富邦媒':'8454','美律':'2439','定穎投控':'6411','健策':'3653','儒鴻':'1476','聚陽實業':'1477','南緯實業':'1467','宏遠興業':'1460','奇力新':'2456','正隆':'1904','永豐餘':'1907','榮成':'1909','世界先進':'5347','矽品精密':'2325','台灣光罩':'2338','茂迪股份':'6244','力旺':'4961','宏碁':'2353','台驊':'2636','長虹':'5534','興富發':'2542','冠德':'2520','日勝生':'2535','遠雄':'5522','元晶':'6443','穩得':'8433','廣越科技':'4438','友輝光電':'3429','維熹科技':'3501','群電':'6412','新日興':'3376','合一生技':'4743','浩鼎生技':'4174','中天生技':'4128','穩懋半導體股份':'3105','建準電機':'2421','超眾科技':'6230','力致科技':'3483','亨泰光學':'6766','奇鋐科技':'3017','鈺創':'5351','松川精密':'5314','信邦':'3023','大銀微系統':'4140','博智電子':'8155','閎康科技':'3587','文曄科技':'3036','台光電子':'2383','鴻勁精密':'6803','竹德電子':'6234'};
 
 
 async function loadCandidates(){
@@ -1122,42 +1122,83 @@ async function loadCandTech(name,code,strat,tid){
   const techEl=document.getElementById(tid);
   if(!techEl)return;
   if(techEl.dataset.loaded==='1'){techEl.style.display=techEl.style.display==='none'?'block':'none';return;}
-  if(!code||code==='0'){techEl.textContent='❓ 找不到股票代號，暫無法分析';return;}
-  techEl.textContent='📡 載入中...';
+  if(!code||code==='0'){techEl.textContent='❓ 找不到股票代號';return;}
+  techEl.textContent='📡 載入K線中...';
   try{
     let data=await fetchViaProxy(`https://query1.finance.yahoo.com/v8/finance/chart/${code}.TW?interval=1d&range=3mo`);
     if(!data?.chart?.result?.[0])data=await fetchViaProxy(`https://query1.finance.yahoo.com/v8/finance/chart/${code}.TWO?interval=1d&range=3mo`);
-    if(!data?.chart?.result?.[0]){techEl.textContent='❌ 無法取得技術資料（可能非交易日）';return;}
-    const closes=data.chart.result[0].indicators.quote[0].close.filter(Boolean);
-    const cur=closes.at(-1),ma5=closes.slice(-5).reduce((a,b)=>a+b,0)/5,ma20=closes.slice(-20).reduce((a,b)=>a+b,0)/20;
-    const ma60=closes.length>=60?closes.slice(-60).reduce((a,b)=>a+b,0)/60:null;
-    function ema(arr,n){let k=2/(n+1),e=arr[0];for(let i=1;i<arr.length;i++)e=arr[i]*k+e*(1-k);return e;}
-    const macd=ema(closes,12)-ema(closes,26),prevMacd=ema(closes.slice(0,-1),12)-ema(closes.slice(0,-1),26);
-    const macdUp=macd>prevMacd,near5=(cur-ma5)/ma5*100,aboveMa20=cur>ma20;
-    let judge='',color='var(--txt2)';
+    if(!data?.chart?.result?.[0]){techEl.textContent='❌ 無法取得K線資料';return;}
+    const res=data.chart.result[0];
+    const q=res.indicators.quote[0];
+    const bars=res.timestamp.map((t,i)=>({t,o:q.open[i],h:q.high[i],l:q.low[i],c:q.close[i]}))
+      .filter(b=>b.o&&b.c);
+    const recent=bars.slice(-60);
+    const cls=recent.map(b=>b.c);
+    function sma(a,n){return a.map((_,i)=>i<n-1?null:a.slice(i-n+1,i+1).reduce((x,y)=>x+y,0)/n);}
+    function ema(a,n){const k=2/(n+1);let r=[a[0]];for(let i=1;i<a.length;i++)r.push(a[i]*k+r[i-1]*(1-k));return r;}
+    const ma5=sma(cls,5),ma20=sma(cls,20),ma60=sma(cls,60);
+    const e12=ema(cls,12),e26=ema(cls,26);
+    const macdL=e12.map((v,i)=>v-e26[i]),sig=ema(macdL,9),hist=macdL.map((v,i)=>v-sig[i]);
+    const cur=cls.at(-1),m5=ma5.at(-1),m20=ma20.at(-1);
+    const macdUp=hist.at(-1)>hist.at(-2),near5=(cur-m5)/m5*100,aboveMa20=cur>m20;
+    // 策略判斷
+    let judge='',jc='var(--txt2)';
     if(strat.includes('強勢')||strat.includes('週趨勢')){
-      if(Math.abs(near5)<=3&&macdUp&&aboveMa20){judge='✅ 符合：貼近5日線＋MACD翻多＋月線以上';color='var(--sf)';}
-      else if(Math.abs(near5)<=6&&aboveMa20){judge='🟡 部分符合：月線以上，觀察MACD';color='#f6ad55';}
-      else{judge='❌ 暫不符：'+(!aboveMa20?'低於月線':(Math.abs(near5)>6?'距5日線遠':'MACD未翻多'));color='var(--nw)';}
+      if(Math.abs(near5)<=3&&macdUp&&aboveMa20){judge='✅ 符合：貼近5日線＋MACD翻多＋月線以上';jc='var(--sf)';}
+      else if(Math.abs(near5)<=6&&aboveMa20){judge='🟡 部分：月線以上，MACD待確認';jc='#f6ad55';}
+      else{judge='❌ 不符：'+(!aboveMa20?'低於月線':Math.abs(near5)>6?'偏離5日線':'MACD未翻多');jc='var(--nw)';}
     }else if(strat.includes('拉回')||strat.includes('廉價')){
-      const nearMa20=Math.abs((cur-ma20)/ma20*100)<=8;
-      if(nearMa20){judge='✅ 符合：接近月線，老闆型可分批布局';color='var(--sf)';}
-      else if(aboveMa20&&macdUp){judge='🟡 月線以上MACD翻多，等待拉回';color='#f6ad55';}
-      else{judge='❌ 暫不符：距月線較遠';color='var(--nw)';}
+      const d20=Math.abs((cur-m20)/m20*100);
+      if(d20<=8){judge='✅ 符合：接近月線，可分批布局';jc='var(--sf)';}
+      else if(aboveMa20&&macdUp){judge='🟡 月線以上MACD翻多，等拉回';jc='#f6ad55';}
+      else{judge='❌ 距月線較遠';jc='var(--nw)';}
     }else{
-      if(aboveMa20&&macdUp){judge='✅ 月線以上＋MACD翻多';color='var(--sf)';}
-      else if(aboveMa20){judge='🟡 月線以上，觀察MACD';color='#f6ad55';}
-      else{judge='❌ 低於月線，謹慎';color='var(--nw)';}
+      if(aboveMa20&&macdUp){judge='✅ 月線以上＋MACD翻多';jc='var(--sf)';}
+      else if(aboveMa20){judge='🟡 月線以上，觀察MACD';jc='#f6ad55';}
+      else{judge='❌ 低於月線，謹慎';jc='var(--nw)';}
     }
+    // K棒圖 SVG
+    const W=Math.min(window.innerWidth-60,480),KH=160,MH=55,PAD=6;
+    const bw=Math.max(2,Math.floor((W-PAD*2)/recent.length)-1);
+    const allH=recent.map(b=>b.h),allL=recent.map(b=>b.l);
+    const maxP=Math.max(...allH),minP=Math.min(...allL),rng=maxP-minP||1;
+    const py=v=>KH-PAD-(v-minP)/rng*(KH-PAD*2);
+    const mvals=hist.filter(v=>v!=null),maxM=Math.max(...mvals.map(Math.abs))||1;
+    const my=v=>MH/2-v/maxM*(MH/2-3);
+    let kbars='',maLines='',macdBars='',sigLine='';
+    recent.forEach((b,i)=>{
+      const x=PAD+i*(bw+1),up=b.c>=b.o,col=up?'#e53e3e':'#38a169';
+      const y1=py(Math.max(b.o,b.c)),y2=py(Math.min(b.o,b.c)),bh=Math.max(1,y2-y1);
+      kbars+=`<rect x="${x.toFixed(1)}" y="${y1.toFixed(1)}" width="${bw}" height="${bh.toFixed(1)}" fill="${col}"/>`;
+      kbars+=`<line x1="${(x+bw/2).toFixed(1)}" y1="${py(b.h).toFixed(1)}" x2="${(x+bw/2).toFixed(1)}" y2="${py(b.l).toFixed(1)}" stroke="${col}" stroke-width="1"/>`;
+      if(hist[i]!=null){
+        const mh=my(0),mb=my(hist[i]),mc=hist[i]>=0?'#e53e3e':'#38a169';
+        macdBars+=`<rect x="${x.toFixed(1)}" y="${Math.min(mh,mb).toFixed(1)}" width="${bw}" height="${Math.abs(mh-mb).toFixed(1)}" fill="${mc}" opacity="0.9"/>`;
+      }
+    });
+    [[ma5,'#fbbf24'],[ma20,'#f87171'],[ma60,'#60a5fa']].forEach(([ma,c])=>{
+      let pts='';
+      recent.forEach((b,i)=>{if(ma[i]!=null)pts+=`${(PAD+i*(bw+1)+bw/2).toFixed(1)},${py(ma[i]).toFixed(1)} `;});
+      if(pts)maLines+=`<polyline points="${pts}" fill="none" stroke="${c}" stroke-width="1.3" opacity="0.9"/>`;
+    });
+    sig.forEach((v,i)=>{if(v!=null)sigLine+=`${(PAD+i*(bw+1)+bw/2).toFixed(1)},${my(v).toFixed(1)} `;});
     techEl.dataset.loaded='1';
-    techEl.innerHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:6px 0">
-      <div style="background:var(--bg3);border-radius:6px;padding:5px;text-align:center"><div style="font-size:9px;color:var(--txt3)">現價</div><div style="font-size:13px;font-weight:700;color:var(--txt)">$${cur.toFixed(1)}</div></div>
-      <div style="background:var(--bg3);border-radius:6px;padding:5px;text-align:center"><div style="font-size:9px;color:var(--txt3)">5日線</div><div style="font-size:12px;font-weight:700;color:${Math.abs(near5)<=3?'var(--sf)':'var(--txt)'}">$${ma5.toFixed(1)}</div><div style="font-size:9px;color:var(--txt3)">${near5>=0?'+':''}${near5.toFixed(1)}%</div></div>
-      <div style="background:var(--bg3);border-radius:6px;padding:5px;text-align:center"><div style="font-size:9px;color:var(--txt3)">20日線</div><div style="font-size:12px;font-weight:700;color:${aboveMa20?'var(--sf)':'var(--nw)'}">$${ma20.toFixed(1)}</div></div>
-      <div style="background:var(--bg3);border-radius:6px;padding:5px;text-align:center"><div style="font-size:9px;color:var(--txt3)">MACD柱</div><div style="font-size:12px;font-weight:700;color:${macdUp?'var(--sf)':'var(--nw)'}">${macdUp?'↑翻多':'↓翻空'}</div></div>
-    </div>
-    <div style="font-size:12px;font-weight:700;color:${color};padding:6px 10px;background:var(--bg3);border-radius:6px">${judge}</div>`;
-  }catch(e){techEl.textContent='❌ 技術資料載入失敗';}
+    techEl.innerHTML=`
+      <div style="font-size:10px;color:var(--txt3);margin:4px 0;display:flex;gap:10px;flex-wrap:wrap">
+        <span>現價 <b style="color:var(--txt)">${cur.toFixed(0)}</b></span>
+        <span style="color:#fbbf24">MA5 ${m5.toFixed(0)}</span>
+        <span style="color:#f87171">MA20 ${m20.toFixed(0)}</span>
+        <span style="color:#60a5fa">MA60 ${(ma60.at(-1)||0).toFixed(0)}</span>
+        <span style="color:${macdUp?'var(--sf)':'var(--nw)'}">MACD${macdUp?'↑':'↓'}</span>
+      </div>
+      <svg width="${W}" height="${KH}" style="display:block;background:#111;border-radius:6px 6px 0 0">${kbars}${maLines}</svg>
+      <svg width="${W}" height="${MH}" style="display:block;background:#0d0d0d;border-radius:0 0 6px 6px;margin-bottom:6px">
+        <line x1="0" y1="${(MH/2).toFixed(0)}" x2="${W}" y2="${(MH/2).toFixed(0)}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+        ${macdBars}
+        ${sigLine?`<polyline points="${sigLine}" fill="none" stroke="#f6ad55" stroke-width="1.2"/>`:''}
+      </svg>
+      <div style="font-size:12px;font-weight:700;color:${jc};padding:5px 10px;background:var(--bg3);border-radius:6px">${judge}</div>`;
+  }catch(e){techEl.textContent='❌ K線載入失敗：'+e.message;}
 }
 
 let _autoPriceDone=false;
@@ -1171,6 +1212,9 @@ function showTab(id,el){
   if(id==='positions'&&!_autoPriceDone&&S.positions.some(p=>p.code)){
     _autoPriceDone=true;
     setTimeout(()=>fetchAllPrices(),600);
+  }
+  if(id==='history'&&!candData){
+    setTimeout(()=>loadCandidates(),300);
   }
   if(id==='water')calcWater();
   if(id==='strat')renderStrat();
