@@ -509,7 +509,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       <select id="p-acct"><option value="華南">華南</option><option value="凱基">凱基</option></select>
     </div>
     <div class="field"><label>策略（可多選）</label>
-      <div id="p-strat-pills" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:6px 8px;background:var(--bg3);border:1px solid var(--bdr2);border-radius:8px"></div>
+      <div id="p-strat-pills" style="display:flex;flex-wrap:wrap;gap:4px;padding:6px 8px;background:var(--bg3);border:1px solid var(--bdr2);border-radius:8px"></div>
       <input type="hidden" id="p-strat">
     </div>
     <div class="field"><label>買入時風度（強風→陣風→亂流→無風）</label>
@@ -580,7 +580,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     <!-- 策略＋風度兩欄 -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
       <div class="field" style="margin:0"><label>策略（可多選）</label>
-      <div id="e-strat-pills" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:6px 8px;background:var(--bg3);border:1px solid var(--bdr2);border-radius:8px"></div>
+      <div id="e-strat-pills" style="display:flex;flex-wrap:wrap;gap:4px;padding:6px 8px;background:var(--bg3);border:1px solid var(--bdr2);border-radius:8px"></div>
         <input type="hidden" id="e-strat">
       </div>
       <div class="field" style="margin:0"><label>買入時風度</label>
@@ -1113,7 +1113,7 @@ function initStratBoxes(){
   ['p-strat-pills','e-strat-pills'].forEach(boxId=>{
     const box=document.getElementById(boxId);
     if(!box)return;
-    box.innerHTML=STRAT_LIST.map(s=>`<label style="display:flex;align-items:center;padding:5px 10px;border-radius:8px;border:1px solid ${s.c}66;color:${s.c};background:transparent;cursor:pointer;font-size:12px;font-weight:600;user-select:none;transition:all .15s"><input type="checkbox" value="${s.v}" onchange="onStratCheck('${boxId}',this)" style="display:none">${s.v}</label>`).join('');
+    box.innerHTML=STRAT_LIST.map(s=>`<label style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:8px;border:1px solid ${s.c}66;color:${s.c};background:transparent;cursor:pointer;font-size:11px;font-weight:600;user-select:none;transition:all .15s;white-space:nowrap"><input type="checkbox" value="${s.v}" onchange="onStratCheck('${boxId}',this)" style="display:none">${s.v}</label>`).join('');
   });
 }
 function onStratCheck(boxId,cb){
