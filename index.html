@@ -553,50 +553,62 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     <div class="modal-handle"></div>
     <div class="modal-title">編輯持倉</div>
     <input type="hidden" id="e-id">
-    <div class="form-grid">
-      <div class="field"><label>股票名稱</label><input type="text" id="e-name"></div>
-      <div class="field"><label>買入日期</label><input type="date" id="e-date"></div>
-      <div class="field"><label>買入價格</label><input type="number" id="e-buy"></div>
-      <div class="field"><label>股數</label><input type="number" id="e-qty"></div>
-      <div class="field"><label>現價</label><input type="number" id="e-cur"></div>
-      <div class="field"><label>股票代號</label><input type="text" id="e-code" placeholder="例：2454"></div>
+    <!-- 兩欄基本資料 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div class="field" style="margin:0"><label>股票名稱</label><input type="text" id="e-name"></div>
+      <div class="field" style="margin:0"><label>股票代號</label><input type="text" id="e-code" placeholder="例：2454"></div>
+      <div class="field" style="margin:0"><label>買入日期</label><input type="date" id="e-date"></div>
+      <div class="field" style="margin:0"><label>現價</label><input type="number" id="e-cur"></div>
+      <div class="field" style="margin:0"><label>帳號</label>
+        <select id="e-acct"><option value="華南">華南</option><option value="凱基">凱基</option></select>
+      </div>
+      <div class="field" style="margin:0"><label>類別</label>
+        <select id="e-type" style="border-radius:8px;padding:6px 10px;font-size:13px;background:var(--bg3);border:1px solid var(--bdr2);color:var(--txt)">
+          <option value="現股">現股</option>
+          <option value="融資">融資</option>
+          <option value="融券">融券</option>
+        </select>
+      </div>
     </div>
-    <div class="field"><label>帳號</label>
-      <select id="e-acct"><option value="華南">華南</option><option value="凱基">凱基</option></select>
+    <!-- 策略＋風度兩欄 -->
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:8px">
+      <div class="field" style="margin:0"><label>策略</label>
+        <select id="e-strat" onchange="updateStratColor(this)">
+          <option>打工型強勢日</option><option>打工型日拉回</option>
+          <option>上班族強勢週</option><option>上班族週趨勢</option>
+          <option>老闆型廉價收購</option><option>老闆型週拉回</option>
+          <option>自己挑股票</option><option>配股</option><option>認股</option>
+          <option>成值營收創高</option><option>成值營收</option><option>成值</option>
+          <option>營收</option><option>無成值營收</option>
+        </select>
+      </div>
+      <div class="field" style="margin:0"><label>買入時風度</label>
+        <select id="e-wind"><option>強風</option><option>陣風</option><option>亂流</option><option>無風</option></select>
+      </div>
     </div>
-    <div class="field"><label>策略</label>
-      <select id="e-strat" onchange="updateStratColor(this)">
-        <option>打工型強勢日</option><option>打工型日拉回</option>
-        <option>上班族強勢週</option><option>上班族週趨勢</option>
-        <option>老闆型廉價收購</option><option>老闆型週拉回</option>
-        <option>自己挑股票</option><option>配股</option><option>認股</option>
-        <option>成值營收創高</option><option>成值營收</option><option>成值</option>
-        <option>營收</option><option>無成值營收</option>
-      </select>
-    </div>
-    <div class="field"><label>買入時風度</label>
-      <select id="e-wind"><option>強風</option><option>陣風</option><option>亂流</option><option>無風</option></select>
-    </div>
-    <div class="field"><label>停利條件</label>
-      <select id="e-profit-sel" onchange="document.getElementById('e-profit-custom').style.display=this.value==='自訂…'?'block':'none'">
-        <option value="">—</option>
-      </select>
-      <input type="text" id="e-profit-custom" placeholder="輸入自訂停利" style="margin-top:8px;display:none">
-    </div>
-    <div class="field"><label>停損條件</label>
-      <select id="e-stop-sel" onchange="document.getElementById('e-stop-custom').style.display=this.value==='自訂…'?'block':'none'">
-        <option value="">—</option>
-      </select>
-      <input type="text" id="e-stop-custom" placeholder="輸入自訂停損" style="margin-top:8px;display:none">
+    <!-- 停利停損兩欄 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div class="field" style="margin:0"><label style="color:var(--sf)">停利條件</label>
+        <select id="e-profit-sel" onchange="document.getElementById('e-profit-custom').style.display=this.value==='自訂…'?'block':'none'">
+          <option value="">—</option>
+        </select>
+        <input type="text" id="e-profit-custom" placeholder="自訂停利" style="margin-top:6px;display:none;width:100%">
+      </div>
+      <div class="field" style="margin:0"><label style="color:var(--nw)">停損條件</label>
+        <select id="e-stop-sel" onchange="document.getElementById('e-stop-custom').style.display=this.value==='自訂…'?'block':'none'">
+          <option value="">—</option>
+        </select>
+        <input type="text" id="e-stop-custom" placeholder="自訂停損" style="margin-top:6px;display:none;width:100%">
+      </div>
     </div>
     <div class="field"><label>備註</label><input type="text" id="e-note"></div>
     <!-- 加碼區 -->
     <div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:12px">
       <div style="font-size:12px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">加碼紀錄</div>
       <div id="e-lots-list"></div>
-      <div class="form-grid" style="margin-top:8px">
-        <div class="field" style="margin-bottom:0"><label>加碼價格</label><input type="number" id="e-add-price" placeholder="買入價"></div>
-        <div class="field" style="margin-bottom:0"><label>加碼股數</label><input type="number" id="e-add-qty" placeholder="股數"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+        <div class="field" style="margin:0"><label>加碼價格</label><input type="number" id="e-add-price" placeholder="買入價"></div>
+        <div class="field" style="margin:0"><label>加碼股數</label><input type="number" id="e-add-qty" placeholder="股數"></div>
       </div>
       <div class="field" style="margin-bottom:0;margin-top:8px"><label>加碼日期</label><input type="date" id="e-add-date"></div>
       <button class="btn sm primary" style="margin-top:8px" onclick="addLot()">＋ 新增這筆加碼</button>
@@ -759,7 +771,9 @@ function setWind(w){
   document.getElementById('wind-dot').style.background=c.dot;
   document.getElementById('wind-badge').className='wind-badge '+c.cls;
   const box=document.getElementById('wind-advice-box');
-  box.className='alert '+c.adv;box.textContent=c.advice;
+  // 完全替換 class，避免殘留舊風度的顏色
+  box.setAttribute('class','alert '+c.adv);
+  box.textContent=c.advice;
   closeModal('wind-modal');
   renderWindStat();renderAlerts();calcWater();renderStrat();
 }
@@ -1193,7 +1207,7 @@ async function loadCandTech(name,code,strat,tid){
       else{judge='❌ 低於月線，謹慎';jc='var(--nw)';}
     }
     // K棒圖 SVG - 全寬 + 價格Y軸
-    const W=Math.min(window.innerWidth-32,520),KH=200,MH=60,YPAD=44,PAD=6;
+    const W=Math.min(window.innerWidth-32,600),KH=200,MH=60,YPAD=44,PAD=6;
     const plotW=W-YPAD;
     const bw=Math.max(2,Math.floor(plotW/recent.length)-1);
     const allH=recent.map(b=>b.h),allL=recent.map(b=>b.l);
@@ -1385,6 +1399,7 @@ function openEdit(id){
   document.getElementById('e-acct').value=p.acct||'華南';
   document.getElementById('e-strat').value=p.strat||'自己挑股票';
   updateStratColor(document.getElementById('e-strat'));
+  document.getElementById('e-type').value=p.type||'現股';
   document.getElementById('e-wind').value=p.wind||'強風';
   document.getElementById('e-note').value=p.memo||'';
   document.getElementById('e-add-date').value=new Date().toISOString().split('T')[0];
@@ -1448,6 +1463,7 @@ function saveEdit(){
   p.code=document.getElementById('e-code').value.trim();
   p.acct=document.getElementById('e-acct').value;
   p.strat=document.getElementById('e-strat').value;
+  p.type=document.getElementById('e-type').value;
   p.wind=document.getElementById('e-wind').value;
   // 停損
   const stopSel=document.getElementById('e-stop-sel').value;
@@ -1828,6 +1844,7 @@ function renderPositions(){
       <td>
         <div class="pos-code">${p.code||'—'}</div>
         <div class="pos-tname">${p.name}</div>
+        ${p.type&&p.type!=='現股'?`<div style="font-size:10px;padding:1px 5px;border-radius:4px;background:rgba(246,173,85,0.2);color:#f6ad55;display:inline-block;margin-top:2px">${p.type}</div>`:''}
         ${needsWarn?`<div style="font-size:10px;color:var(--sf);margin-top:2px">${pct<=-5?'⚠停損!':'⚠無風'}</div>`:''}
       </td>
       <td>
