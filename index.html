@@ -566,9 +566,17 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       <div class="field" style="margin:0"><label>買入日期</label><input type="date" id="e-date"></div>
       <div class="field" style="margin:0"><label>現價</label><input type="number" id="e-cur"></div>
       <!-- 策略左 | 帳號/類別/風度右 -->
-      <div class="field" style="margin:0"><label>策略（可多選）</label>
-        <div id="e-strat-pills" style="display:flex;flex-wrap:wrap;gap:4px;padding:6px 8px;background:var(--bg3);border:1px solid var(--bdr2);border-radius:8px"></div>
-        <input type="hidden" id="e-strat">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="field" style="margin:0"><label>策略（可多選）</label>
+          <div id="e-strat-pills" style="display:flex;flex-wrap:wrap;gap:4px;padding:6px 8px;background:var(--bg3);border:1px solid var(--bdr2);border-radius:8px"></div>
+          <input type="hidden" id="e-strat">
+        </div>
+        <div class="field" style="margin:0"><label style="color:var(--sf)">停利條件</label>
+          <select id="e-profit-sel" onchange="document.getElementById('e-profit-custom').style.display=this.value==='自訂…'?'block':'none'">
+            <option value="">—</option>
+          </select>
+          <input type="text" id="e-profit-custom" placeholder="自訂停利" style="margin-top:6px;display:none;width:100%">
+        </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px">
         <div class="field" style="margin:0"><label>帳號</label>
@@ -582,19 +590,12 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
         <div class="field" style="margin:0"><label>買入時風度</label>
           <select id="e-wind"><option>強風</option><option>陣風</option><option>亂流</option><option>無風</option></select>
         </div>
-      </div>
-      <!-- 停利 | 停損 -->
-      <div class="field" style="margin:0"><label style="color:var(--sf)">停利條件</label>
-        <select id="e-profit-sel" onchange="document.getElementById('e-profit-custom').style.display=this.value==='自訂…'?'block':'none'">
-          <option value="">—</option>
-        </select>
-        <input type="text" id="e-profit-custom" placeholder="自訂停利" style="margin-top:6px;display:none;width:100%">
-      </div>
-      <div class="field" style="margin:0"><label style="color:var(--nw)">停損條件</label>
-        <select id="e-stop-sel" onchange="document.getElementById('e-stop-custom').style.display=this.value==='自訂…'?'block':'none'">
-          <option value="">—</option>
-        </select>
-        <input type="text" id="e-stop-custom" placeholder="自訂停損" style="margin-top:6px;display:none;width:100%">
+        <div class="field" style="margin:0"><label style="color:var(--nw)">停損條件</label>
+          <select id="e-stop-sel" onchange="document.getElementById('e-stop-custom').style.display=this.value==='自訂…'?'block':'none'">
+            <option value="">—</option>
+          </select>
+          <input type="text" id="e-stop-custom" placeholder="自訂停損" style="margin-top:6px;display:none;width:100%">
+        </div>
       </div>
     </div>
     <div class="field"><label>備註</label><input type="text" id="e-note"></div>
