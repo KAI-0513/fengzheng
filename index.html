@@ -1898,7 +1898,7 @@ function renderPositions(){
         <div class="pos-code">${p.code||'—'}</div>
         <div class="pos-tname">${p.name}</div>
         ${p.type&&p.type!=='現股'?`<div style="font-size:10px;padding:1px 5px;border-radius:4px;background:rgba(246,173,85,0.2);color:#f6ad55;display:inline-block;margin-top:2px">${p.type}</div>`:''}
-        ${needsWarn?`<div style="font-size:10px;color:var(--sf);margin-top:2px">${pct<=-5?'⚠停損!':'⚠無風'}</div>`:''}
+        ${needsWarn?`<div style="font-size:10px;margin-top:2px;color:${{強風:'var(--sf)',陣風:'var(--gf)',亂流:'var(--lt)',無風:'var(--nw)'}[p.wind]||'var(--sf)'}">${pct<=-5?'⚠停損!':'⚠'+p.wind}</div>`:''}
       </td>
       <td>
         <div style="font-size:11px;color:var(--txt3)">${p.date||'—'}</div>
@@ -1908,10 +1908,8 @@ function renderPositions(){
       <td style="font-size:12px">${totalQty.toLocaleString()}</td>
       <td class="pos-strat-cell">${(()=>{
         const sc=p.strat||'';
-        let c='var(--txt2)',bg='transparent';
-        if(sc.includes('上班族')){c='#f6ad55';bg='rgba(246,173,85,0.12)';}
-        else if(sc.includes('老闆')){c='#63b3ed';bg='rgba(99,179,237,0.12)';}
-        return `<span style="color:${c};background:${bg};border-radius:4px;padding:1px 4px;font-size:11px">${sc}</span>`;
+        const s=STRAT_LIST.find(x=>sc.includes(x.v.substring(0,4)))||{c:'var(--txt2)',bg:'transparent'};
+        return `<span style="color:${s.c};background:${s.bg};border-radius:4px;padding:1px 4px;font-size:11px;white-space:nowrap">${sc}</span>`;
       })()}${p.timing?'<br><span style="color:var(--txt3);font-size:10px">'+p.timing+'</span>':''}</td>
       <td style="font-size:11px;color:${profitHit?'#ff2222':'var(--sf)'};font-weight:${profitHit?'700':'400'}">${p.profit||'—'}${profitHit?' 🔔':''}</td>
       <td style="font-size:11px;color:${stopHit?'#1db954':'var(--nw)'};font-weight:${stopHit?'700':'400'}">${p.stop||'—'}${stopHit?' 🔔':''}</td>
