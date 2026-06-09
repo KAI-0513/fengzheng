@@ -1,27 +1,51 @@
 {
-  "date": "2026/06/08",
+  "date": "2026/06/09",
   "wind": "無風",
-  "worker_strong_week": [],
-  "worker_week_trend": [],
-  "boss_week_pullback": [
-    "台光電",
-    "文曄",
-    "滬勤"
+  "worker_strong_week": [
+    "立教",
+    "智通",
+    "金益鼎"
   ],
+  "worker_week_trend": [],
+  "boss_week_pullback": [],
   "boss_cheap_buy": [
-    "欣興",
-    "台光電",
-    "智邦"
+    "聯亞",
+    "啟碁",
+    "文曄"
   ],
   "top6_volume": [
-    "南亞科",
-    "華邦電",
-    "欣興",
+    "旺矽",
+    "智邦",
+    "聯亞",
     "國巨",
-    "群聯",
-    "台光電"
+    "南亞科",
+    "華邦電"
   ],
   "recent": [
+    {
+      "date": "2026/06/09",
+      "wind": "無風",
+      "worker_strong_week": [
+        "立教",
+        "智通",
+        "金益鼎"
+      ],
+      "worker_week_trend": [],
+      "boss_week_pullback": [],
+      "boss_cheap_buy": [
+        "聯亞",
+        "啟碁",
+        "文曄"
+      ],
+      "top6_volume": [
+        "旺矽",
+        "智邦",
+        "聯亞",
+        "國巨",
+        "南亞科",
+        "華邦電"
+      ]
+    },
     {
       "date": "2026/06/08",
       "wind": "無風",
@@ -201,38 +225,6 @@
         "旺宏",
         "國巨",
         "群聯",
-        "欣興"
-      ]
-    },
-    {
-      "date": "2026/05/29",
-      "wind": "強風",
-      "worker_strong_week": [
-        "南亞科",
-        "京元電子",
-        "欣銓"
-      ],
-      "worker_week_trend": [
-        "華邦電",
-        "長榮航",
-        "長科"
-      ],
-      "boss_week_pullback": [
-        "牧德",
-        "新代",
-        "閎康"
-      ],
-      "boss_cheap_buy": [
-        "智邦",
-        "聯茂",
-        "威剛"
-      ],
-      "top6_volume": [
-        "南亞科",
-        "旺矽",
-        "華邦電",
-        "旺宏",
-        "京元電子",
         "欣興"
       ]
     }
