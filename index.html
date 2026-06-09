@@ -157,7 +157,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .pos-sub{font-size:12px;color:var(--txt2);margin-top:3px;line-height:1.55}
 .pos-pnl .pct{font-size:17px;font-weight:700;text-align:right}
 .pos-pnl .abs{font-size:11px;color:var(--txt2);text-align:right}
-.close-warn{margin-top:9px;padding:8px 11px;border-radius:8px;background:var(--sf-bg);color:var(--sf);border:1px solid rgba(255,34,34,.2);font-size:12px;line-height:1.5}
+.close-warn{margin-top:9px;padding:8px 11px;border-radius:8px;font-size:12px;line-height:1.5}
 /* 表格式持倉 */
 .pos-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px}
 .pos-table th{padding:8px 6px;text-align:left;color:var(--txt3);font-weight:600;border-bottom:1px solid var(--bdr);white-space:nowrap;font-size:11px}
@@ -2010,13 +2010,18 @@ setInterval(checkCloseTime,60000);
 // ── 提醒 & 統計 ──────────────────────────────────────────
 function renderAlerts(){
   const el=document.getElementById('alerts-container');const a=[];
-  if(S.wind==='無風')a.push({c:'danger',t:'無風：暫停買進，現有部位積極設好停損。'});
-  if(S.wind==='陣風')a.push({c:'warn',t:'陣風：謹慎試單，不要追高。'});
+  // 市場風度提醒 — 用對應風度的顏色
+  if(S.wind==='無風')a.push({c:'nw',t:'無風：暫停買進，現有部位積極設好停損。'});
+  else if(S.wind==='陣風')a.push({c:'gf',t:'陣風：謹慎試單，不要追高。'});
   S.positions.forEach(p=>{
-    const pct=(p.cur-p.buy)/p.buy*100;
+    const {avgPrice}=calcAvg(p.lots||[{price:p.buy,qty:p.qty}]);
+    const pct=(p.cur-avgPrice)/avgPrice*100;
     if(pct<=-5)a.push({c:'nw',t:`${p.name} 虧損${Math.abs(pct).toFixed(1)}%，確認停損！`});
     if(pct>=10)a.push({c:'sf',t:`${p.name} 獲利${pct.toFixed(1)}%，進入停利保護。`});
-    if(p.wind==='無風')a.push({c:'warn',t:`${p.name} 當時無風買入，特別注意。`});
+    // 當時買入風度的顏色
+    const bw=p.wind||'';
+    const wc={'強風':'sf','陣風':'gf','亂流':'lt','無風':'nw'}[bw]||'gf';
+    if(bw==='無風')a.push({c:wc,t:`${p.name} 當時無風買入，特別注意。`});
   });
   if(!a.length){el.innerHTML='<div class="empty">今日無特別提醒 🎉</div>';return;}
   el.innerHTML=a.map(x=>`<div class="alert ${x.c}">${x.t}</div>`).join('');
