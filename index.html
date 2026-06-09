@@ -560,7 +560,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     <div class="modal-handle"></div>
     <div class="modal-title">編輯持倉</div>
     <input type="hidden" id="e-id">
-    <!-- 兩欄基本資料 -->
+    <!-- 四欄基本資料 -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
       <div class="field" style="margin:0"><label>股票名稱</label><input type="text" id="e-name"></div>
       <div class="field" style="margin:0"><label>股票代號</label><input type="text" id="e-code" placeholder="例：2454"></div>
@@ -575,27 +575,28 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
         </select>
       </div>
     </div>
-    <!-- 策略全寬 -->
-    <div class="field" style="margin-bottom:8px"><label>策略（可多選）</label>
-      <div id="e-strat-pills" style="display:flex;flex-wrap:wrap;gap:4px;padding:6px 8px;background:var(--bg3);border:1px solid var(--bdr2);border-radius:8px"></div>
-      <input type="hidden" id="e-strat">
-    </div>
-    <!-- 風度＋停利＋停損三欄 -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
-      <div class="field" style="margin:0"><label>買入時風度</label>
-        <select id="e-wind"><option>強風</option><option>陣風</option><option>亂流</option><option>無風</option></select>
+    <!-- 策略左 + 風度/停利/停損右 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;align-items:start">
+      <div class="field" style="margin:0"><label>策略（可多選）</label>
+        <div id="e-strat-pills" style="display:flex;flex-wrap:wrap;gap:4px;padding:6px 8px;background:var(--bg3);border:1px solid var(--bdr2);border-radius:8px"></div>
+        <input type="hidden" id="e-strat">
       </div>
-      <div class="field" style="margin:0"><label style="color:var(--sf)">停利條件</label>
-        <select id="e-profit-sel" onchange="document.getElementById('e-profit-custom').style.display=this.value==='自訂…'?'block':'none'">
-          <option value="">—</option>
-        </select>
-        <input type="text" id="e-profit-custom" placeholder="自訂停利" style="margin-top:6px;display:none;width:100%">
-      </div>
-      <div class="field" style="margin:0"><label style="color:var(--nw)">停損條件</label>
-        <select id="e-stop-sel" onchange="document.getElementById('e-stop-custom').style.display=this.value==='自訂…'?'block':'none'">
-          <option value="">—</option>
-        </select>
-        <input type="text" id="e-stop-custom" placeholder="自訂停損" style="margin-top:6px;display:none;width:100%">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="field" style="margin:0"><label>買入時風度</label>
+          <select id="e-wind"><option>強風</option><option>陣風</option><option>亂流</option><option>無風</option></select>
+        </div>
+        <div class="field" style="margin:0"><label style="color:var(--sf)">停利條件</label>
+          <select id="e-profit-sel" onchange="document.getElementById('e-profit-custom').style.display=this.value==='自訂…'?'block':'none'">
+            <option value="">—</option>
+          </select>
+          <input type="text" id="e-profit-custom" placeholder="自訂停利" style="margin-top:6px;display:none;width:100%">
+        </div>
+        <div class="field" style="margin:0"><label style="color:var(--nw)">停損條件</label>
+          <select id="e-stop-sel" onchange="document.getElementById('e-stop-custom').style.display=this.value==='自訂…'?'block':'none'">
+            <option value="">—</option>
+          </select>
+          <input type="text" id="e-stop-custom" placeholder="自訂停損" style="margin-top:6px;display:none;width:100%">
+        </div>
       </div>
     </div>
     <div class="field"><label>備註</label><input type="text" id="e-note"></div>
