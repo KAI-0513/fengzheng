@@ -2341,9 +2341,12 @@ function deleteNote(i){
 
 // ── 初始化 ────────────────────────────────────────────────
 load();
-// 強制重新套用風度顏色（確保 class 完全正確）
-const _initBox=document.getElementById('wind-advice-box');
-if(_initBox)_initBox.setAttribute('class','alert '+(WCFG[S.wind]||WCFG['強風']).adv);
+// 從 windLog 最新一筆（過濾未來日期）設定 S.wind
+(function(){
+  const today=new Date().toISOString().split('T')[0].replace(/-/g,'/');
+  const logs=(S.windLog||[]).filter(l=>l&&l.date&&l.date.replace(/-/g,'/')<=today).sort((a,b)=>a.date.localeCompare(b.date));
+  if(logs.length){S.wind=logs[logs.length-1].wind;}
+})();
 renderDate();
 setWind(S.wind);
 if(S.water.hn)document.getElementById('w-hn').value=S.water.hn;
