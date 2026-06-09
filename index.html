@@ -1096,7 +1096,7 @@ const STRAT_LIST=[
   {v:'上班族週趨勢',  c:'#f6ad55',bg:'rgba(246,173,85,0.15)'},
   {v:'老闆型廉價收購',c:'#4fd1c5',bg:'rgba(79,209,197,0.12)'},
   {v:'老闆型週拉回',  c:'#4fd1c5',bg:'rgba(79,209,197,0.12)'},
-  {v:'自己挑股票',    c:'#a0aec0',bg:'rgba(160,174,192,0.1)'},
+  {v:'自己挑股票',    c:'#f687b3',bg:'rgba(246,135,179,0.12)'},
   {v:'配股',          c:'#68d391',bg:'rgba(104,211,145,0.1)'},
   {v:'認股',          c:'#fc8181',bg:'rgba(252,129,129,0.1)'},
   {v:'成值營收創高',  c:'#f6ad55',bg:'rgba(246,173,85,0.1)'},
@@ -1898,7 +1898,6 @@ function renderPositions(){
         <div class="pos-code">${p.code||'—'}</div>
         <div class="pos-tname">${p.name}</div>
         ${p.type&&p.type!=='現股'?`<div style="font-size:10px;padding:1px 5px;border-radius:4px;background:rgba(246,173,85,0.2);color:#f6ad55;display:inline-block;margin-top:2px">${p.type}</div>`:''}
-        ${needsWarn?`<div style="font-size:10px;margin-top:2px;color:${{強風:'var(--sf)',陣風:'var(--gf)',亂流:'var(--lt)',無風:'var(--nw)'}[p.wind]||'var(--sf)'}">${pct<=-5?'⚠停損!':'⚠'+p.wind}</div>`:''}
       </td>
       <td>
         <div style="font-size:11px;color:var(--txt3)">${p.date||'—'}</div>
@@ -1906,13 +1905,16 @@ function renderPositions(){
       </td>
       <td><div class="${pos?'pos-price-up':'pos-price-dn'}">$${p.cur}</div></td>
       <td style="font-size:12px">${totalQty.toLocaleString()}</td>
-      <td class="pos-strat-cell">${(()=>{
+      <td class="pos-strat-cell" style="max-width:110px">${(()=>{
         const sc=p.strat||'';
-        const s=STRAT_LIST.find(x=>sc.includes(x.v.substring(0,4)))||{c:'var(--txt2)',bg:'transparent'};
-        return `<span style="color:${s.c};background:${s.bg};border-radius:4px;padding:1px 4px;font-size:11px;white-space:nowrap">${sc}</span>`;
-      })()}${p.timing?'<br><span style="color:var(--txt3);font-size:10px">'+p.timing+'</span>':''}</td>
-      <td style="font-size:11px;color:${profitHit?'#ff2222':'var(--sf)'};font-weight:${profitHit?'700':'400'}">${p.profit||'—'}${profitHit?' 🔔':''}</td>
-      <td style="font-size:11px;color:${stopHit?'#1db954':'var(--nw)'};font-weight:${stopHit?'700':'400'}">${p.stop||'—'}${stopHit?' 🔔':''}</td>
+        const parts=sc.split(',').map(v=>v.trim()).filter(Boolean);
+        return `<div style="display:flex;flex-wrap:wrap;gap:2px">${parts.map(v=>{
+          const s=STRAT_LIST.find(x=>v.includes(x.v.substring(0,4)))||{c:'#a0aec0',bg:'rgba(160,174,192,0.1)'};
+          return `<span style="color:${s.c};background:${s.bg};border-radius:4px;padding:1px 5px;font-size:10px;white-space:nowrap;border:1px solid ${s.c}33">${v}</span>`;
+        }).join('')}</div>`;
+      })()}</td>
+      <td style="font-size:11px;color:var(--txt2)">${p.profit||'—'}${profitHit?' 🔔':''}</td>
+      <td style="font-size:11px;color:var(--txt2)">${p.stop||'—'}${stopHit?' 🔔':''}</td>
       <td style="font-size:12px;color:var(--txt)">${tax.toLocaleString()}</td>
       <td>
         <div class="${pos?'pos-pnl-up':'pos-pnl-dn'}">${pos?'+':''}${Math.round(pnl).toLocaleString()}</div>
