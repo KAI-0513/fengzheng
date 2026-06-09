@@ -508,15 +508,11 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     <div class="field"><label>帳號</label>
       <select id="p-acct"><option value="華南">華南</option><option value="凱基">凱基</option></select>
     </div>
-    <div class="field"><label>策略</label>
-      <select id="p-strat" onchange="updateStopOptions();updateStratColor(this)">
-        <option>打工型強勢日</option><option>打工型日拉回</option>
-        <option>上班族強勢週</option><option>上班族週趨勢</option>
-        <option>老闆型廉價收購</option><option>老闆型週拉回</option>
-        <option>自己挑股票</option><option>配股</option><option>認股</option>
-        <option>成值營收創高</option><option>成值營收</option><option>成值</option>
-        <option>營收</option><option>無成值營收</option>
-      </select>
+    <div class="field">
+      <label>策略（可多選）</label>
+      <div id="p-strat-box" style="background:var(--bg3);border:1px solid var(--bdr2);border-radius:8px;padding:6px 8px;max-height:130px;overflow-y:auto;display:flex;flex-wrap:wrap;gap:4px">
+      </div>
+      <input type="hidden" id="p-strat">
     </div>
     <div class="field"><label>買入時風度（強風→陣風→亂流→無風）</label>
       <select id="p-wind"><option>強風</option><option>陣風</option><option>亂流</option><option>無風</option></select>
@@ -585,15 +581,12 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     </div>
     <!-- 策略＋風度兩欄 -->
     <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:8px">
-      <div class="field" style="margin:0"><label>策略</label>
-        <select id="e-strat" onchange="updateStratColor(this)">
-          <option>打工型強勢日</option><option>打工型日拉回</option>
-          <option>上班族強勢週</option><option>上班族週趨勢</option>
-          <option>老闆型廉價收購</option><option>老闆型週拉回</option>
-          <option>自己挑股票</option><option>配股</option><option>認股</option>
-          <option>成值營收創高</option><option>成值營收</option><option>成值</option>
-          <option>營收</option><option>無成值營收</option>
-        </select>
+      <div class="field" style="margin:0">
+        <label>策略（可多選）</label>
+        <div id="e-strat-box" style="background:var(--bg3);border:1px solid var(--bdr2);border-radius:8px;padding:6px 8px;max-height:130px;overflow-y:auto;display:flex;flex-wrap:wrap;gap:4px">
+          <!-- 動態生成 -->
+        </div>
+        <input type="hidden" id="e-strat">
       </div>
       <div class="field" style="margin:0"><label>買入時風度</label>
         <select id="e-wind"><option>強風</option><option>陣風</option><option>亂流</option><option>無風</option></select>
@@ -623,8 +616,10 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
         <div class="field" style="margin:0"><label>加碼價格</label><input type="number" id="e-add-price" placeholder="買入價"></div>
         <div class="field" style="margin:0"><label>加碼股數</label><input type="number" id="e-add-qty" placeholder="股數"></div>
       </div>
-      <div class="field" style="margin-bottom:0;margin-top:8px"><label>加碼日期</label><input type="date" id="e-add-date"></div>
-      <button class="btn sm primary" style="margin-top:8px" onclick="addLot()">＋ 新增這筆加碼</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+        <div class="field" style="margin:0"><label>加碼日期</label><input type="date" id="e-add-date"></div>
+        <div class="field" style="margin:0;display:flex;align-items:flex-end"><button class="btn sm primary" style="width:100%" onclick="addLot()">＋ 新增加碼</button></div>
+      </div>
     </div>
     <div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:12px;font-size:13px" id="e-avg-display"></div>
     <button class="btn primary" onclick="saveEdit()">儲存修改</button>
@@ -1118,6 +1113,35 @@ function updateStratColor(sel){
   sel.style.border=`1.5px solid ${s.c}44`;sel.style.borderRadius='8px';
   sel.style.fontWeight='700';sel.style.padding='6px 10px';sel.style.outline='none';
 }
+// ── 策略多選 checkbox ────────────────────────────────────
+function initStratBoxes(){
+  ['p-strat-box','e-strat-box'].forEach(boxId=>{
+    const box=document.getElementById(boxId);
+    if(!box)return;
+    box.innerHTML=STRAT_LIST.map(s=>`<label onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:99px;border:1px solid ${s.c}55;color:${s.c};background:transparent;cursor:pointer;font-size:11px;font-weight:600;user-select:none"><input type="checkbox" value="${s.v}" onchange="onStratCheck('${boxId}',this)" style="display:none">${s.v}</label>`).join('');
+  });
+}
+function onStratCheck(boxId,cb){
+  const label=cb.closest('label');
+  const s=STRAT_LIST.find(x=>x.v===cb.value)||{c:'#aaa',bg:'transparent'};
+  label.style.background=cb.checked?s.bg:'transparent';
+  label.style.borderColor=cb.checked?s.c:s.c+'55';
+  label.style.boxShadow=cb.checked?`0 0 0 1px ${s.c}44`:'';
+  const hidId=boxId.replace('-box','');
+  const hid=document.getElementById(hidId);
+  if(hid){
+    const checked=[...document.querySelectorAll(`#${boxId} input:checked`)].map(x=>x.value);
+    hid.value=checked.join(',');
+    if(hidId==='p-strat'&&checked.length)updateStopOptions();
+  }
+}
+function setStratBoxValue(boxId,val){
+  const vals=(val||'').split(',').map(v=>v.trim()).filter(Boolean);
+  document.querySelectorAll(`#${boxId} input`).forEach(cb=>{
+    cb.checked=vals.includes(cb.value);
+    onStratCheck(boxId,cb);
+  });
+}
 let candData=null,candTab='worker';
 const STOCK_MAP_STATIC={'家登':'6598','京元電子':'2449','京元電':'2449','台積電':'2330','鴻海':'2317','聯發科':'2454','台達電':'2308','廣達':'2382','聯電':'2303','中華電':'2412','富邦金':'2881','國泰金':'2882','南亞':'1303','台塑':'1301','台化':'1326','中鋼':'2002','元大金':'2885','兆豐金':'2886','第一金':'2892','合庫金':'5880','玉山金':'2884','永豐金':'2890','台新金':'2887','中信金':'2891','開發金':'2883','華南金':'2880','台灣大':'3045','遠傳':'4904','欣興':'3037','景碩':'3189','臻鼎':'4958','台光電':'2383','南電':'8046','聯茂':'6213','華通':'2313','群聯':'8299','威剛':'3260','創見':'2451','宜鼎':'5289','信驊':'5274','祥碩':'5269','譜瑞':'4966','慧榮':'6286','南亞科':'2408','華邦電':'2344','旺宏':'2337','力積電':'6770','矽力':'6415','聯詠':'3034','瑞昱':'2379','智原':'3035','晶心科':'6533','日月光':'3711','京元電':'2449','欣銓':'3264','矽格':'6257','緯創':'3231','緯穎':'6669','英業達':'2356','仁寶':'2324','和碩':'4938','鴻準':'2354','奇鋐':'3017','建準':'2421','雙鴻':'3324','超眾':'6230','長榮':'2603','陽明':'2609','萬海':'2615','慧洋':'2637','長榮航':'2618','華航':'2610','國巨':'2327','禾伸堂':'3026','大毅':'2478','台半':'5425','強茂':'2481','杰力':'5299','中美晶':'5483','環球晶':'6488','合晶':'6182','嘉晶':'3016','漢磊':'3707','大立光':'3008','玉晶光':'3406','先進光':'3362','亞光':'3019','晶電':'2448','億光':'2393','璨圓':'3061','光磊':'2340','聯鈞':'3450','全新':'2455','宏捷科':'8086','智邦':'2345','合勤':'3704','神達':'3706','正文':'4906','啟碁':'6285','智易':'3596','信音':'3234','雅特力-KY':'4296','晶豪科':'3006','新唐':'4919','旺矽':'6223','帆宣':'6196','精測':'6510','均豪':'5443','大成鋼':'2027','豐興':'2015','燁輝':'2023','牧德':'3563','創意':'3443','世芯-KY':'3661','金居':'8358','達運':'6120','友達':'2409','群創':'3481','彩晶':'6116','元太':'8069','正崴':'2392','技嘉':'2376','微星':'2377','聯強':'2347','大聯大':'3702','文曄':'3036','益登':'3048','尖點':'6117','佳世達':'2352','東元':'1504','光寶科':'2301','台表科':'6278','全漢':'3015','康舒':'6282','義隆':'2458','凌通':'4952','盛群':'6202','凌陽':'2401','晶相光':'3530','旭曜':'3545','聯陽':'3014','笙科':'5272','新光金':'2888','台壽保':'2833','國票金':'2889','亞德客-KY':'1590','上銀':'2049','廣隆':'1537','鉅祥':'2476','裕日車':'2227','中華車':'2204','三陽工業':'2206','瓦城':'2729','王品':'2727','六角':'2732','八方雲集':'2753','統一超':'2912','全家':'5903','大潤發':'2946','遠百':'2903','大同':'2371','聲寶':'1604','士電':'1503','中興電':'1513','亞力電機':'1514','歌林':'1606','燦坤':'2430','精英':'2362','中磊':'5388','川湖':'2059','中租-KY':'5871','裕融':'9941','和潤企業':'6592','正新':'2105','建大':'2106','南港':'2101','台橡':'2103','台苯':'1310','聯成':'1313','台塑化':'6505','茂達':'6138','帝凱':'3410','太極':'4934','啟基':'3010','鼎翰':'3611','虹光':'2380','金寶':'2312','致伸':'4915','精碟':'2396','豐達科':'3149','朋程':'8255','同泰':'6271','光鼎':'3230','達方':'8163','先豐':'5349','百和':'9938','豐泰':'9910','健亞':'4130','聯合':'4129','長科':'3138','閎康':'3587','京鼎':'3413','弘塑':'3131','南僑':'1702','印能科技':'6583','博智':'8155','宇膽':'6265','聯亞':'3081','鈺太':'4971','正弦':'4987','安集':'6477','長榮航空':'2618','漢翔':'2634','統一企業':'1216','旺旺':'1229','健格':'3130','德律':'3030','金益鼎':'8499','家登精密':'6598','穩懋半導體':'3105','台泥':'1101','亞泥':'1102','嘉泥':'1103','達達':'6698','雄獅':'2731','崇越科技':'5434','達電':'3042','佳邦':'6284','宏致':'3605','博大':'4960','詮欣':'6205','昇佳電子':'6732','盛達電業':'6493','大塚':'3567','力士科技':'5464','中保科':'9917','富邦媒':'8454','美律':'2439','定穎投控':'6411','健策':'3653','儒鴻':'1476','聚陽實業':'1477','南緯實業':'1467','宏遠興業':'1460','奇力新':'2456','正隆':'1904','永豐餘':'1907','榮成':'1909','世界先進':'5347','矽品精密':'2325','台灣光罩':'2338','茂迪股份':'6244','力旺':'4961','宏碁':'2353','台驊':'2636','長虹':'5534','興富發':'2542','冠德':'2520','日勝生':'2535','遠雄':'5522','元晶':'6443','穩得':'8433','廣越科技':'4438','友輝光電':'3429','維熹科技':'3501','群電':'6412','新日興':'3376','合一生技':'4743','浩鼎生技':'4174','中天生技':'4128','穩懋半導體股份':'3105','建準電機':'2421','超眾科技':'6230','力致科技':'3483','亨泰光學':'6766','奇鋐科技':'3017','鈺創':'5351','松川精密':'5314','信邦':'3023','大銀微系統':'4140','博智電子':'8155','閎康科技':'3587','文曄科技':'3036','台光電子':'2383','鴻勁精密':'6803','竹德電子':'6234'};
 
@@ -1389,7 +1413,7 @@ function addPosition(){
     lots:[{price:buy,qty,date:dateVal}],
     cur,code:document.getElementById('p-code').value.trim(),
     acct:document.getElementById('p-acct').value,
-    strat:document.getElementById('p-strat').value,
+    strat:document.getElementById('p-strat').value||'自己挑股票',
     timing:document.getElementById('p-timing').value,
     wind:document.getElementById('p-wind').value,
     basis:(yoy?'YOY30%+ / ':'')+document.getElementById('p-basis').value,
@@ -1419,8 +1443,7 @@ function openEdit(id){
   document.getElementById('e-cur').value=p.cur||'';
   document.getElementById('e-code').value=p.code||'';
   document.getElementById('e-acct').value=p.acct||'華南';
-  document.getElementById('e-strat').value=p.strat||'自己挑股票';
-  updateStratColor(document.getElementById('e-strat'));
+  setStratBoxValue('e-strat-box',p.strat||'自己挑股票');
   document.getElementById('e-type').value=p.type||'現股';
   document.getElementById('e-wind').value=p.wind||'強風';
   document.getElementById('e-note').value=p.memo||'';
@@ -2310,6 +2333,9 @@ function deleteNote(i){
 
 // ── 初始化 ────────────────────────────────────────────────
 load();
+// 強制重新套用風度顏色（確保 class 完全正確）
+const _initBox=document.getElementById('wind-advice-box');
+if(_initBox)_initBox.setAttribute('class','alert '+(WCFG[S.wind]||WCFG['強風']).adv);
 renderDate();
 setWind(S.wind);
 if(S.water.hn)document.getElementById('w-hn').value=S.water.hn;
@@ -2317,7 +2343,7 @@ if(S.water.kg)document.getElementById('w-kg').value=S.water.kg;
 document.getElementById('e-add-date').value=new Date().toISOString().split('T')[0];
 renderStats();renderAlerts();renderNotes();renderPositions();renderPlans();renderStrat();calcWater();
 setWindView('d');renderHistory();renderNoteWind();
-updateStopOptions();
+updateStopOptions();initStratBoxes();
 // 開啟時自動從試算表同步風度（背景執行，不影響畫面）
 setTimeout(()=>syncSheet(),1000);
 </script>
