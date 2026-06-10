@@ -1269,7 +1269,7 @@ async function loadCandTech(name,code,strat,tid,period){
       else if(aboveMa20){judge='🟡 月線以上，觀察MACD';jc='#f6ad55';}
       else{judge='❌ 低於月線，謹慎';jc='var(--nw)';}
     }
-    const W=Math.min(window.innerWidth-16,680),KH=200,MH=60,YPAD=44,PAD=6;
+    const W=Math.min(window.innerWidth-16,680),KH=220,MH=80,YPAD=44,PAD=6;
     const plotW=W-YPAD;
     const bw=Math.max(2,Math.floor(plotW/recent.length)-1);
     const allH=recent.map(b=>b.h),allL=recent.map(b=>b.l);
@@ -1313,6 +1313,7 @@ async function loadCandTech(name,code,strat,tid,period){
         <span style="color:${macdUp?'var(--sf)':'var(--nw)'}">MACD${macdUp?'↑翻多':'↓翻空'}</span>
       </div>
       <svg width="${W}" height="${KH}" style="display:block;background:#111;border-radius:6px 6px 0 0">${yAxis}${kbars}${maLines}</svg>
+      <div style="height:3px;background:#0d0d0d"></div>
       <svg width="${W}" height="${MH}" style="display:block;background:#0d0d0d;border-radius:0 0 6px 6px;margin-bottom:6px">
         <line x1="${YPAD}" y1="${MH/2}" x2="${W}" y2="${MH/2}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
         ${macdBars}
