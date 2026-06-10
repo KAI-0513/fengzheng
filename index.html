@@ -576,11 +576,16 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
         <select id="e-acct"><option value="華南">華南</option><option value="凱基">凱基</option></select>
       </div>
       <div class="field" style="margin:0"><label>類別</label>
-        <select id="e-type" style="border-radius:8px;padding:7px 10px;font-size:13px;background:var(--bg3);border:1px solid var(--bdr2);color:var(--txt)">
+        <select id="e-type" onchange="document.getElementById('e-actual-cost-row').style.display=this.value==='融資'?'block':'none'" style="border-radius:8px;padding:7px 10px;font-size:13px;background:var(--bg3);border:1px solid var(--bdr2);color:var(--txt)">
           <option value="現股">現股</option><option value="融資">融資</option><option value="融券">融券</option>
         </select>
       </div>
       <div class="field" style="margin:0"><label>現價</label><input type="number" id="e-cur"></div>
+    </div>
+    <!-- 實際出資（融資才填）-->
+    <div class="field" id="e-actual-cost-row" style="display:none">
+      <label style="color:#f6ad55">實際出資金額（融資用）</label>
+      <input type="number" id="e-actual-cost" placeholder="你實際出的錢，例如 318128">
     </div>
     <!-- 策略pills | 風度 -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
@@ -1449,6 +1454,10 @@ function openEdit(id){
   document.getElementById('e-acct').value=p.acct||'華南';
   setStratPills('e-strat-pills',p.strat||'自己挑股票');
   document.getElementById('e-type').value=p.type||'現股';
+  const acRow=document.getElementById('e-actual-cost-row');
+  const acInput=document.getElementById('e-actual-cost');
+  if(p.type==='融資'){acRow.style.display='block';acInput.value=p.actualCost||'';}
+  else{acRow.style.display='none';acInput.value='';}
   document.getElementById('e-wind').value=p.wind||'強風';
   document.getElementById('e-note').value=p.memo||'';
   document.getElementById('e-add-date').value=new Date().toISOString().split('T')[0];
@@ -1513,6 +1522,9 @@ function saveEdit(){
   p.acct=document.getElementById('e-acct').value;
   p.strat=document.getElementById('e-strat').value;
   p.type=document.getElementById('e-type').value;
+  const ac=parseFloat(document.getElementById('e-actual-cost').value);
+  if(p.type==='融資'&&ac>0)p.actualCost=ac;
+  else delete p.actualCost;
   p.wind=document.getElementById('e-wind').value;
   // 停損
   const stopSel=document.getElementById('e-stop-sel').value;
@@ -1878,8 +1890,12 @@ function renderPositions(){
 
   html+=S.positions.map(p=>{
     const {avgPrice,totalQty}=calcAvg(p.lots);
-    const tax=Math.round(avgPrice*totalQty*1.001425);
-    const pnl=(p.cur-avgPrice)*totalQty,pct=(p.cur-avgPrice)/avgPrice*100,pos=pnl>=0;
+    // 成本：有填 actualCost（融資實際出資）就用那個，否則算含稅市值
+    const displayCost=p.actualCost||Math.round(avgPrice*totalQty*1.001425);
+    const pnl=(p.cur-avgPrice)*totalQty;
+    // 報酬率：融資用實際出資算，現股用市值算
+    const pct=p.actualCost?(pnl/p.actualCost*100):(p.cur-avgPrice)/avgPrice*100;
+    const pos=pnl>=0;
     const needsWarn=pct<=-5||(S.wind==='無風');
     const stratShort=p.strat||'';
     // 停利提醒：數值型（含元）才判斷
@@ -1911,7 +1927,7 @@ function renderPositions(){
       })()}</td>
       <td style="font-size:11px;color:var(--txt2)">${p.profit||'—'}${profitHit?' 🔔':''}</td>
       <td style="font-size:11px;color:var(--txt2)">${p.stop||'—'}${stopHit?' 🔔':''}</td>
-      <td style="font-size:12px;color:var(--txt)">${tax.toLocaleString()}</td>
+      <td style="font-size:12px;color:var(--txt)">${displayCost.toLocaleString()}</td>
       <td>
         <div class="${pos?'pos-pnl-up':'pos-pnl-dn'}">${pos?'+':''}${Math.round(pnl).toLocaleString()}</div>
         <div style="font-size:11px;color:${pos?'var(--sf)':'var(--nw)'};">${pos?'+':''}${pct.toFixed(1)}%</div>
