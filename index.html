@@ -1222,107 +1222,103 @@ function renderCandidates(){
 }
 
 // ── K線圖 ────────────────────────────────────────────────
-function kSwitchPeriod(tid,period){
-  const el=document.getElementById(tid);if(!el)return;
-  const n=el.dataset.name||'',c=el.dataset.code||'',s=el.dataset.strat||'';
-  if(c)loadCandTech(n,c,s,tid,period);
-}
-function kSwitchZoom(tid,zoom){
-  if(window['_kzoom_'+tid]!==undefined){
-    window['_kzoom_'+tid]=zoom==='all'?'all':parseInt(zoom);
-    window['_krender_'+tid]&&window['_krender_'+tid]();
-  }
-}
 async function loadCandTech(name,code,strat,tid,period){
   const techEl=document.getElementById(tid);if(!techEl)return;
   if(!code||code==='0'){techEl.textContent='❓ 找不到股票代號';return;}
-  techEl.dataset.name=name;techEl.dataset.code=code;techEl.dataset.strat=strat;techEl.dataset.tid=tid;
-  const activePeriod=period||'d';
-  let zoomBars=window['_kzoom_'+tid]||60;
+  techEl.dataset.name=name;techEl.dataset.code=code;techEl.dataset.strat=strat;
 
-  // 日週月按鈕
-  const periodHTML=`<div style="display:flex;gap:6px;margin-bottom:6px">
-    <button id="kpd-${tid}" style="padding:3px 10px;font-size:11px;border-radius:6px;cursor:pointer;font-weight:600">日</button>
-    <button id="kpw-${tid}" style="padding:3px 10px;font-size:11px;border-radius:6px;cursor:pointer;font-weight:600">週</button>
-    <button id="kpm-${tid}" style="padding:3px 10px;font-size:11px;border-radius:6px;cursor:pointer;font-weight:600">月</button>
-  </div>
-  <div id="kzoom-${tid}" style="display:flex;gap:4px;margin-bottom:4px">
-    <button id="kz30-${tid}" style="padding:2px 7px;font-size:10px;border-radius:4px;cursor:pointer">30根</button>
-    <button id="kz60-${tid}" style="padding:2px 7px;font-size:10px;border-radius:4px;cursor:pointer">60根</button>
-    <button id="kz120-${tid}" style="padding:2px 7px;font-size:10px;border-radius:4px;cursor:pointer">120根</button>
-    <button id="kzall-${tid}" style="padding:2px 7px;font-size:10px;border-radius:4px;cursor:pointer">全部</button>
-  </div>
-  <div id="kchart-${tid}">📡 載入K線中...</div>`;
+  // 第一次初始化：建立骨架
+  if(!document.getElementById('kpd-'+tid)){
+    techEl.innerHTML=`
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap">
+        <div style="display:flex;gap:4px">
+          <button id="kpd-${tid}" style="padding:3px 9px;font-size:11px;border-radius:6px;cursor:pointer;font-weight:700">日</button>
+          <button id="kpw-${tid}" style="padding:3px 9px;font-size:11px;border-radius:6px;cursor:pointer;font-weight:700">週</button>
+          <button id="kpm-${tid}" style="padding:3px 9px;font-size:11px;border-radius:6px;cursor:pointer;font-weight:700">月</button>
+        </div>
+        <div style="display:flex;gap:3px;margin-left:auto">
+          <button id="kz30-${tid}" style="padding:2px 6px;font-size:10px;border-radius:4px;cursor:pointer">30</button>
+          <button id="kz60-${tid}" style="padding:2px 6px;font-size:10px;border-radius:4px;cursor:pointer">60</button>
+          <button id="kz120-${tid}" style="padding:2px 6px;font-size:10px;border-radius:4px;cursor:pointer">120</button>
+          <button id="kzall-${tid}" style="padding:2px 6px;font-size:10px;border-radius:4px;cursor:pointer">全部</button>
+        </div>
+      </div>
+      <div id="kinfo-${tid}" style="font-size:9px;color:var(--txt3);margin-bottom:3px"></div>
+      <div id="kchart-${tid}">載入中...</div>
+      <div id="kjudge-${tid}" style="font-size:12px;font-weight:700;padding:5px 10px;background:var(--bg3);border-radius:6px;margin-top:4px"></div>`;
 
-  techEl.innerHTML=periodHTML;
-
-  // 綁定按鈕（渲染後才綁，避免 onclick 字串問題）
-  function styleBtn(activePd,activeZm){
-    ['d','w','m'].forEach(p=>{
-      const b=document.getElementById(`kp${p}-${tid}`);if(!b)return;
-      const on=p===activePd;
-      b.style.background=on?'var(--sf-bg)':'var(--bg3)';
-      b.style.color=on?'var(--sf)':'var(--txt3)';
-      b.style.border=`1px solid ${on?'var(--sf)':'var(--bdr2)'}`;
+    // 綁定按鈕（只綁一次）
+    const bindP=(p)=>document.getElementById(`kp${p}-${tid}`)?.addEventListener('click',()=>{
+      techEl.dataset.period=p;techEl.dataset.zoom=techEl.dataset.zoom||'120';drawChart();
     });
-    [30,60,120,'all'].forEach(z=>{
-      const key=z==='all'?'all':z;
-      const b=document.getElementById(`kz${z==='all'?'all':z}-${tid}`);if(!b)return;
-      const on=key===activeZm||String(key)===String(activeZm);
-      b.style.background=on?'var(--sf-bg)':'var(--bg3)';
-      b.style.color=on?'var(--sf)':'var(--txt3)';
-      b.style.border=`1px solid ${on?'var(--sf)':'var(--bdr2)'}`;
+    bindP('d');bindP('w');bindP('m');
+    const bindZ=(z)=>document.getElementById(`kz${z}-${tid}`)?.addEventListener('click',()=>{
+      techEl.dataset.zoom=String(z);drawChart();
     });
+    bindZ(30);bindZ(60);bindZ(120);bindZ('all');
   }
 
-  document.getElementById(`kpd-${tid}`)?.addEventListener('click',()=>{loadCandTech(name,code,strat,tid,'d');});
-  document.getElementById(`kpw-${tid}`)?.addEventListener('click',()=>{loadCandTech(name,code,strat,tid,'w');});
-  document.getElementById(`kpm-${tid}`)?.addEventListener('click',()=>{loadCandTech(name,code,strat,tid,'m');});
-  document.getElementById(`kz30-${tid}`)?.addEventListener('click',()=>{window['_kzoom_'+tid]=30;window['_krender_'+tid]&&window['_krender_'+tid]();});
-  document.getElementById(`kz60-${tid}`)?.addEventListener('click',()=>{window['_kzoom_'+tid]=60;window['_krender_'+tid]&&window['_krender_'+tid]();});
-  document.getElementById(`kz120-${tid}`)?.addEventListener('click',()=>{window['_kzoom_'+tid]=120;window['_krender_'+tid]&&window['_krender_'+tid]();});
-  document.getElementById(`kzall-${tid}`)?.addEventListener('click',()=>{window['_kzoom_'+tid]='all';window['_krender_'+tid]&&window['_krender_'+tid]();});
+  // 設定初始狀態
+  techEl.dataset.period=period||techEl.dataset.period||'d';
+  techEl.dataset.zoom=techEl.dataset.zoom||'120';
 
-  styleBtn(activePeriod,zoomBars);
-  const chartEl=document.getElementById(`kchart-${tid}`);
+  async function drawChart(){
+    const p=techEl.dataset.period||'d';
+    const z=techEl.dataset.zoom||'120';
+    const zn=z==='all'?'all':parseInt(z);
 
-  async function renderChart(){
-    zoomBars=window['_kzoom_'+tid]||60;
-    styleBtn(activePeriod,zoomBars);
-    chartEl.textContent='📡 載入K線中...';
+    // 更新按鈕樣式
+    ['d','w','m'].forEach(pp=>{
+      const b=document.getElementById(`kp${pp}-${tid}`);if(!b)return;
+      const on=pp===p;b.style.background=on?'var(--sf-bg)':'var(--bg3)';
+      b.style.color=on?'var(--sf)':'var(--txt3)';b.style.border=`1px solid ${on?'var(--sf)':'var(--bdr2)'}`;
+    });
+    [30,60,120,'all'].forEach(zz=>{
+      const b=document.getElementById(`kz${zz}-${tid}`);if(!b)return;
+      const on=String(zz)===String(zn);b.style.background=on?'var(--sf-bg)':'var(--bg3)';
+      b.style.color=on?'var(--sf)':'var(--txt3)';b.style.border=`1px solid ${on?'var(--sf)':'var(--bdr2)'}`;
+    });
+
+    const chartEl=document.getElementById('kchart-'+tid);
+    const infoEl=document.getElementById('kinfo-'+tid);
+    const judgeEl=document.getElementById('kjudge-'+tid);
+    chartEl.textContent='📡 載入中...';
+
     try{
-      const interval=activePeriod==='d'?'1d':activePeriod==='w'?'1wk':'1mo';
-      const range=activePeriod==='d'?'2y':activePeriod==='w'?'10y':'max';
+      const interval=p==='d'?'1d':p==='w'?'1wk':'1mo';
+      const range=p==='d'?'2y':p==='w'?'10y':'max';
       let data=await fetchViaProxy(`https://query1.finance.yahoo.com/v8/finance/chart/${code}.TW?interval=${interval}&range=${range}`);
       if(!data?.chart?.result?.[0])data=await fetchViaProxy(`https://query1.finance.yahoo.com/v8/finance/chart/${code}.TWO?interval=${interval}&range=${range}`);
-      if(!data?.chart?.result?.[0]){chartEl.textContent='❌ 無法取得K線資料';return;}
+      if(!data?.chart?.result?.[0]){chartEl.textContent='❌ 無法取得K線';return;}
       const res=data.chart.result[0];
       const q=res.indicators.quote[0];
-      const allBars=res.timestamp.map((t,i)=>({t,o:q.open[i],h:q.high[i],l:q.low[i],c:q.close[i]})).filter(b=>b.o&&b.c);
-      const recent=zoomBars==='all'?allBars:allBars.slice(-zoomBars);
+      const allBars=res.timestamp.map((t,i)=>({o:q.open[i],h:q.high[i],l:q.low[i],c:q.close[i]})).filter(b=>b.o&&b.c);
+      const recent=zn==='all'?allBars:allBars.slice(-zn);
       const cls=recent.map(b=>b.c);
       function sma(a,n){return a.map((_,i)=>i<n-1?null:a.slice(i-n+1,i+1).reduce((x,y)=>x+y,0)/n);}
       function ema(a,n){const k=2/(n+1);let r=[a[0]];for(let i=1;i<a.length;i++)r.push(a[i]*k+r[i-1]*(1-k));return r;}
       const ma5=sma(cls,5),ma20=sma(cls,20),ma60=sma(cls,60),ma120=sma(cls,120),ma240=sma(cls,240);
       const e12=ema(cls,12),e26=ema(cls,26);
       const macdL=e12.map((v,i)=>v-e26[i]),sig=ema(macdL,9),hist=macdL.map((v,i)=>v-sig[i]);
-      const cur=cls.at(-1),m5=ma5.at(-1),m20=ma20.at(-1);
-      const macdUp=hist.at(-1)>hist.at(-2),near5=(cur-m5)/m5*100,aboveMa20=cur>m20;
+      const cur=cls.at(-1),m5=ma5.at(-1),m20v=ma20.at(-1);
+      const macdUp=hist.at(-1)>hist.at(-2),near5=(cur-m5)/m5*100,aboveMa20=cur>m20v;
       let judge='',jc='var(--txt2)';
       if(strat.includes('強勢')||strat.includes('週趨勢')){
-        if(Math.abs(near5)<=3&&macdUp&&aboveMa20){judge='✅ 符合：貼近5日線＋MACD翻多＋月線以上';jc='var(--sf)';}
-        else if(Math.abs(near5)<=6&&aboveMa20){judge='🟡 部分：月線以上，MACD待確認';jc='#f6ad55';}
-        else{judge='❌ 不符：'+(!aboveMa20?'低於月線':Math.abs(near5)>6?'偏離5日線':'MACD未翻多');jc='var(--nw)';}
+        if(Math.abs(near5)<=3&&macdUp&&aboveMa20){judge='✅ 貼近5日線＋MACD翻多＋月線以上';jc='var(--sf)';}
+        else if(Math.abs(near5)<=6&&aboveMa20){judge='🟡 月線以上，MACD待確認';jc='#f6ad55';}
+        else{judge='❌ '+(!aboveMa20?'低於月線':Math.abs(near5)>6?'偏離5日線':'MACD未翻多');jc='var(--nw)';}
       }else if(strat.includes('拉回')||strat.includes('廉價')){
-        const d20=Math.abs((cur-m20)/m20*100);
-        if(d20<=8){judge='✅ 符合：接近月線，可分批布局';jc='var(--sf)';}
-        else if(aboveMa20&&macdUp){judge='🟡 月線以上MACD翻多，等拉回';jc='#f6ad55';}
+        const d20=Math.abs((cur-m20v)/m20v*100);
+        if(d20<=8){judge='✅ 接近月線，可分批';jc='var(--sf)';}
+        else if(aboveMa20&&macdUp){judge='🟡 月線以上，等拉回';jc='#f6ad55';}
         else{judge='❌ 距月線較遠';jc='var(--nw)';}
       }else{
         if(aboveMa20&&macdUp){judge='✅ 月線以上＋MACD翻多';jc='var(--sf)';}
         else if(aboveMa20){judge='🟡 月線以上，觀察MACD';jc='#f6ad55';}
-        else{judge='❌ 低於月線，謹慎';jc='var(--nw)';}
+        else{judge='❌ 低於月線';jc='var(--nw)';}
       }
+      if(infoEl)infoEl.innerHTML=`<span style="color:#fbbf24">MA5 ${m5?.toFixed(0)||'—'}</span> <span style="color:#f87171">季 ${m20v?.toFixed(0)||'—'}</span> <span style="color:#60a5fa">60 ${(ma60.at(-1)||0).toFixed(0)}</span> <span style="color:#a78bfa">半年 ${(ma120.at(-1)||0).toFixed(0)||'—'}</span> <span style="color:#f9a8d4">年 ${(ma240.at(-1)||0).toFixed(0)||'—'}</span> <span style="color:#ff0">現價 ${cur.toFixed(0)}</span> <span style="color:${macdUp?'var(--sf)':'var(--nw)'}">MACD${macdUp?'↑':'↓'}</span>`;
+      if(judgeEl){judgeEl.textContent=judge;judgeEl.style.color=jc;}
       const W=Math.min(window.innerWidth-16,680),KH=220,MH=80,YPAD=46,PAD=6;
       const bw=Math.max(2,Math.floor((W-YPAD)/recent.length)-1);
       const allH=recent.map(b=>b.h),allL=recent.map(b=>b.l);
@@ -1330,52 +1326,17 @@ async function loadCandTech(name,code,strat,tid,period){
       const py=v=>KH-PAD-(v-minP)/rng*(KH-PAD*2);
       const mvals=hist.filter(v=>v!=null),maxM=Math.max(...mvals.map(Math.abs))||1;
       const my=v=>MH/2-v/maxM*(MH/2-3);
-      let kbars='',maLines='',macdBars='',sigPath='',yAxis='';
-      for(let i=0;i<=4;i++){
-        const pv=minP+rng*i/4,y=py(pv);
-        yAxis+=`<line x1="${YPAD}" y1="${y.toFixed(1)}" x2="${W}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>`;
-        yAxis+=`<text x="${YPAD-3}" y="${(y+3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#777">${pv>=1000?Math.round(pv):pv.toFixed(1)}</text>`;
-      }
-      const curY=py(cur);
-      yAxis+=`<line x1="${YPAD}" y1="${curY.toFixed(1)}" x2="${W}" y2="${curY.toFixed(1)}" stroke="rgba(255,255,0,0.5)" stroke-width="1" stroke-dasharray="3,2"/>`;
-      yAxis+=`<text x="${YPAD-3}" y="${(curY+3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#ff0" font-weight="700">${Math.round(cur)}</text>`;
-      recent.forEach((b,i)=>{
-        const x=YPAD+i*(bw+1),up=b.c>=b.o,col=up?'#e53e3e':'#38a169';
-        const y1=py(Math.max(b.o,b.c)),y2=py(Math.min(b.o,b.c)),bh=Math.max(1,y2-y1);
-        kbars+=`<rect x="${x.toFixed(1)}" y="${y1.toFixed(1)}" width="${bw}" height="${bh.toFixed(1)}" fill="${col}"/>`;
-        kbars+=`<line x1="${(x+bw/2).toFixed(1)}" y1="${py(b.h).toFixed(1)}" x2="${(x+bw/2).toFixed(1)}" y2="${py(b.l).toFixed(1)}" stroke="${col}" stroke-width="1"/>`;
-        if(hist[i]!=null){const mh=my(0),mb=my(hist[i]),mc=hist[i]>=0?'#e53e3e':'#38a169';macdBars+=`<rect x="${x.toFixed(1)}" y="${Math.min(mh,mb).toFixed(1)}" width="${bw}" height="${Math.abs(mh-mb).toFixed(1)}" fill="${mc}" opacity="0.9"/>`;}
-      });
-      [[ma5,'#fbbf24'],[ma20,'#f87171'],[ma60,'#60a5fa'],[ma120,'#a78bfa'],[ma240,'#f9a8d4']].forEach(([ma,c])=>{
-        let d='';
-        recent.forEach((b,i)=>{if(ma[i]!=null){const x=(YPAD+i*(bw+1)+bw/2).toFixed(1),y=Math.max(PAD,Math.min(KH-PAD,py(ma[i]))).toFixed(1);d+=d?` L${x},${y}`:`M${x},${y}`;}});
-        if(d)maLines+=`<path d="${d}" fill="none" stroke="${c}" stroke-width="1.2" opacity="0.85"/>`;
-      });
-      sig.forEach((v,i)=>{if(v!=null){const x=(YPAD+i*(bw+1)+bw/2).toFixed(1),y=my(v).toFixed(1);sigPath+=sigPath?` L${x},${y}`:`M${x},${y}`;}});
-      const periodLabel=activePeriod==='d'?'日K':activePeriod==='w'?'週K':'月K';
-      chartEl.innerHTML=`
-        <div style="font-size:9px;color:var(--txt3);margin:2px 0 4px;display:flex;gap:6px;flex-wrap:wrap">
-          <b style="color:var(--txt2)">${periodLabel} ${recent.length}根</b>
-          <span>現價<b style="color:#ff0">${cur.toFixed(0)}</b></span>
-          <span style="color:#fbbf24">MA5 ${m5?.toFixed(0)||'—'}</span>
-          <span style="color:#f87171">季 ${m20?.toFixed(0)||'—'}</span>
-          <span style="color:#60a5fa">60 ${(ma60.at(-1)||0).toFixed(0)}</span>
-          <span style="color:#a78bfa">半年 ${(ma120.at(-1)||0).toFixed(0)||'—'}</span>
-          <span style="color:#f9a8d4">年 ${(ma240.at(-1)||0).toFixed(0)||'—'}</span>
-          <span style="color:${macdUp?'var(--sf)':'var(--nw)'}">MACD${macdUp?'↑':'↓'}</span>
-        </div>
-        <svg width="${W}" height="${KH}" style="display:block;background:#111;border-radius:6px 6px 0 0">${yAxis}${kbars}${maLines}</svg>
-        <div style="height:3px;background:#0d0d0d"></div>
-        <svg width="${W}" height="${MH}" style="display:block;background:#0d0d0d;border-radius:0 0 6px 6px;margin-bottom:6px">
-          <line x1="${YPAD}" y1="${MH/2}" x2="${W}" y2="${MH/2}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
-          ${macdBars}${sigPath?`<path d="${sigPath}" fill="none" stroke="#f6ad55" stroke-width="1.2"/>`:''}
-        </svg>
-        <div style="font-size:12px;font-weight:700;color:${jc};padding:5px 10px;background:var(--bg3);border-radius:6px">${judge}</div>`;
-    }catch(e){chartEl.textContent='❌ K線載入失敗：'+e.message;}
+      let kb='',ml='',mb2='',sp='',ya='';
+      for(let i=0;i<=4;i++){const pv=minP+rng*i/4,y=py(pv);ya+=`<line x1="${YPAD}" y1="${y.toFixed(1)}" x2="${W}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.06)" stroke-width="1"/><text x="${YPAD-3}" y="${(y+3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#777">${pv>=1000?Math.round(pv):pv.toFixed(1)}</text>`;}
+      const cy=py(cur);ya+=`<line x1="${YPAD}" y1="${cy.toFixed(1)}" x2="${W}" y2="${cy.toFixed(1)}" stroke="rgba(255,255,0,0.5)" stroke-width="1" stroke-dasharray="3,2"/><text x="${YPAD-3}" y="${(cy+3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#ff0" font-weight="700">${Math.round(cur)}</text>`;
+      recent.forEach((b,i)=>{const x=YPAD+i*(bw+1),up=b.c>=b.o,col=up?'#e53e3e':'#38a169';const y1=py(Math.max(b.o,b.c)),y2=py(Math.min(b.o,b.c)),bh=Math.max(1,y2-y1);kb+=`<rect x="${x.toFixed(1)}" y="${y1.toFixed(1)}" width="${bw}" height="${bh.toFixed(1)}" fill="${col}"/><line x1="${(x+bw/2).toFixed(1)}" y1="${py(b.h).toFixed(1)}" x2="${(x+bw/2).toFixed(1)}" y2="${py(b.l).toFixed(1)}" stroke="${col}" stroke-width="1"/>`;if(hist[i]!=null){const mh=my(0),mb=my(hist[i]),mc=hist[i]>=0?'#e53e3e':'#38a169';mb2+=`<rect x="${x.toFixed(1)}" y="${Math.min(mh,mb).toFixed(1)}" width="${bw}" height="${Math.abs(mh-mb).toFixed(1)}" fill="${mc}" opacity="0.9"/>"`;}});
+      [[ma5,'#fbbf24'],[ma20,'#f87171'],[ma60,'#60a5fa'],[ma120,'#a78bfa'],[ma240,'#f9a8d4']].forEach(([ma,c])=>{let d='';recent.forEach((b,i)=>{if(ma[i]!=null){const x=(YPAD+i*(bw+1)+bw/2).toFixed(1),y=Math.max(PAD,Math.min(KH-PAD,py(ma[i]))).toFixed(1);d+=d?` L${x},${y}`:`M${x},${y}`;}});if(d)ml+=`<path d="${d}" fill="none" stroke="${c}" stroke-width="1.2" opacity="0.85"/>`;});
+      sig.forEach((v,i)=>{if(v!=null){const x=(YPAD+i*(bw+1)+bw/2).toFixed(1),y=my(v).toFixed(1);sp+=sp?` L${x},${y}`:`M${x},${y}`;}});
+      chartEl.innerHTML=`<svg width="${W}" height="${KH}" style="display:block;background:#111;border-radius:6px 6px 0 0">${ya}${kb}${ml}</svg><div style="height:3px;background:#0d0d0d"></div><svg width="${W}" height="${MH}" style="display:block;background:#0d0d0d;border-radius:0 0 6px 6px"><line x1="${YPAD}" y1="${MH/2}" x2="${W}" y2="${MH/2}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>${mb2}${sp?`<path d="${sp}" fill="none" stroke="#f6ad55" stroke-width="1.2"/>`:''}
+      </svg>`;
+    }catch(e){chartEl.textContent='❌ 載入失敗：'+e.message;}
   }
-  window['_kzoom_'+tid]=zoomBars;
-  window['_krender_'+tid]=renderChart;
-  renderChart();
+  drawChart();
 }
 let _autoPriceDone=false;
 function showTab(id,el){
