@@ -1220,6 +1220,28 @@ function renderCandidates(){
       </div>`;
     }).join('');
 }
+
+// ── K線圖切換函式 ────────────────────────────────────────
+function kSwitchPeriod(btn){
+  const tid=btn.dataset.tid;
+  const period=btn.dataset.period;
+  const techEl=document.getElementById(tid);
+  if(!techEl)return;
+  techEl.dataset.loaded='';
+  // 找原本的 name/code/strat
+  const card=techEl.closest('[onclick]')||techEl.parentElement;
+  const onclick=card?.getAttribute('onclick')||'';
+  const m=onclick.match(/loadCandTech\('([^']+)','([^']+)','([^']+)'/);
+  if(m)loadCandTech(m[1],m[2],m[3],tid,period);
+}
+function kSwitchZoom(btn){
+  const tid=btn.dataset.tid;
+  const zoom=btn.dataset.zoom==='all'?'all':parseInt(btn.dataset.zoom);
+  if(window['_kzoom_'+tid]!==undefined){
+    window['_kzoom_'+tid]=zoom;
+    window['_krender_'+tid]&&window['_krender_'+tid]();
+  }
+}
 async function loadCandTech(name,code,strat,tid,period){
   const techEl=document.getElementById(tid);
   if(!techEl)return;
@@ -1228,7 +1250,7 @@ async function loadCandTech(name,code,strat,tid,period){
   const activePeriod=period||'d';
   techEl.innerHTML=`
     <div style="display:flex;gap:6px;margin-bottom:6px">
-      ${['d','w','m'].map(pp=>`<button onclick="loadCandTech('${name}','${code}','${strat}','${tid}','${pp}')"
+      ${['d','w','m'].map(pp=>`<button data-tid="${tid}" data-period="${pp}" onclick="kSwitchPeriod(this)"
         style="padding:3px 10px;font-size:11px;border-radius:6px;cursor:pointer;font-weight:600;
         background:${pp===activePeriod?'var(--sf-bg)':'var(--bg3)'};
         color:${pp===activePeriod?'var(--sf)':'var(--txt3)'};
@@ -1310,7 +1332,7 @@ async function loadCandTech(name,code,strat,tid,period){
       });
       sig.forEach((v,i)=>{if(v!=null){const x=(YPAD+i*(bw+1)+bw/2).toFixed(1),y=my(v).toFixed(1);sigPath+=sigPath?` L${x},${y}`:`M${x},${y}`;}});
       const periodLabel=activePeriod==='d'?'日K':activePeriod==='w'?'週K':'月K';
-      const zoomBtns=[30,60,120,'all'].map(n=>`<button onclick="(function(){window._kzoom_${tid}=${n==='all'?"'all'":n};window._krender_${tid}();})()" style="padding:2px 7px;font-size:10px;border-radius:4px;cursor:pointer;background:${zoomBars===n?'var(--sf-bg)':'var(--bg3)'};color:${zoomBars===n?'var(--sf)':'var(--txt3)'};border:1px solid ${zoomBars===n?'var(--sf)':'var(--bdr2)'}">${n==='all'?'全部':n+'根'}</button>`).join('');
+      const zoomBtns=[30,60,120,'all'].map(n=>`<button data-tid="${tid}" data-zoom="${n}" onclick="kSwitchZoom(this)" style="padding:2px 7px;font-size:10px;border-radius:4px;cursor:pointer;background:${zoomBars===n?'var(--sf-bg)':'var(--bg3)'};color:${zoomBars===n?'var(--sf)':'var(--txt3)'};border:1px solid ${zoomBars===n?'var(--sf)':'var(--bdr2)'}">${n==='all'?'全部':n+'根'}</button>`).join('');
       techContent.innerHTML=`
         <div style="display:flex;align-items:center;gap:6px;margin:2px 0 4px;flex-wrap:wrap">
           <b style="color:var(--txt2);font-size:10px">${periodLabel}</b>
