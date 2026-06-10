@@ -560,15 +560,18 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     <div class="modal-handle"></div>
     <div class="modal-title">編輯持倉</div>
     <input type="hidden" id="e-id">
-    <!-- 代號-名稱 全寬 | 買入日 -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+    <!-- 代號—名稱 | 買入日 | 風度 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
       <div class="field" style="margin:0"><label>代號 — 股票名稱</label>
-        <div style="display:flex;gap:6px">
-          <input type="text" id="e-code" placeholder="代號" style="width:90px;flex-shrink:0" oninput="autoFillName(this.value)">
-          <input type="text" id="e-name" placeholder="股票名稱" style="flex:1">
+        <div style="display:flex;gap:5px">
+          <input type="text" id="e-code" placeholder="代號" style="width:72px;flex-shrink:0" oninput="autoFillName(this.value)">
+          <input type="text" id="e-name" placeholder="名稱" style="flex:1">
         </div>
       </div>
       <div class="field" style="margin:0"><label>買入日期</label><input type="date" id="e-date"></div>
+      <div class="field" style="margin:0"><label>買入時風度</label>
+        <select id="e-wind"><option>強風</option><option>陣風</option><option>亂流</option><option>無風</option></select>
+      </div>
     </div>
     <!-- 帳號 | 類別 | 現價 -->
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
@@ -583,30 +586,25 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       <div class="field" style="margin:0"><label>現價</label><input type="number" id="e-cur"></div>
     </div>
     <!-- 實際出資（融資才填）-->
-    <div class="field" id="e-actual-cost-row" style="display:none">
+    <div class="field" id="e-actual-cost-row" style="display:none;margin-bottom:8px">
       <label style="color:#f6ad55">實際出資金額（融資用）</label>
       <input type="number" id="e-actual-cost" placeholder="你實際出的錢，例如 318128">
     </div>
-    <!-- 策略pills | 風度 -->
+    <!-- 策略pills | 停利 -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
       <div class="field" style="margin:0"><label>策略（可多選）</label>
         <div id="e-strat-pills" style="display:flex;flex-wrap:wrap;gap:4px;padding:6px 8px;background:var(--bg3);border:1px solid var(--bdr2);border-radius:8px"></div>
         <input type="hidden" id="e-strat">
       </div>
-      <div class="field" style="margin:0"><label>買入時風度</label>
-        <select id="e-wind"><option>強風</option><option>陣風</option><option>亂流</option><option>無風</option></select>
-      </div>
-    </div>
-    <!-- 停利 | 停損 -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
       <div class="field" style="margin:0"><label style="color:var(--sf)">停利條件</label>
         <select id="e-profit-sel" onchange="document.getElementById('e-profit-custom').style.display=this.value==='自訂…'?'block':'none'"><option value="">—</option></select>
         <input type="text" id="e-profit-custom" placeholder="自訂停利" style="margin-top:6px;display:none;width:100%">
       </div>
-      <div class="field" style="margin:0"><label style="color:var(--nw)">停損條件</label>
-        <select id="e-stop-sel" onchange="document.getElementById('e-stop-custom').style.display=this.value==='自訂…'?'block':'none'"><option value="">—</option></select>
-        <input type="text" id="e-stop-custom" placeholder="自訂停損" style="margin-top:6px;display:none;width:100%">
-      </div>
+    </div>
+    <!-- 停損 -->
+    <div class="field" style="margin-bottom:8px"><label style="color:var(--nw)">停損條件</label>
+      <select id="e-stop-sel" onchange="document.getElementById('e-stop-custom').style.display=this.value==='自訂…'?'block':'none'"><option value="">—</option></select>
+      <input type="text" id="e-stop-custom" placeholder="自訂停損" style="margin-top:6px;display:none;width:100%">
     </div>
     <div class="field"><label>備註</label><input type="text" id="e-note"></div>
     <div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:12px">
@@ -1226,9 +1224,7 @@ async function loadCandTech(name,code,strat,tid,period){
   if(!techEl)return;
   if(!code||code==='0'){techEl.textContent='❓ 找不到股票代號';return;}
   const p=period||'d';
-  // 依策略決定預設週期
-  const defPeriod=strat.includes('拉回')||strat.includes('廉價')?'w':'d';
-  const activePeriod=period||defPeriod;
+  const activePeriod=period||'d';
   techEl.innerHTML=`
     <div style="display:flex;gap:6px;margin-bottom:6px">
       ${['d','w','m'].map(pp=>`<button onclick="loadCandTech('${name}','${code}','${strat}','${tid}','${pp}')"
@@ -1241,7 +1237,7 @@ async function loadCandTech(name,code,strat,tid,period){
   const techContent=techEl.querySelector('div:last-child');
   try{
     const interval=activePeriod==='d'?'1d':activePeriod==='w'?'1wk':'1mo';
-    const range=activePeriod==='d'?'3mo':activePeriod==='w'?'1y':'2y';
+    const range=activePeriod==='d'?'1y':activePeriod==='w'?'5y':'10y';
     let data=await fetchViaProxy(`https://query1.finance.yahoo.com/v8/finance/chart/${code}.TW?interval=${interval}&range=${range}`);
     if(!data?.chart?.result?.[0])data=await fetchViaProxy(`https://query1.finance.yahoo.com/v8/finance/chart/${code}.TWO?interval=${interval}&range=${range}`);
     if(!data?.chart?.result?.[0]){techContent.textContent='❌ 無法取得K線資料';return;}
@@ -1253,7 +1249,7 @@ async function loadCandTech(name,code,strat,tid,period){
     const cls=recent.map(b=>b.c);
     function sma(a,n){return a.map((_,i)=>i<n-1?null:a.slice(i-n+1,i+1).reduce((x,y)=>x+y,0)/n);}
     function ema(a,n){const k=2/(n+1);let r=[a[0]];for(let i=1;i<a.length;i++)r.push(a[i]*k+r[i-1]*(1-k));return r;}
-    const ma5=sma(cls,5),ma20=sma(cls,20),ma60=sma(cls,60);
+    const ma5=sma(cls,5),ma20=sma(cls,20),ma60=sma(cls,60),ma120=sma(cls,120),ma240=sma(cls,240);
     const e12=ema(cls,12),e26=ema(cls,26);
     const macdL=e12.map((v,i)=>v-e26[i]),sig=ema(macdL,9),hist=macdL.map((v,i)=>v-sig[i]);
     const cur=cls.at(-1),m5=ma5.at(-1),m20=ma20.at(-1);
@@ -1301,10 +1297,10 @@ async function loadCandTech(name,code,strat,tid,period){
         macdBars+=`<rect x="${x.toFixed(1)}" y="${Math.min(mh,mb).toFixed(1)}" width="${bw}" height="${Math.abs(mh-mb).toFixed(1)}" fill="${mc}" opacity="0.9"/>`;
       }
     });
-    [[ma5,'#fbbf24'],[ma20,'#f87171'],[ma60,'#60a5fa']].forEach(([ma,c])=>{
+    [[ma5,'#fbbf24'],[ma20,'#f87171'],[ma60,'#60a5fa'],[ma120,'#a78bfa'],[ma240,'#f9a8d4']].forEach(([ma,c])=>{
       let d='';
-      recent.forEach((b,i)=>{if(ma[i]!=null){const x=(YPAD+i*(bw+1)+bw/2).toFixed(1),y=py(ma[i]).toFixed(1);d+=d?` L${x},${y}`:`M${x},${y}`;}});
-      if(d)maLines+=`<path d="${d}" fill="none" stroke="${c}" stroke-width="1.4" opacity="0.9"/>`;
+      recent.forEach((b,i)=>{if(ma[i]!=null){const x=(YPAD+i*(bw+1)+bw/2).toFixed(1),y=Math.max(PAD,Math.min(KH-PAD,py(ma[i]))).toFixed(1);d+=d?` L${x},${y}`:`M${x},${y}`;}});
+      if(d)maLines+=`<path d="${d}" fill="none" stroke="${c}" stroke-width="1.2" opacity="0.85"/>`;
     });
     sig.forEach((v,i)=>{if(v!=null){const x=(YPAD+i*(bw+1)+bw/2).toFixed(1),y=my(v).toFixed(1);sigPath+=sigPath?` L${x},${y}`:`M${x},${y}`;}});
     const periodLabel=activePeriod==='d'?'日K':activePeriod==='w'?'週K':'月K';
@@ -1312,9 +1308,11 @@ async function loadCandTech(name,code,strat,tid,period){
       <div style="font-size:10px;color:var(--txt3);margin:2px 0 4px;display:flex;gap:8px;flex-wrap:wrap">
         <b style="color:var(--txt2)">${periodLabel}</b>
         <span>現價 <b style="color:#ff0">${cur.toFixed(0)}</b></span>
-        <span style="color:#fbbf24">MA5 ${m5.toFixed(0)}</span>
-        <span style="color:#f87171">MA20 ${m20.toFixed(0)}</span>
+        <span style="color:#fbbf24">MA5 ${m5?.toFixed(0)||'—'}</span>
+        <span style="color:#f87171">MA20 ${m20?.toFixed(0)||'—'}</span>
         <span style="color:#60a5fa">MA60 ${(ma60.at(-1)||0).toFixed(0)}</span>
+        <span style="color:#a78bfa">MA120 ${(ma120.at(-1)||0).toFixed(0)||'—'}</span>
+        <span style="color:#f9a8d4">MA240 ${(ma240.at(-1)||0).toFixed(0)||'—'}</span>
         <span style="color:${macdUp?'var(--sf)':'var(--nw)'}">MACD${macdUp?'↑翻多':'↓翻空'}</span>
       </div>
       <svg width="${W}" height="${KH}" style="display:block;background:#111;border-radius:6px 6px 0 0">${yAxis}${kbars}${maLines}</svg>
