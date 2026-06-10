@@ -1228,11 +1228,10 @@ function kSwitchPeriod(btn){
   const techEl=document.getElementById(tid);
   if(!techEl)return;
   techEl.dataset.loaded='';
-  // 找原本的 name/code/strat
-  const card=techEl.closest('[onclick]')||techEl.parentElement;
-  const onclick=card?.getAttribute('onclick')||'';
-  const m=onclick.match(/loadCandTech\('([^']+)','([^']+)','([^']+)'/);
-  if(m)loadCandTech(m[1],m[2],m[3],tid,period);
+  const name=techEl.dataset.name||'';
+  const code=techEl.dataset.code||'';
+  const strat=techEl.dataset.strat||'';
+  if(code)loadCandTech(name,code,strat,tid,period);
 }
 function kSwitchZoom(btn){
   const tid=btn.dataset.tid;
@@ -1245,6 +1244,8 @@ function kSwitchZoom(btn){
 async function loadCandTech(name,code,strat,tid,period){
   const techEl=document.getElementById(tid);
   if(!techEl)return;
+  // 儲存參數到 dataset 供切換用
+  techEl.dataset.name=name;techEl.dataset.code=code;techEl.dataset.strat=strat;techEl.dataset.tid=tid;
   if(!code||code==='0'){techEl.textContent='❓ 找不到股票代號';return;}
   const p=period||'d';
   const activePeriod=period||'d';
