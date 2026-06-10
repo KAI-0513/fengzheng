@@ -1338,6 +1338,7 @@ async function loadCandTech(name,code,strat,tid,period){
   const origRender=renderChart;
   window[`_krender_${tid}`]=()=>{zoomBars=window[`_kzoom_${tid}`];renderChart();};
   renderChart();
+}
 let _autoPriceDone=false;
 function showTab(id,el){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
