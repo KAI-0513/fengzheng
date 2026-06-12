@@ -1573,12 +1573,6 @@ function addLot(){
   document.getElementById('e-add-price').value='';
   document.getElementById('e-add-qty').value='';
 }
-  if(!p.lots)p.lots=[{price:p.buy||0,qty:p.qty||0,date:p.date||''}];
-  p.lots.push({price,qty,date});
-  document.getElementById('e-add-price').value='';
-  document.getElementById('e-add-qty').value='';
-  renderEditLots(p.lots);
-}
 function removeLot(idx){
   const id=parseInt(document.getElementById('e-id').value);
   const p=S.positions.find(x=>x.id===id);if(!p||!p.lots)return;
