@@ -560,6 +560,19 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     <div class="modal-handle"></div>
     <div class="modal-title">編輯持倉</div>
     <input type="hidden" id="e-id">
+    <!-- 帳面損益摘要 -->
+    <div id="e-summary" style="background:var(--bg3);border:1px solid var(--bdr2);border-radius:10px;padding:10px 12px;margin-bottom:10px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px">
+        <div style="color:var(--txt3)">成本均價 <span id="es-avg" style="color:var(--txt);font-weight:700"></span></div>
+        <div style="color:var(--txt3)">股數 <span id="es-qty" style="color:var(--txt);font-weight:700"></span></div>
+        <div style="color:var(--txt3)">現價 <span id="es-cur" style="color:#f6ad55;font-weight:700"></span></div>
+        <div style="color:var(--txt3)">損平價 <span id="es-bep" style="color:var(--txt);font-weight:700"></span></div>
+        <div style="color:var(--txt3)">投資成本 <span id="es-cost" style="color:var(--txt);font-weight:700"></span></div>
+        <div style="color:var(--txt3)">利息 <span id="es-int" style="color:var(--txt);font-weight:700"></span> <button onclick="editInterest()" style="font-size:9px;padding:1px 5px;border-radius:4px;background:var(--bg2);border:1px solid var(--bdr2);color:var(--txt3);cursor:pointer">改</button></div>
+        <div style="color:var(--txt3)">帳面收入 <span id="es-income" style="color:var(--sf);font-weight:700"></span></div>
+        <div style="color:var(--txt3)">損益 <span id="es-pnl" style="font-weight:700"></span> <span id="es-pct" style="font-size:11px;font-weight:700"></span></div>
+      </div>
+    </div>
     <!-- 代號—名稱 | 買入日 | 風度 -->
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
       <div class="field" style="margin:0"><label>代號 — 股票名稱</label>
@@ -608,19 +621,24 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       </div>
     </div>
     <div class="field"><label>備註</label><input type="text" id="e-note"></div>
-    <div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:12px">
-      <div style="font-size:12px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">加碼紀錄</div>
+    <!-- 成交紀錄 -->
+    <div style="background:var(--bg3);border-radius:10px;padding:10px 12px;margin-bottom:10px">
+      <div style="font-size:11px;font-weight:700;color:var(--txt3);letter-spacing:.8px;margin-bottom:8px">成交紀錄</div>
       <div id="e-lots-list"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-        <div class="field" style="margin:0"><label>加碼價格</label><input type="number" id="e-add-price" placeholder="買入價"></div>
-        <div class="field" style="margin:0"><label>加碼股數</label><input type="number" id="e-add-qty" placeholder="股數"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px">
+        <div class="field" style="margin:0"><label>買賣別</label>
+          <select id="e-add-type" style="border-radius:8px;padding:6px 8px;font-size:13px;background:var(--bg2);border:1px solid var(--bdr2);color:var(--txt)">
+            <option value="buy">買入</option>
+            <option value="sell">賣出</option>
+          </select>
+        </div>
+        <div class="field" style="margin:0"><label>成交價格</label><input type="number" id="e-add-price" placeholder="價格"></div>
+        <div class="field" style="margin:0"><label>股數</label><input type="number" id="e-add-qty" placeholder="股數"></div>
+        <div class="field" style="margin:0"><label>成交日期</label><input type="date" id="e-add-date"></div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-        <div class="field" style="margin:0"><label>加碼日期</label><input type="date" id="e-add-date"></div>
-        <div class="field" style="margin:0;display:flex;align-items:flex-end"><button class="btn sm primary" style="width:100%" onclick="addLot()">＋ 新增加碼</button></div>
-      </div>
+      <button class="btn sm primary" style="margin-top:8px;width:100%" onclick="addLot()">＋ 新增成交紀錄</button>
     </div>
-    <div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:12px;font-size:13px" id="e-avg-display"></div>
+    <div id="e-avg-display" style="font-size:12px;color:var(--txt2);padding:4px 2px;margin-bottom:8px"></div>
     <button class="btn primary" onclick="saveEdit()">儲存修改</button>
     <button class="btn" style="margin-top:8px" onclick="closeModal('edit-modal')">取消</button>
   </div>
@@ -1220,124 +1238,124 @@ function renderCandidates(){
       </div>`;
     }).join('');
 }
-
-// ── K線圖 ────────────────────────────────────────────────
 async function loadCandTech(name,code,strat,tid,period){
-  const techEl=document.getElementById(tid);if(!techEl)return;
+  const techEl=document.getElementById(tid);
+  if(!techEl)return;
   if(!code||code==='0'){techEl.textContent='❓ 找不到股票代號';return;}
-  techEl.dataset.name=name;techEl.dataset.code=code;techEl.dataset.strat=strat;
-
-  // 第一次初始化：建立骨架
-  if(!document.getElementById('kpd-'+tid)){
-    techEl.innerHTML=`
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap">
-        <div style="display:flex;gap:4px">
-          <button id="kpd-${tid}" style="padding:3px 9px;font-size:11px;border-radius:6px;cursor:pointer;font-weight:700">日</button>
-          <button id="kpw-${tid}" style="padding:3px 9px;font-size:11px;border-radius:6px;cursor:pointer;font-weight:700">週</button>
-          <button id="kpm-${tid}" style="padding:3px 9px;font-size:11px;border-radius:6px;cursor:pointer;font-weight:700">月</button>
-        </div>
-        <div style="display:flex;gap:3px;margin-left:auto">
-          <button id="kz30-${tid}" style="padding:2px 6px;font-size:10px;border-radius:4px;cursor:pointer">30</button>
-          <button id="kz60-${tid}" style="padding:2px 6px;font-size:10px;border-radius:4px;cursor:pointer">60</button>
-          <button id="kz120-${tid}" style="padding:2px 6px;font-size:10px;border-radius:4px;cursor:pointer">120</button>
-          <button id="kzall-${tid}" style="padding:2px 6px;font-size:10px;border-radius:4px;cursor:pointer">全部</button>
-        </div>
-      </div>
-      <div id="kinfo-${tid}" style="font-size:9px;color:var(--txt3);margin-bottom:3px"></div>
-      <div id="kchart-${tid}">載入中...</div>
-      <div id="kjudge-${tid}" style="font-size:12px;font-weight:700;padding:5px 10px;background:var(--bg3);border-radius:6px;margin-top:4px"></div>`;
-
-    // 綁定按鈕（只綁一次）
-    const bindP=(p)=>document.getElementById(`kp${p}-${tid}`)?.addEventListener('click',()=>{
-      techEl.dataset.period=p;techEl.dataset.zoom=techEl.dataset.zoom||'120';drawChart();
-    });
-    bindP('d');bindP('w');bindP('m');
-    const bindZ=(z)=>document.getElementById(`kz${z}-${tid}`)?.addEventListener('click',()=>{
-      techEl.dataset.zoom=String(z);drawChart();
-    });
-    bindZ(30);bindZ(60);bindZ(120);bindZ('all');
-  }
-
-  // 設定初始狀態
-  techEl.dataset.period=period||techEl.dataset.period||'d';
-  techEl.dataset.zoom=techEl.dataset.zoom||'120';
-
-  async function drawChart(){
-    const p=techEl.dataset.period||'d';
-    const z=techEl.dataset.zoom||'120';
-    const zn=z==='all'?'all':parseInt(z);
-
-    // 更新按鈕樣式
-    ['d','w','m'].forEach(pp=>{
-      const b=document.getElementById(`kp${pp}-${tid}`);if(!b)return;
-      const on=pp===p;b.style.background=on?'var(--sf-bg)':'var(--bg3)';
-      b.style.color=on?'var(--sf)':'var(--txt3)';b.style.border=`1px solid ${on?'var(--sf)':'var(--bdr2)'}`;
-    });
-    [30,60,120,'all'].forEach(zz=>{
-      const b=document.getElementById(`kz${zz}-${tid}`);if(!b)return;
-      const on=String(zz)===String(zn);b.style.background=on?'var(--sf-bg)':'var(--bg3)';
-      b.style.color=on?'var(--sf)':'var(--txt3)';b.style.border=`1px solid ${on?'var(--sf)':'var(--bdr2)'}`;
-    });
-
-    const chartEl=document.getElementById('kchart-'+tid);
-    const infoEl=document.getElementById('kinfo-'+tid);
-    const judgeEl=document.getElementById('kjudge-'+tid);
-    chartEl.textContent='📡 載入中...';
-
+  const p=period||'d';
+  const activePeriod=period||'d';
+  techEl.innerHTML=`
+    <div style="display:flex;gap:6px;margin-bottom:6px">
+      ${['d','w','m'].map(pp=>`<button onclick="loadCandTech('${name}','${code}','${strat}','${tid}','${pp}')"
+        style="padding:3px 10px;font-size:11px;border-radius:6px;cursor:pointer;font-weight:600;
+        background:${pp===activePeriod?'var(--sf-bg)':'var(--bg3)'};
+        color:${pp===activePeriod?'var(--sf)':'var(--txt3)'};
+        border:1px solid ${pp===activePeriod?'var(--sf)':'var(--bdr2)'}">${pp==='d'?'日':pp==='w'?'週':'月'}</button>`).join('')}
+    </div>
+    <div style="font-size:11px;color:var(--txt3)">📡 載入K線中...</div>`;
+  const techContent=techEl.querySelector('div:last-child');
+  let zoomBars=60; // 預設60根
+  async function renderChart(){
+    techContent.textContent='📡 載入K線中...';
     try{
-      const interval=p==='d'?'1d':p==='w'?'1wk':'1mo';
-      const range=p==='d'?'2y':p==='w'?'10y':'max';
+      const interval=activePeriod==='d'?'1d':activePeriod==='w'?'1wk':'1mo';
+      const range=activePeriod==='d'?'2y':activePeriod==='w'?'10y':'max';
       let data=await fetchViaProxy(`https://query1.finance.yahoo.com/v8/finance/chart/${code}.TW?interval=${interval}&range=${range}`);
       if(!data?.chart?.result?.[0])data=await fetchViaProxy(`https://query1.finance.yahoo.com/v8/finance/chart/${code}.TWO?interval=${interval}&range=${range}`);
-      if(!data?.chart?.result?.[0]){chartEl.textContent='❌ 無法取得K線';return;}
+      if(!data?.chart?.result?.[0]){techContent.textContent='❌ 無法取得K線資料';return;}
       const res=data.chart.result[0];
       const q=res.indicators.quote[0];
-      const allBars=res.timestamp.map((t,i)=>({o:q.open[i],h:q.high[i],l:q.low[i],c:q.close[i]})).filter(b=>b.o&&b.c);
-      const recent=zn==='all'?allBars:allBars.slice(-zn);
+      const allBars=res.timestamp.map((t,i)=>({t,o:q.open[i],h:q.high[i],l:q.low[i],c:q.close[i]})).filter(b=>b.o&&b.c);
+      const recent=zoomBars==='all'?allBars:allBars.slice(-zoomBars);
       const cls=recent.map(b=>b.c);
       function sma(a,n){return a.map((_,i)=>i<n-1?null:a.slice(i-n+1,i+1).reduce((x,y)=>x+y,0)/n);}
       function ema(a,n){const k=2/(n+1);let r=[a[0]];for(let i=1;i<a.length;i++)r.push(a[i]*k+r[i-1]*(1-k));return r;}
       const ma5=sma(cls,5),ma20=sma(cls,20),ma60=sma(cls,60),ma120=sma(cls,120),ma240=sma(cls,240);
       const e12=ema(cls,12),e26=ema(cls,26);
       const macdL=e12.map((v,i)=>v-e26[i]),sig=ema(macdL,9),hist=macdL.map((v,i)=>v-sig[i]);
-      const cur=cls.at(-1),m5=ma5.at(-1),m20v=ma20.at(-1);
-      const macdUp=hist.at(-1)>hist.at(-2),near5=(cur-m5)/m5*100,aboveMa20=cur>m20v;
+      const cur=cls.at(-1),m5=ma5.at(-1),m20=ma20.at(-1);
+      const macdUp=hist.at(-1)>hist.at(-2),near5=(cur-m5)/m5*100,aboveMa20=cur>m20;
       let judge='',jc='var(--txt2)';
       if(strat.includes('強勢')||strat.includes('週趨勢')){
-        if(Math.abs(near5)<=3&&macdUp&&aboveMa20){judge='✅ 貼近5日線＋MACD翻多＋月線以上';jc='var(--sf)';}
-        else if(Math.abs(near5)<=6&&aboveMa20){judge='🟡 月線以上，MACD待確認';jc='#f6ad55';}
-        else{judge='❌ '+(!aboveMa20?'低於月線':Math.abs(near5)>6?'偏離5日線':'MACD未翻多');jc='var(--nw)';}
+        if(Math.abs(near5)<=3&&macdUp&&aboveMa20){judge='✅ 符合：貼近5日線＋MACD翻多＋月線以上';jc='var(--sf)';}
+        else if(Math.abs(near5)<=6&&aboveMa20){judge='🟡 部分：月線以上，MACD待確認';jc='#f6ad55';}
+        else{judge='❌ 不符：'+(!aboveMa20?'低於月線':Math.abs(near5)>6?'偏離5日線':'MACD未翻多');jc='var(--nw)';}
       }else if(strat.includes('拉回')||strat.includes('廉價')){
-        const d20=Math.abs((cur-m20v)/m20v*100);
-        if(d20<=8){judge='✅ 接近月線，可分批';jc='var(--sf)';}
-        else if(aboveMa20&&macdUp){judge='🟡 月線以上，等拉回';jc='#f6ad55';}
+        const d20=Math.abs((cur-m20)/m20*100);
+        if(d20<=8){judge='✅ 符合：接近月線，可分批布局';jc='var(--sf)';}
+        else if(aboveMa20&&macdUp){judge='🟡 月線以上MACD翻多，等拉回';jc='#f6ad55';}
         else{judge='❌ 距月線較遠';jc='var(--nw)';}
       }else{
         if(aboveMa20&&macdUp){judge='✅ 月線以上＋MACD翻多';jc='var(--sf)';}
         else if(aboveMa20){judge='🟡 月線以上，觀察MACD';jc='#f6ad55';}
-        else{judge='❌ 低於月線';jc='var(--nw)';}
+        else{judge='❌ 低於月線，謹慎';jc='var(--nw)';}
       }
-      if(infoEl)infoEl.innerHTML=`<span style="color:#fbbf24">MA5 ${m5?.toFixed(0)||'—'}</span> <span style="color:#f87171">季 ${m20v?.toFixed(0)||'—'}</span> <span style="color:#60a5fa">60 ${(ma60.at(-1)||0).toFixed(0)}</span> <span style="color:#a78bfa">半年 ${(ma120.at(-1)||0).toFixed(0)||'—'}</span> <span style="color:#f9a8d4">年 ${(ma240.at(-1)||0).toFixed(0)||'—'}</span> <span style="color:#ff0">現價 ${cur.toFixed(0)}</span> <span style="color:${macdUp?'var(--sf)':'var(--nw)'}">MACD${macdUp?'↑':'↓'}</span>`;
-      if(judgeEl){judgeEl.textContent=judge;judgeEl.style.color=jc;}
       const W=Math.min(window.innerWidth-16,680),KH=220,MH=80,YPAD=46,PAD=6;
-      const bw=Math.max(2,Math.floor((W-YPAD)/recent.length)-1);
+      const plotW=W-YPAD;
+      const bw=Math.max(2,Math.floor(plotW/recent.length)-1);
       const allH=recent.map(b=>b.h),allL=recent.map(b=>b.l);
       const maxP=Math.max(...allH),minP=Math.min(...allL),rng=maxP-minP||1;
       const py=v=>KH-PAD-(v-minP)/rng*(KH-PAD*2);
       const mvals=hist.filter(v=>v!=null),maxM=Math.max(...mvals.map(Math.abs))||1;
       const my=v=>MH/2-v/maxM*(MH/2-3);
-      let kb='',ml='',mb2='',sp='',ya='';
-      for(let i=0;i<=4;i++){const pv=minP+rng*i/4,y=py(pv);ya+=`<line x1="${YPAD}" y1="${y.toFixed(1)}" x2="${W}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.06)" stroke-width="1"/><text x="${YPAD-3}" y="${(y+3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#777">${pv>=1000?Math.round(pv):pv.toFixed(1)}</text>`;}
-      const cy=py(cur);ya+=`<line x1="${YPAD}" y1="${cy.toFixed(1)}" x2="${W}" y2="${cy.toFixed(1)}" stroke="rgba(255,255,0,0.5)" stroke-width="1" stroke-dasharray="3,2"/><text x="${YPAD-3}" y="${(cy+3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#ff0" font-weight="700">${Math.round(cur)}</text>`;
-      recent.forEach((b,i)=>{const x=YPAD+i*(bw+1),up=b.c>=b.o,col=up?'#e53e3e':'#38a169';const y1=py(Math.max(b.o,b.c)),y2=py(Math.min(b.o,b.c)),bh=Math.max(1,y2-y1);kb+=`<rect x="${x.toFixed(1)}" y="${y1.toFixed(1)}" width="${bw}" height="${bh.toFixed(1)}" fill="${col}"/><line x1="${(x+bw/2).toFixed(1)}" y1="${py(b.h).toFixed(1)}" x2="${(x+bw/2).toFixed(1)}" y2="${py(b.l).toFixed(1)}" stroke="${col}" stroke-width="1"/>`;if(hist[i]!=null){const mh=my(0),mb=my(hist[i]),mc=hist[i]>=0?'#e53e3e':'#38a169';mb2+=`<rect x="${x.toFixed(1)}" y="${Math.min(mh,mb).toFixed(1)}" width="${bw}" height="${Math.abs(mh-mb).toFixed(1)}" fill="${mc}" opacity="0.9"/>"`;}});
-      [[ma5,'#fbbf24'],[ma20,'#f87171'],[ma60,'#60a5fa'],[ma120,'#a78bfa'],[ma240,'#f9a8d4']].forEach(([ma,c])=>{let d='';recent.forEach((b,i)=>{if(ma[i]!=null){const x=(YPAD+i*(bw+1)+bw/2).toFixed(1),y=Math.max(PAD,Math.min(KH-PAD,py(ma[i]))).toFixed(1);d+=d?` L${x},${y}`:`M${x},${y}`;}});if(d)ml+=`<path d="${d}" fill="none" stroke="${c}" stroke-width="1.2" opacity="0.85"/>`;});
-      sig.forEach((v,i)=>{if(v!=null){const x=(YPAD+i*(bw+1)+bw/2).toFixed(1),y=my(v).toFixed(1);sp+=sp?` L${x},${y}`:`M${x},${y}`;}});
-      chartEl.innerHTML=`<svg width="${W}" height="${KH}" style="display:block;background:#111;border-radius:6px 6px 0 0">${ya}${kb}${ml}</svg><div style="height:3px;background:#0d0d0d"></div><svg width="${W}" height="${MH}" style="display:block;background:#0d0d0d;border-radius:0 0 6px 6px"><line x1="${YPAD}" y1="${MH/2}" x2="${W}" y2="${MH/2}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>${mb2}${sp?`<path d="${sp}" fill="none" stroke="#f6ad55" stroke-width="1.2"/>`:''}
-      </svg>`;
-    }catch(e){chartEl.textContent='❌ 載入失敗：'+e.message;}
+      let kbars='',maLines='',macdBars='',sigPath='',yAxis='';
+      for(let i=0;i<=4;i++){
+        const pv=minP+rng*i/4,y=py(pv);
+        yAxis+=`<line x1="${YPAD}" y1="${y.toFixed(1)}" x2="${W}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>`;
+        yAxis+=`<text x="${YPAD-3}" y="${(y+3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#777">${pv>=1000?Math.round(pv):pv.toFixed(1)}</text>`;
+      }
+      const curY=py(cur);
+      yAxis+=`<line x1="${YPAD}" y1="${curY.toFixed(1)}" x2="${W}" y2="${curY.toFixed(1)}" stroke="rgba(255,255,0,0.5)" stroke-width="1" stroke-dasharray="3,2"/>`;
+      yAxis+=`<text x="${YPAD-3}" y="${(curY+3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#ff0" font-weight="700">${Math.round(cur)}</text>`;
+      recent.forEach((b,i)=>{
+        const x=YPAD+i*(bw+1),up=b.c>=b.o,col=up?'#e53e3e':'#38a169';
+        const y1=py(Math.max(b.o,b.c)),y2=py(Math.min(b.o,b.c)),bh=Math.max(1,y2-y1);
+        kbars+=`<rect x="${x.toFixed(1)}" y="${y1.toFixed(1)}" width="${bw}" height="${bh.toFixed(1)}" fill="${col}"/>`;
+        kbars+=`<line x1="${(x+bw/2).toFixed(1)}" y1="${py(b.h).toFixed(1)}" x2="${(x+bw/2).toFixed(1)}" y2="${py(b.l).toFixed(1)}" stroke="${col}" stroke-width="1"/>`;
+        if(hist[i]!=null){
+          const mh=my(0),mb=my(hist[i]),mc=hist[i]>=0?'#e53e3e':'#38a169';
+          macdBars+=`<rect x="${x.toFixed(1)}" y="${Math.min(mh,mb).toFixed(1)}" width="${bw}" height="${Math.abs(mh-mb).toFixed(1)}" fill="${mc}" opacity="0.9"/>`;
+        }
+      });
+      [[ma5,'#fbbf24','MA5'],[ma20,'#f87171','季'],[ma60,'#60a5fa','MA60'],[ma120,'#a78bfa','半年'],[ma240,'#f9a8d4','年']].forEach(([ma,c,lbl])=>{
+        let d='';
+        recent.forEach((b,i)=>{
+          if(ma[i]==null)return;
+          const x=(YPAD+i*(bw+1)+bw/2).toFixed(1),y=Math.max(PAD,Math.min(KH-PAD,py(ma[i]))).toFixed(1);
+          d+=d?` L${x},${y}`:`M${x},${y}`;
+        });
+        if(d)maLines+=`<path d="${d}" fill="none" stroke="${c}" stroke-width="1.2" opacity="0.9"/>`;
+      });
+      sig.forEach((v,i)=>{if(v!=null){const x=(YPAD+i*(bw+1)+bw/2).toFixed(1),y=my(v).toFixed(1);sigPath+=sigPath?` L${x},${y}`:`M${x},${y}`;}});
+      const periodLabel=activePeriod==='d'?'日K':activePeriod==='w'?'週K':'月K';
+      const zoomBtns=[30,60,120,'all'].map(n=>`<button onclick="(function(){window._kzoom_${tid}=${n==='all'?"'all'":n};window._krender_${tid}();})()" style="padding:2px 7px;font-size:10px;border-radius:4px;cursor:pointer;background:${zoomBars===n?'var(--sf-bg)':'var(--bg3)'};color:${zoomBars===n?'var(--sf)':'var(--txt3)'};border:1px solid ${zoomBars===n?'var(--sf)':'var(--bdr2)'}">${n==='all'?'全部':n+'根'}</button>`).join('');
+      techContent.innerHTML=`
+        <div style="display:flex;align-items:center;gap:6px;margin:2px 0 4px;flex-wrap:wrap">
+          <b style="color:var(--txt2);font-size:10px">${periodLabel}</b>
+          <span style="font-size:10px;color:var(--txt3)">現價 <b style="color:#ff0">${cur.toFixed(0)}</b></span>
+          <span style="font-size:9px;color:#fbbf24">MA5 ${m5?.toFixed(0)||'—'}</span>
+          <span style="font-size:9px;color:#f87171">季 ${m20?.toFixed(0)||'—'}</span>
+          <span style="font-size:9px;color:#60a5fa">MA60 ${(ma60.at(-1)||0).toFixed(0)}</span>
+          <span style="font-size:9px;color:#a78bfa">半年 ${(ma120.at(-1)||0).toFixed(0)||'—'}</span>
+          <span style="font-size:9px;color:#f9a8d4">年 ${(ma240.at(-1)||0).toFixed(0)||'—'}</span>
+          <span style="font-size:9px;color:${macdUp?'var(--sf)':'var(--nw)'}">MACD${macdUp?'↑':'↓'}</span>
+          <div style="display:flex;gap:3px;margin-left:auto">${zoomBtns}</div>
+        </div>
+        <svg width="${W}" height="${KH}" style="display:block;background:#111;border-radius:6px 6px 0 0">${yAxis}${kbars}${maLines}</svg>
+        <div style="height:3px;background:#0d0d0d"></div>
+        <svg width="${W}" height="${MH}" style="display:block;background:#0d0d0d;border-radius:0 0 6px 6px;margin-bottom:6px">
+          <line x1="${YPAD}" y1="${MH/2}" x2="${W}" y2="${MH/2}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+          ${macdBars}${sigPath?`<path d="${sigPath}" fill="none" stroke="#f6ad55" stroke-width="1.2"/>`:''}
+        </svg>
+        <div style="font-size:12px;font-weight:700;color:${jc};padding:5px 10px;background:var(--bg3);border-radius:6px">${judge}</div>`;
+    }catch(e){techContent.textContent='❌ K線載入失敗：'+e.message;}
   }
-  drawChart();
-}
+  window[`_krender_${tid}`]=renderChart;
+  window[`_kzoom_${tid}`]=zoomBars;
+  // 讓縮放按鈕能更新 zoomBars
+  const origRender=renderChart;
+  window[`_krender_${tid}`]=()=>{zoomBars=window[`_kzoom_${tid}`];renderChart();};
+  renderChart();
 let _autoPriceDone=false;
 function showTab(id,el){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
@@ -1488,20 +1506,57 @@ function openEdit(id){
   else if(p.profit){profitSel.value='自訂…';document.getElementById('e-profit-custom').style.display='block';document.getElementById('e-profit-custom').value=p.profit;}
   else{profitSel.value='—';document.getElementById('e-profit-custom').style.display='none';}
   // lots相容舊資料
-  if(!p.lots||!p.lots.length){p.lots=[{price:p.buy||0,qty:p.qty||0,date:p.date||''}];}
-  renderEditLots(p.lots);
+  if(!p.lots||!p.lots.length){p.lots=[{price:p.buy||0,qty:p.qty||0,date:p.date||'',type:'buy'}];}
+  // 補上舊資料沒有type欄位的
+  p.lots.forEach(l=>{if(!l.type)l.type='buy';});
+  renderEditLots(p,p.lots);
   document.getElementById('edit-modal').classList.remove('hidden');
 }
-function renderEditLots(lots){
-  const {avgPrice,totalQty,totalCost}=calcAvg(lots);
-  document.getElementById('e-lots-list').innerHTML=lots.map((l,i)=>`
-    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bdr);font-size:13px">
+function fillEditSummary(p){
+  const {avgPrice,totalQty}=calcAvg(p.lots);
+  const cost=p.actualCost||Math.round(avgPrice*totalQty*1.001425);
+  const interest=p.interest||0;
+  const income=Math.round(p.cur*totalQty);
+  const pnl=income-Math.round(avgPrice*totalQty);
+  const pct=p.actualCost?(pnl/p.actualCost*100):(pnl/cost*100);
+  const bep=p.actualCost?((p.actualCost/totalQty)*1.001425).toFixed(1):avgPrice.toFixed(1);
+  const pos=pnl>=0;
+  document.getElementById('es-avg').textContent='$'+avgPrice.toFixed(1);
+  document.getElementById('es-qty').textContent=totalQty.toLocaleString()+'股';
+  document.getElementById('es-cur').textContent='$'+(p.cur||0).toFixed(1);
+  document.getElementById('es-bep').textContent='$'+bep;
+  document.getElementById('es-cost').textContent=cost.toLocaleString();
+  document.getElementById('es-int').textContent=interest.toLocaleString();
+  document.getElementById('es-income').textContent=(income+interest).toLocaleString();
+  document.getElementById('es-pnl').textContent=(pos?'+':'')+pnl.toLocaleString();
+  document.getElementById('es-pnl').style.color=pos?'var(--sf)':'var(--nw)';
+  document.getElementById('es-pct').textContent='('+pct.toFixed(1)+'%)';
+  document.getElementById('es-pct').style.color=pos?'var(--sf)':'var(--nw)';
+}
+function editInterest(){
+  const id=parseInt(document.getElementById('e-id').value);
+  const p=S.positions.find(x=>x.id===id);if(!p)return;
+  const v=prompt('輸入利息金額',p.interest||0);
+  if(v===null)return;
+  p.interest=parseInt(v)||0;
+  fillEditSummary(p);
+}
+function renderEditLots(p,lots){
+  const {avgPrice,totalQty,totalCost}=calcAvg(lots.filter(l=>l.type!=='sell'));
+  document.getElementById('e-lots-list').innerHTML=lots.map((l,i)=>{
+    const isSell=l.type==='sell';
+    const col=isSell?'var(--nw)':'var(--sf)';
+    const label=isSell?'賣出':'買入';
+    return `<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--bdr);font-size:12px">
+      <span style="color:${col};font-weight:700;min-width:28px">${label}</span>
       <span style="color:var(--txt2);flex:1">${l.date||'-'} · ${l.qty.toLocaleString()}股 @ $${l.price}</span>
       <span style="color:var(--txt3);font-size:11px">小計：${(l.price*l.qty).toLocaleString()}</span>
-      <button class="btn sm danger" onclick="removeLot(${i})" style="padding:3px 8px">✕</button>
-    </div>`).join('');
+      <button onclick="removeLot(${i})" style="padding:2px 6px;font-size:11px;border-radius:4px;background:transparent;border:1px solid var(--bdr2);color:var(--txt3);cursor:pointer">✕</button>
+    </div>`;
+  }).join('');
   document.getElementById('e-avg-display').innerHTML=
-    `<div style="color:var(--txt2)">共 <strong style="color:var(--txt)">${totalQty.toLocaleString()}股</strong>　平均成本 <strong style="color:var(--sf)">$${avgPrice.toFixed(1)}</strong>　總投入 <strong style="color:var(--txt)">${Math.round(totalCost).toLocaleString()}</strong></div>`;
+    `共 <b style="color:var(--txt)">${totalQty.toLocaleString()}股</b>　均成本 <b style="color:var(--sf)">$${avgPrice.toFixed(1)}</b>　總投入 <b style="color:var(--txt)">${Math.round(totalCost).toLocaleString()}</b>`;
+  fillEditSummary(p);
 }
 function addLot(){
   const id=parseInt(document.getElementById('e-id').value);
@@ -1509,7 +1564,15 @@ function addLot(){
   const price=parseFloat(document.getElementById('e-add-price').value);
   const qty=parseInt(document.getElementById('e-add-qty').value);
   const date=document.getElementById('e-add-date').value;
-  if(!price||!qty){alert('請填入加碼價格和股數');return;}
+  const type=document.getElementById('e-add-type').value||'buy';
+  if(!price||!qty){alert('請填入價格和股數');return;}
+  if(!p.lots)p.lots=[];
+  p.lots.push({price,qty,date,type});
+  p.lots.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  renderEditLots(p,p.lots);
+  document.getElementById('e-add-price').value='';
+  document.getElementById('e-add-qty').value='';
+}
   if(!p.lots)p.lots=[{price:p.buy||0,qty:p.qty||0,date:p.date||''}];
   p.lots.push({price,qty,date});
   document.getElementById('e-add-price').value='';
@@ -1519,9 +1582,9 @@ function addLot(){
 function removeLot(idx){
   const id=parseInt(document.getElementById('e-id').value);
   const p=S.positions.find(x=>x.id===id);if(!p||!p.lots)return;
-  if(p.lots.length<=1){alert('至少保留一筆買入紀錄');return;}
+  if(p.lots.filter(l=>l.type!=='sell').length<=1&&p.lots[idx].type!=='sell'){alert('至少保留一筆買入紀錄');return;}
   p.lots.splice(idx,1);
-  renderEditLots(p.lots);
+  renderEditLots(p,p.lots);
 }
 function saveEdit(){
   const id=parseInt(document.getElementById('e-id').value);
