@@ -1513,25 +1513,39 @@ function openEdit(id){
   document.getElementById('edit-modal').classList.remove('hidden');
 }
 function fillEditSummary(p){
-  const {avgPrice,totalQty}=calcAvg(p.lots);
-  const cost=p.actualCost||Math.round(avgPrice*totalQty*1.001425);
-  const interest=p.interest||0;
-  const income=Math.round(p.cur*totalQty);
-  const pnl=income-Math.round(avgPrice*totalQty);
-  const pct=p.actualCost?(pnl/p.actualCost*100):(pnl/cost*100);
-  const bep=p.actualCost?((p.actualCost/totalQty)*1.001425).toFixed(1):avgPrice.toFixed(1);
-  const pos=pnl>=0;
-  document.getElementById('es-avg').textContent='$'+avgPrice.toFixed(1);
-  document.getElementById('es-qty').textContent=totalQty.toLocaleString()+'股';
-  document.getElementById('es-cur').textContent='$'+(p.cur||0).toFixed(1);
-  document.getElementById('es-bep').textContent='$'+bep;
-  document.getElementById('es-cost').textContent=cost.toLocaleString();
-  document.getElementById('es-int').textContent=interest.toLocaleString();
-  document.getElementById('es-income').textContent=(income+interest).toLocaleString();
-  document.getElementById('es-pnl').textContent=(pos?'+':'')+pnl.toLocaleString();
-  document.getElementById('es-pnl').style.color=pos?'var(--sf)':'var(--nw)';
-  document.getElementById('es-pct').textContent='('+pct.toFixed(1)+'%)';
-  document.getElementById('es-pct').style.color=pos?'var(--sf)':'var(--nw)';
+  try{
+    const buyLots=(p.lots||[]).filter(l=>l.type!=='sell');
+    const {avgPrice,totalQty}=calcAvg(buyLots.length?buyLots:p.lots||[]);
+    if(!totalQty)return;
+    const cost=p.actualCost||Math.round(avgPrice*totalQty*1.001425);
+    // 融資利息自動計算（年利率6.35%，融資金額=總市值-實際出資）
+    let interest=p.interest||0;
+    if(p.type==='融資'&&p.actualCost&&p.date){
+      const days=Math.floor((Date.now()-new Date(p.date).getTime())/86400000);
+      const loanAmt=Math.round(avgPrice*totalQty)-p.actualCost;
+      interest=Math.round(loanAmt*0.0635/365*days);
+      p.interest=interest;
+    }
+    const cur=p.cur||0;
+    const income=Math.round(cur*totalQty);
+    const pnl=income-(p.actualCost||Math.round(avgPrice*totalQty));
+    const pct=cost>0?(pnl/cost*100):0;
+    const bep=totalQty>0?((p.actualCost||cost)/totalQty*1.001425).toFixed(1):avgPrice.toFixed(1);
+    const pos=pnl>=0;
+    const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+    const setC=(id,c)=>{const el=document.getElementById(id);if(el)el.style.color=c;};
+    set('es-avg','$'+avgPrice.toFixed(1));
+    set('es-qty',totalQty.toLocaleString()+'股');
+    set('es-cur','$'+cur.toFixed(1));
+    set('es-bep','$'+bep);
+    set('es-cost',cost.toLocaleString());
+    set('es-int',interest.toLocaleString());
+    set('es-income',(income+interest).toLocaleString());
+    set('es-pnl',(pos?'+':'')+pnl.toLocaleString());
+    setC('es-pnl',pos?'var(--sf)':'var(--nw)');
+    set('es-pct','('+pct.toFixed(1)+'%)');
+    setC('es-pct',pos?'var(--sf)':'var(--nw)');
+  }catch(e){console.error('fillEditSummary error:',e);}
 }
 function editInterest(){
   const id=parseInt(document.getElementById('e-id').value);
