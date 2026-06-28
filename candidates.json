@@ -1,49 +1,53 @@
 {
   "date": "2026/06/26",
   "wind": "無風",
-  "worker_strong_week": [],
+  "worker_strong_week": [
+    "無風",
+    "9",
+    "14"
+  ],
   "worker_week_trend": [
-    "宜鼎"
+    "12"
   ],
-  "boss_week_pullback": [
-    "啟碁",
-    "昇陽半導體",
-    "智邦"
-  ],
+  "boss_week_pullback": [],
   "boss_cheap_buy": [
-    "台燿",
-    "金居",
-    "台積電"
+    "宜鼎",
+    "啟碁",
+    "昇陽半導體"
   ],
   "top6_volume": [
+    "智邦",
+    "台燿",
+    "金居",
+    "台積電",
     "欣興",
-    "南亞科",
-    "國巨",
-    "華邦電"
+    "南亞科"
   ],
   "recent": [
     {
       "date": "2026/06/26",
       "wind": "無風",
-      "worker_strong_week": [],
+      "worker_strong_week": [
+        "無風",
+        "9",
+        "14"
+      ],
       "worker_week_trend": [
-        "宜鼎"
+        "12"
       ],
-      "boss_week_pullback": [
-        "啟碁",
-        "昇陽半導體",
-        "智邦"
-      ],
+      "boss_week_pullback": [],
       "boss_cheap_buy": [
-        "台燿",
-        "金居",
-        "台積電"
+        "宜鼎",
+        "啟碁",
+        "昇陽半導體"
       ],
       "top6_volume": [
+        "智邦",
+        "台燿",
+        "金居",
+        "台積電",
         "欣興",
-        "南亞科",
-        "國巨",
-        "華邦電"
+        "南亞科"
       ]
     },
     {
