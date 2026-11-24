@@ -1,196 +1,171 @@
 {
-  "date": "2026/11/04",
+  "date": "2026/11/23",
   "wind": "無風",
   "worker_strong_week": [],
   "worker_week_trend": [],
-  "boss_week_pullback": [
-    "騰輝電子-KY",
-    "宏致"
-  ],
-  "boss_cheap_buy": [
-    "富喬",
-    "騰輝電子-KY",
-    "宏致"
-  ],
+  "boss_week_pullback": [],
+  "boss_cheap_buy": [],
   "top6_volume": [
-    "欣興",
-    "富喬",
-    "南亞科",
+    "台積電",
     "創意",
-    "聯茂",
-    "台光電"
+    "台達電",
+    "景碩",
+    "台光電",
+    "欣興"
   ],
   "recent": [
     {
-      "date": "2026/11/04",
+      "date": "2026/11/23",
       "wind": "無風",
       "worker_strong_week": [],
       "worker_week_trend": [],
-      "boss_week_pullback": [
-        "騰輝電子-KY",
-        "宏致"
+      "boss_week_pullback": [],
+      "boss_cheap_buy": [],
+      "top6_volume": [
+        "台積電",
+        "創意",
+        "台達電",
+        "景碩",
+        "台光電",
+        "欣興"
+      ]
+    },
+    {
+      "date": "2026/11/20",
+      "wind": "無風",
+      "worker_strong_week": [],
+      "worker_week_trend": [
+        "大國鋼"
       ],
+      "boss_week_pullback": [],
+      "boss_cheap_buy": [],
+      "top6_volume": [
+        "台積電",
+        "國巨",
+        "台達電",
+        "日月光投控",
+        "南亞科",
+        "鴻海"
+      ]
+    },
+    {
+      "date": "2026/11/19",
+      "wind": "無風",
+      "worker_strong_week": [],
+      "worker_week_trend": [
+        "大國鋼"
+      ],
+      "boss_week_pullback": [],
       "boss_cheap_buy": [
-        "富喬",
-        "騰輝電子-KY",
-        "宏致"
+        "雷笛克光學"
       ],
       "top6_volume": [
-        "欣興",
-        "富喬",
+        "台積電",
+        "台達電",
+        "世芯-KY",
+        "國巨",
         "南亞科",
+        "日月光投控"
+      ]
+    },
+    {
+      "date": "2026/11/18",
+      "wind": "無風",
+      "worker_strong_week": [],
+      "worker_week_trend": [
+        "大國鋼",
+        "碩天"
+      ],
+      "boss_week_pullback": [
+        "騰輝電子-KY"
+      ],
+      "boss_cheap_buy": [
+        "視陽"
+      ],
+      "top6_volume": [
+        "台積電",
+        "景碩",
         "創意",
-        "聯茂",
+        "欣興",
+        "台光電",
+        "台達電"
+      ]
+    },
+    {
+      "date": "2026/11/17",
+      "wind": "無風",
+      "worker_strong_week": [
+        "台玻"
+      ],
+      "worker_week_trend": [
+        "大國鋼"
+      ],
+      "boss_week_pullback": [
+        "騰輝電子-KY"
+      ],
+      "boss_cheap_buy": [
+        "視陽"
+      ],
+      "top6_volume": [
+        "台積電",
+        "台達電",
+        "創意",
+        "欣興",
+        "國巨",
         "台光電"
       ]
     },
     {
-      "date": "2026/11/03",
-      "wind": "無風",
-      "worker_strong_week": [],
-      "worker_week_trend": [],
-      "boss_week_pullback": [
-        "騰輝電子-KY",
-        "宏致"
+      "date": "2026/11/16",
+      "wind": "陣風",
+      "worker_strong_week": [
+        "台玻",
+        "零壹"
       ],
+      "worker_week_trend": [
+        "碩天"
+      ],
+      "boss_week_pullback": [],
       "boss_cheap_buy": [
         "富喬",
         "騰輝電子-KY",
-        "建榮"
+        "泰鼎-KY"
       ],
       "top6_volume": [
-        "欣興",
-        "南亞科",
+        "台積電",
+        "台達電",
+        "台玻",
+        "鴻海",
         "國巨",
-        "富喬",
-        "創意",
-        "聯電"
+        "世芯-KY"
       ]
     },
     {
-      "date": "2026/11/02",
-      "wind": "無風",
-      "worker_strong_week": [],
-      "worker_week_trend": [],
+      "date": "2026/11/13",
+      "wind": "陣風",
+      "worker_strong_week": [
+        "台玻",
+        "藥華藥",
+        "零壹"
+      ],
+      "worker_week_trend": [
+        "台玻",
+        "定穎投控",
+        "德宏"
+      ],
       "boss_week_pullback": [
-        "聯茂",
-        "騰輝電子-KY",
-        "宏致"
+        "AMAX-KY"
       ],
       "boss_cheap_buy": [
-        "騰輝電子-KY",
-        "宏致",
-        "建榮"
-      ],
-      "top6_volume": [
-        "欣興",
-        "日月光投控",
-        "創意",
-        "國巨",
-        "台燿",
-        "南亞科"
-      ]
-    },
-    {
-      "date": "2026/10/30",
-      "wind": "無風",
-      "worker_strong_week": [],
-      "worker_week_trend": [],
-      "boss_week_pullback": [
-        "聯茂",
-        "高力",
         "騰輝電子-KY"
       ],
-      "boss_cheap_buy": [
+      "top6_volume": [
+        "台積電",
+        "台玻",
+        "欣興",
         "創意",
-        "聯茂",
+        "南亞科",
         "富喬"
-      ],
-      "top6_volume": [
-        "聯電",
-        "國巨",
-        "日月光投控",
-        "南亞科",
-        "欣興",
-        "精材"
-      ]
-    },
-    {
-      "date": "2026/10/29",
-      "wind": "陣風",
-      "worker_strong_week": [
-        "和碩"
-      ],
-      "worker_week_trend": [],
-      "boss_week_pullback": [
-        "聯茂",
-        "健鼎",
-        "營邦"
-      ],
-      "boss_cheap_buy": [
-        "聯茂",
-        "創意",
-        "高力"
-      ],
-      "top6_volume": [
-        "聯電",
-        "南亞科",
-        "聯茂",
-        "台光電",
-        "景碩",
-        "富喬"
-      ]
-    },
-    {
-      "date": "2026/10/28",
-      "wind": "陣風",
-      "worker_strong_week": [
-        "和碩"
-      ],
-      "worker_week_trend": [],
-      "boss_week_pullback": [
-        "中砂",
-        "萬潤",
-        "健鼎"
-      ],
-      "boss_cheap_buy": [
-        "高力",
-        "中砂",
-        "宏致"
-      ],
-      "top6_volume": [
-        "欣興",
-        "南亞科",
-        "景碩",
-        "台光電",
-        "聯茂",
-        "國巨"
-      ]
-    },
-    {
-      "date": "2026/10/27",
-      "wind": "無風",
-      "worker_strong_week": [
-        "和碩"
-      ],
-      "worker_week_trend": [],
-      "boss_week_pullback": [
-        "萬潤",
-        "健鼎",
-        "宏致"
-      ],
-      "boss_cheap_buy": [
-        "創意",
-        "精材",
-        "營邦"
-      ],
-      "top6_volume": [
-        "欣興",
-        "聯茂",
-        "臻鼎-KY",
-        "台光電",
-        "台燿",
-        "南亞科"
       ]
     }
   ]
