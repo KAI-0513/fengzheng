@@ -783,14 +783,10 @@ const WCFG={
 };
 const WIND_ORDER=['強風','陣風','亂流','無風'];
 
-function setWind(w){
-  const today=new Date().toLocaleDateString('zh-TW');
-  // 記錄風度log（每天只記一次，不重複）
+function setWind(w,noLog){
+  const _d=new Date(),today=_d.getFullYear()+'/'+String(_d.getMonth()+1).padStart(2,'0')+'/'+String(_d.getDate()).padStart(2,'0');
   if(!S.windLog)S.windLog=[];
-  const last=S.windLog[S.windLog.length-1];
-  if(!last||last.date!==today){
-    S.windLog.push({date:today,wind:w});
-  } else { last.wind=w; }
+  if(!noLog){const ex=S.windLog.find(l=>l.date===today);if(ex)ex.wind=w;else S.windLog.push({date:today,wind:w});}
   S.wind=w;save();
   const c=WCFG[w];
   document.getElementById('wind-label').textContent=w;
@@ -1154,6 +1150,10 @@ function holdRules(p,x){
       if(days>=4&&Math.abs(P)<=3)R('sell',`買進${days}天還在成本±3% → 不等了`);}
     else R(u5||u10?'sell':'ok',u5||u10?`跌破${u5?'5':'10'}日線 → 停利`:'風箏飛中，守5/10日線');
   }
+  if(!boss){
+    if(P<=-10)R('sell',`虧損${Math.abs(P).toFixed(1)}%，短線策略的停損早就該觸發了`);
+    if(days!=null&&days>20)R('warn',`已持有${days}個交易日，超過短線策略的週期`);
+  }
   if(boss){
     if(x.mH){const t=new Date(),end=new Date(t.getFullYear(),t.getMonth()+1,0).getDate()-t.getDate()<=2,shrink=x.mH[1]<x.mH[0];
       R(shrink?(end?'sell':'warn'):'ok',shrink?`月MACD柱比上月短${end?' → 月底確認，離場':'（月底再確認）'}`:'月MACD柱沒縮短');}
@@ -1228,9 +1228,15 @@ async function autoWind(){
       const L=(j.otc||[]).at(-1);
       if(L)msgs.push(`今天自動計算：櫃買 ${L.close}（月線 ${L.ma20}）→ ${L.wind}｜與試算表吻合 ${cmp?Math.round(same/cmp*100):'-'}%`);
     }catch(e){msgs.push('自動計算失敗：'+e.message);}
-    S.windLog.sort((a,b)=>a.date.localeCompare(b.date));
+    // 重建風度紀錄：統一日期格式、去重。優先序：試算表 > 自動計算 > 舊紀錄
+    const _nd=d=>{const m=String(d).match(/(\d{4})\D(\d{1,2})\D(\d{1,2})/);return m?`${m[1]}/${m[2].padStart(2,'0')}/${m[3].padStart(2,'0')}`:null;};
+    const _fin=new Map();
+    S.windLog.forEach(l=>{const d=_nd(l.date);if(d&&!l.auto&&!_fin.has(d))_fin.set(d,{date:d,wind:l.wind});});
+    S.windLog.forEach(l=>{const d=_nd(l.date);if(d&&l.auto&&d>lastSheet)_fin.set(d,{date:d,wind:l.wind,auto:1});});
+    sheetMap.forEach((w,d)=>_fin.set(d,{date:d,wind:w}));
+    S.windLog=[..._fin.values()].sort((a,b)=>a.date.localeCompare(b.date));
     const latest=S.windLog.at(-1);
-    if(latest)setWind(latest.wind);
+    if(latest)setWind(latest.wind,true);
     save();
     msgs.push(windCycle());
     if(status)status.textContent=msgs.join('｜');
@@ -2727,7 +2733,8 @@ load();
   if(logs.length){S.wind=logs[logs.length-1].wind;}
 })();
 renderDate();
-setWind(S.wind);
+S.positions.forEach(p=>{if(p.name==='尖點'&&p.code==='6117')p.code='8021';});
+setWind(S.wind,true);
 if(S.water.hn)document.getElementById('w-hn').value=S.water.hn;
 if(S.water.kg)document.getElementById('w-kg').value=S.water.kg;
 document.getElementById('e-add-date').value=new Date().toISOString().split('T')[0];
