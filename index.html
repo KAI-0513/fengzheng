@@ -222,6 +222,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       <div class="header-date" id="hdr-date"></div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+      <button onclick="openApiSetup()" title="資料中繼設定" style="background:var(--bg3);border:1px solid var(--bdr2);color:var(--txt2);border-radius:8px;padding:4px 8px;font-size:14px;cursor:pointer">⚙</button>
       <div class="water-pill" id="water-pill" onclick="showTab('water',document.querySelectorAll('.tab-item')[4])">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6 10 4 13.5 4 16a8 8 0 0 0 16 0c0-2.5-2-6-8-14z"/></svg>
         <span id="header-water">—%</span>
@@ -233,7 +234,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
         </div>
         <!-- 風度選擇器（唯讀提示，同步才能改） -->
         <div id="wind-picker" style="display:none;position:absolute;right:0;top:36px;z-index:999;background:var(--bg2);border:1px solid var(--bdr2);border-radius:12px;padding:8px;width:200px;box-shadow:0 8px 24px rgba(0,0,0,.5)">
-          <div style="font-size:10px;color:var(--txt3);text-align:center;margin-bottom:6px">風度由試算表同步，無法手動修改</div>
+          <div style="font-size:10px;color:var(--txt3);text-align:center;margin-bottom:6px">風度依櫃買指數自動計算（月線＋MACD）</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
             <div style="padding:8px;border-radius:8px;background:var(--sf-bg);border:1.5px solid var(--sf);text-align:center;font-size:12px;font-weight:700;color:var(--sf)"><span style="width:8px;height:8px;border-radius:50%;background:var(--sf);display:inline-block;margin-right:4px"></span>強風</div>
             <div style="padding:8px;border-radius:8px;background:var(--gf-bg);border:1.5px solid var(--gf-bdr);text-align:center;font-size:12px;font-weight:700;color:var(--gf)"><span style="width:8px;height:8px;border-radius:50%;background:var(--gf);display:inline-block;margin-right:4px"></span>陣風</div>
@@ -760,7 +761,7 @@ function load(){
       {id:4,name:'信驊',code:'5274',acct:'華南',strat:'上班族強勢週',wind:'強風',
        date:today,lots:[{price:11696,qty:1,date:today}],
        cur:17725,stop:'跌破五日線',memo:'',batch:''},
-      {id:5,name:'尖點',code:'6117',acct:'華南',strat:'上班族強勢週',wind:'強風',
+      {id:5,name:'尖點',code:'8021',acct:'華南',strat:'上班族強勢週',wind:'強風',
        date:today,lots:[{price:127,qty:15,date:today}],
        cur:464,stop:'跌破五日線',memo:'',batch:''},
     ];
@@ -1004,10 +1005,242 @@ function renderDate(){
     `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日（${wd}）`;
 }
 
+// ── 資料中繼（Apps Script）：即時價 / 風度 / K線 / 備份 ─────────── CLAUDE
+let API_URL='',API_KEY='';
+const API_DEFAULT='https://script.google.com/macros/s/AKfycbxvy6zdQ9ArrrdRZ1ZIFb0amE4h0grWyxKlnTLGWQCCDtDRZnbB_SpDzFIq31l0FEDx/exec';
+API_URL=API_DEFAULT;
+try{API_URL=localStorage.getItem('fz_api')||API_DEFAULT;API_KEY=localStorage.getItem('fz_key')||'';}catch(e){}
+function openApiSetup(){
+  let m=document.getElementById('api-modal');
+  if(!m){
+    m=document.createElement('div');m.id='api-modal';
+    m.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px';
+    m.innerHTML=`<div style="background:var(--bg2);border:1px solid var(--bdr2);border-radius:14px;padding:16px;width:min(460px,100%)">
+      <div style="font-size:15px;font-weight:700;color:var(--txt);margin-bottom:10px">資料中繼設定</div>
+      <label style="font-size:12px;color:var(--txt2)">Apps Script 網頁應用程式網址（…/exec）</label>
+      <input id="api-url-in" style="width:100%;margin:4px 0 10px;font-size:14px;padding:9px;border-radius:8px;background:var(--bg3);border:1px solid var(--bdr2);color:var(--txt)" placeholder="https://script.google.com/macros/s/……/exec">
+      <label style="font-size:12px;color:var(--txt2)">備份密碼</label>
+      <input id="api-key-in" style="width:100%;margin:4px 0 6px;font-size:14px;padding:9px;border-radius:8px;background:var(--bg3);border:1px solid var(--bdr2);color:var(--txt)">
+      <div id="api-test-msg" style="font-size:12px;color:var(--txt3);min-height:18px;margin-bottom:8px"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn sm" id="api-cancel">取消</button>
+        <button class="btn sm primary" id="api-save">儲存並測試</button>
+      </div></div>`;
+    document.body.appendChild(m);
+    m.querySelector('#api-cancel').onclick=()=>m.style.display='none';
+    m.querySelector('#api-save').onclick=async()=>{
+      API_URL=m.querySelector('#api-url-in').value.trim();API_KEY=m.querySelector('#api-key-in').value.trim();
+      try{localStorage.setItem('fz_api',API_URL);localStorage.setItem('fz_key',API_KEY);}catch(e){}
+      const msg=m.querySelector('#api-test-msg');msg.textContent='測試連線中…';
+      try{const j=await api({a:'sheet'});msg.textContent=`✅ 連線成功：試算表最新 ${j.candidates?.date||'?'} ${j.candidates?.wind||''}`;
+        setTimeout(()=>{m.style.display='none';},1200);syncSheet();fetchAllPrices();loadSignals();}
+      catch(e){msg.textContent='❌ 連線失敗：'+e.message;}
+    };
+  }
+  m.querySelector('#api-url-in').value=API_URL;m.querySelector('#api-key-in').value=API_KEY;
+  m.querySelector('#api-test-msg').textContent='';m.style.display='flex';
+}
+async function api(params){
+  if(!API_URL)throw new Error('尚未設定資料中繼（按右上角 ⚙）');
+  const r=await fetch(API_URL+'?'+new URLSearchParams(params),{signal:AbortSignal.timeout(30000)});
+  const j=await r.json();
+  if(j&&j.ok===false)throw new Error(j.err||'中繼錯誤');
+  return j;
+}
+async function apiPost(body){
+  const r=await fetch(API_URL,{method:'POST',body:JSON.stringify(body)});
+  const j=await r.json();
+  if(!j.ok)throw new Error(j.err||'中繼錯誤');
+  return j;
+}
+function marketOpen(){
+  const n=new Date(),d=n.getDay(),m=n.getHours()*60+n.getMinutes();
+  return d>=1&&d<=5&&m>=540&&m<=815;   // 09:00–13:35
+}
+
+// ── 技術指標 ──
+const IND_CACHE={};   // code -> {t, bars:[{d:'YYYY-MM-DD',c}]}
+function _sma(a,n){return a.length<n?null:a.slice(-n).reduce((x,y)=>x+y,0)/n;}
+function _ema(a,n){const k=2/(n+1),o=[];a.forEach((v,i)=>o.push(i?v*k+o[i-1]*(1-k):v));return o;}
+function _osc(a){if(a.length<35)return null;const e1=_ema(a,12),e2=_ema(a,26),d=a.map((v,i)=>e1[i]-e2[i]),s=_ema(d,9);return d.map((v,i)=>v-s[i]);}
+function _wk(ds){const t=new Date(ds+'T00:00:00');t.setDate(t.getDate()-((t.getDay()+6)%7));return t.toDateString();}
+async function getBars(code){
+  const c=IND_CACHE[code];
+  if(c&&Date.now()-c.t<10*60*1000)return c.bars;
+  let data=await fetchViaProxy(`https://query1.finance.yahoo.com/v8/finance/chart/${code}.TW?interval=1d&range=5y`);
+  if(!data?.chart?.result?.[0]?.timestamp)data=await fetchViaProxy(`https://query1.finance.yahoo.com/v8/finance/chart/${code}.TWO?interval=1d&range=5y`);
+  const res=data?.chart?.result?.[0];
+  if(!res?.timestamp)return null;
+  const q=res.indicators.quote[0],bars=[];
+  res.timestamp.forEach((t,i)=>{if(q.close[i]!=null){const d=new Date((t+8*3600)*1000).toISOString().slice(0,10);bars.push({d,c:q.close[i]});}});
+  IND_CACHE[code]={t:Date.now(),bars};
+  return bars;
+}
+function indicators(bars,cur){
+  if(!bars||bars.length<40)return null;
+  bars=bars.slice();
+  const today=new Date(Date.now()+8*3600*1000).toISOString().slice(0,10),wd=new Date().getDay();
+  if(cur){
+    if(bars.at(-1).d===today)bars[bars.length-1]={d:today,c:cur};
+    else if(wd>=1&&wd<=5&&new Date().getHours()>=9)bars.push({d:today,c:cur});
+  }
+  const cl=bars.map(b=>b.c),x={bars,price:cl.at(-1),prev:cl.at(-2)};
+  x.ma5=_sma(cl,5);x.ma10=_sma(cl,10);x.ma20=_sma(cl,20);
+  const dh=_osc(cl);x.dH=dh&&dh.slice(-3);
+  const wm=new Map(),mm=new Map();
+  bars.forEach(b=>{wm.set(_wk(b.d),b.c);mm.set(b.d.slice(0,7),b.c);});
+  const w=[...wm.values()],m=[...mm.values()];
+  x.wC=w.at(-1);x.wP=w.at(-2);
+  const wh=_osc(w);x.wH=wh&&wh.slice(-3);
+  const mh=_osc(m);x.mH=mh&&mh.slice(-2);
+  return x;
+}
+function stratKey(s){
+  s=s||'';
+  if(s.includes('日拉回'))return'D1';
+  if(s.includes('強勢日'))return'D2';
+  if(s.includes('週趨勢'))return'W1';
+  if(s.includes('強勢週'))return s.includes('打工')?'D2':'W2';
+  if(s.includes('週拉回'))return'B1';
+  if(s.includes('廉價'))return'B2';
+  if(s.includes('老闆'))return'B1';
+  return'';
+}
+const SK_NAME={D1:'打工型日拉回',D2:'打工型強勢日',W1:'上班族週趨勢',W2:'上班族強勢週',B1:'老闆型週拉回',B2:'老闆型廉價收購'};
+function windCycle(){
+  const L=(S.windLog||[]).slice(-10);if(!L.length)return'循環交界';
+  const up=L.filter(l=>l.wind==='強風'||l.wind==='亂流').length;
+  return up>=7?'易漲循環':up<=3?'易跌循環':'循環交界';
+}
+function batchText(){const c=windCycle();return c==='易漲循環'?'3~5批':c==='循環交界'?'5~10批':'10~15批';}
+
+// 持股：依策略判斷（回傳 [{lvl:'sell'|'warn'|'buy'|'ok'|'',t}]）
+function holdRules(p,x){
+  const r=[],R=(lvl,t)=>r.push({lvl,t});
+  const {avgPrice}=calcAvg(p.lots||[{price:p.buy,qty:p.qty}]);
+  const P=(p.cur/avgPrice-1)*100,S_=stratKey(p.strat),fri=new Date().getDay()===5;
+  let days=null;
+  if(x&&p.date)days=x.bars.filter(b=>b.d>p.date).length;
+  const maxSince=x&&p.date?Math.max(...x.bars.filter(b=>b.d>p.date).map(b=>b.c),-Infinity):null;
+  if(!x){R('warn','抓不到K線，只能看損益');if(P<=-5)R('sell',`虧損${Math.abs(P).toFixed(1)}%`);return{r,P,days};}
+  const u5=p.cur<x.ma5,u10=p.cur<x.ma10,u20=p.cur<x.ma20;
+  const boss=S_[0]==='B';
+  if(!S_){
+    R('','策略未對應，用通用規則');
+    if(P<=-5)R('sell',`虧損${Math.abs(P).toFixed(1)}%`);
+    if(P>=10)R(u5||u10?'sell':'ok',u5||u10?`獲利≥10%且跌破${u5?'5':'10'}日線 → 停利`:'獲利≥10%，守5/10日線');
+    else R(u5?'warn':'ok',u5?'跌破5日線':'在5日線上');
+    return{r,P,days};
+  }
+  if(S_==='D1'){
+    if(P<10){R(u5?'sell':'ok',u5?'跌破5日線 → 停損':'守在5日線上');
+      if(days>=5&&maxSince<avgPrice*1.03)R('sell',`已${days}天沒發動攻勢 → 停損`);}
+    else R(u5||u10?'sell':'ok',u5||u10?`跌破${u5?'5':'10'}日線 → 停利`:'風箏飛中，守5/10日線');
+  }
+  if(S_==='D2'){
+    if(P<=-5)R('sell','虧損達5% → 停損');
+    if(days>=3&&Math.abs(P)<=2)R('sell',`買進${days}天還在成本±2% → 不等了`);
+    if(P>=10)R(u5||u10?'sell':'ok',u5||u10?`跌破${u5?'5':'10'}日線 → 停利`:'風箏飛中，守5/10日線');
+    else if(P>-5&&!(days>=3&&Math.abs(P)<=2))R('ok','還沒觸發停損/停利');
+  }
+  if(S_==='W1'){
+    if(P<10){R(x.wC<x.wP?(fri?'sell':'warn'):'ok',x.wC<x.wP?`本週收盤低於上週五${fri?' → 出場':'（週五收盤確認）'}`:'本週高於上週五');
+      if(u10)R('sell','跌破10日線 → 出場');}
+    else{const wd=x.wH&&x.wH[2]<x.wH[1];R(wd?(fri?'sell':'warn'):'ok',wd?`週MACD柱往下${fri?' → 停利':'（週五確認）'}`:'週MACD柱仍往上');
+      if(u20)R('sell','跌破月線 → 停利');}
+  }
+  if(S_==='W2'){
+    if(P<10){R(u5?'sell':'ok',u5?'跌破5日線 → 出場':'守在5日線上');
+      if(days>=4&&Math.abs(P)<=3)R('sell',`買進${days}天還在成本±3% → 不等了`);}
+    else R(u5||u10?'sell':'ok',u5||u10?`跌破${u5?'5':'10'}日線 → 停利`:'風箏飛中，守5/10日線');
+  }
+  if(boss){
+    if(x.mH){const t=new Date(),end=new Date(t.getFullYear(),t.getMonth()+1,0).getDate()-t.getDate()<=2,shrink=x.mH[1]<x.mH[0];
+      R(shrink?(end?'sell':'warn'):'ok',shrink?`月MACD柱比上月短${end?' → 月底確認，離場':'（月底再確認）'}`:'月MACD柱沒縮短');}
+    if(P>0){if(u10)R('warn','跌破10日線（守10日線者停利）');if(u20)R('sell','跌破月線（守月線者停利）');
+      if(x.wC<x.wP)R(fri?'sell':'warn',`本週收盤低於上週五${fri?'':'（週五確認）'}`);}
+    if(P>=5)R('','已賺5%以上，原則不加碼');
+    else if(P<=-5)R('buy',`低於成本${(-P).toFixed(1)}% → 可加碼一批（${windCycle()} 分${batchText()}）`);
+  }
+  return{r,P,days};
+}
+// 候選股：進場判斷
+function entryRules(sk,x,stratLabel){
+  const r=[],R=(lvl,t)=>r.push({lvl,t}),w=S.wind,cyc=windCycle();
+  const short=sk==='D2'||sk==='W2',boss=sk[0]==='B';
+  if(short&&(w==='亂流'||w==='無風'))R('sell',`${w}：${stratLabel}勿介入`);
+  if(!boss&&!short&&cyc==='易跌循環')R('warn','易跌循環，短線建議休息');
+  if(!x){R('warn','抓不到K線');return r;}
+  const p=x.price,down=p<x.prev,near5=Math.abs(p/x.ma5-1)<=0.02,wUp=x.wH&&x.wH[2]>x.wH[1];
+  if(sk==='D1')R(down&&near5?'buy':'',down&&near5?'下跌靠近5日線 → 可分批（建議3次）':`等拉回5日線（${x.ma5.toFixed(1)}）`);
+  if(sk==='D2'){const chase=p/x.ma5-1>0.05;R(!down&&wUp&&!chase?'buy':'',!down&&wUp&&!chase?'紅K＋週MACD往上 → 可試（10:00後）':chase?'離5日線>5%，別追':'週MACD未往上或今天綠K');}
+  if(sk==='W1'){const turn=x.wH&&x.wH[2]>0&&(x.wH[1]<=0||x.wH[0]<=0);
+    if(!turn)R('',x.wH&&x.wH[2]>0?'週MACD已紅多週，成本風險較高':'週MACD柱未翻紅');
+    else R(down&&near5?'buy':'',down&&near5?'週翻紅第1-2週＋拉回5日線 → 可買':'週翻紅，等拉回5日線');}
+  if(sk==='W2'){const dt=x.dH&&x.dH[2]>0&&(x.dH[1]<=0||x.dH[0]<=0);
+    R(dt&&wUp?'buy':'',dt&&wUp?'日MACD剛翻紅＋週MACD往上 → 可試（9:30後）':dt?'日翻紅但週MACD沒往上':'日MACD柱未剛翻紅');}
+  if(boss){const drop5=x.prev&&p/x.prev-1<=-0.05,under=p<x.ma20;
+    R(under||drop5?'buy':'',under||drop5?`${drop5?'大跌5%以上':'跌破月線'} → 可開始分批（${cyc} 分${batchText()}）`:`在月線上（${x.ma20.toFixed(1)}），等綠K/量縮/整理平台`);}
+  return r;
+}
+function verdictOf(r){
+  if(r.some(z=>z.lvl==='sell'))return{c:'#ff6b35',bg:'rgba(255,107,53,0.14)',t:'該出場'};
+  if(r.some(z=>z.lvl==='buy'))return{c:'var(--grn)',bg:'rgba(62,207,142,0.12)',t:'可以試試'};
+  if(r.some(z=>z.lvl==='warn'))return{c:'#f6ad55',bg:'rgba(246,173,85,0.12)',t:'注意'};
+  return{c:'var(--txt2)',bg:'var(--bg3)',t:'續抱／觀望'};
+}
+const SIG={};   // code -> indicators
+async function loadSignals(){
+  const codes=[...new Set(S.positions.filter(p=>p.code).map(p=>p.code))];
+  await Promise.all(codes.map(async c=>{try{const b=await getBars(c);const p=S.positions.find(x=>x.code===c);SIG[c]=indicators(b,p&&p.cur);}catch(e){SIG[c]=null;}}));
+  renderPositions();
+}
+
 // ── 試算表同步（讀 GitHub wind.json，無CORS問題） ─────────
 const WIND_JSON_URL='https://raw.githubusercontent.com/KAI-0513/fengzheng/main/wind.json';
 
 async function syncSheet(){
+  if(API_URL)return autoWind();
+  return syncSheetOld();
+}
+async function autoWind(){
+  const btns=document.querySelectorAll('#sync-btn,[onclick*="syncSheet"]');
+  btns.forEach(b=>{b.disabled=true;});
+  const status=document.getElementById('sheet-sync-status');
+  const msgs=[];
+  try{
+    // 1) 你的試算表＝正式風度
+    const sh=await api({a:'sheet'});
+    const sheetMap=new Map((sh.windLog||[]).map(l=>[l.date,l.wind]));
+    S.windLog=S.windLog.filter(l=>!sheetMap.has(l.date));
+    sheetMap.forEach((w,d)=>S.windLog.push({date:d,wind:w}));
+    if(sh.candidates){candData=sh.candidates;const dr=document.getElementById('cand-date-row');if(dr)dr.textContent=`資料日期：${candData.date}　風度：${candData.wind}`;renderCandidates();}
+    const lastSheet=[...sheetMap.keys()].sort().at(-1);
+    msgs.push(`✅ 試算表風度到 ${lastSheet}：${sheetMap.get(lastSheet)}（共${sheetMap.size}天）`);
+    // 2) 自動計算：只補試算表還沒填的日子（例如今天盤中）
+    try{
+      const j=await api({a:'wind'});
+      let same=0,cmp=0,added=0;
+      (j.otc||[]).forEach(r=>{
+        if(sheetMap.has(r.date)){cmp++;if(sheetMap.get(r.date)===r.wind)same++;return;}
+        if(r.date>lastSheet){const ex=S.windLog.find(l=>l.date===r.date);if(ex){ex.wind=r.wind;ex.auto=1;}else S.windLog.push({date:r.date,wind:r.wind,auto:1});added++;}
+      });
+      const L=(j.otc||[]).at(-1);
+      if(L)msgs.push(`今天自動計算：櫃買 ${L.close}（月線 ${L.ma20}）→ ${L.wind}｜與試算表吻合 ${cmp?Math.round(same/cmp*100):'-'}%`);
+    }catch(e){msgs.push('自動計算失敗：'+e.message);}
+    S.windLog.sort((a,b)=>a.date.localeCompare(b.date));
+    const latest=S.windLog.at(-1);
+    if(latest)setWind(latest.wind);
+    save();
+    msgs.push(windCycle());
+    if(status)status.textContent=msgs.join('｜');
+    setWindView(windView||'d');renderNoteWind();renderNotes();
+  }catch(e){
+    if(status)status.textContent=`❌ 讀試算表失敗：${e.message}`;
+  }
+  btns.forEach(b=>{b.disabled=false;});
+}
+async function syncSheetOld(){
   const btns=document.querySelectorAll('#sync-btn,[onclick*="syncSheet"]');
   btns.forEach(b=>{b.textContent='⟳ 同步中...';b.disabled=true;});
   const status=document.getElementById('sheet-sync-status');
@@ -1038,66 +1271,40 @@ async function syncSheet(){
 }
 
 // ── GitHub 資料備份/還原 ────────────────────────────────
-const GH_TOKEN=['ghp_7eO23f7I3nUDgk','cEOGje7UpLPTO9JR333AbH'].join('');
-const GH_REPO='KAI-0513/fengzheng';
-const GH_DATA='data.json';
-
+// 備份/還原：改存到你私人的 Google 試算表（經 Apps Script，需密碼）── CLAUDE
 async function backupToGitHub(){
+  const status=document.getElementById('sync-status');
+  if(!API_URL){if(status)status.textContent='❌ 請先按右上角 ⚙ 設定資料中繼';return;}
   const btns=document.querySelectorAll('[onclick="backupToGitHub()"]');
   btns.forEach(b=>{b.textContent='☁ 備份中...';b.disabled=true;});
-  const status=document.getElementById('sync-status');
   try{
-    // 取現有 sha
-    const gr=await fetch(`https://api.github.com/repos/${GH_REPO}/contents/${GH_DATA}`,
-      {headers:{Authorization:`token ${GH_TOKEN}`}});
-    const info=await gr.json();
-    const sha=info.sha;
-    // 備份除 windLog 以外的所有資料
-    const backup={positions:S.positions,plans:S.plans,notes:S.notes,
-      history:S.history,water:S.water,stratNotes:S.stratNotes,
-      _updated:new Date().toLocaleString('zh-TW')};
-    const content=btoa(unescape(encodeURIComponent(JSON.stringify(backup,null,2))));
-    const pr=await fetch(`https://api.github.com/repos/${GH_REPO}/contents/${GH_DATA}`,{
-      method:'PUT',headers:{Authorization:`token ${GH_TOKEN}`,'Content-Type':'application/json'},
-      body:JSON.stringify({message:'backup app data',content,sha})
-    });
-    const res=await pr.json();
-    if(res.commit){
-      if(status)status.textContent=`✅ 備份成功 ${new Date().toLocaleTimeString('zh-TW')}`;
-    } else throw new Error(res.message||'unknown');
-  }catch(e){
-    if(status)status.textContent=`❌ 備份失敗：${e.message}`;
-  }
+    const backup={positions:S.positions,plans:S.plans,notes:S.notes,history:S.history,water:S.water,
+      stratNotes:S.stratNotes,windLog:S.windLog,_updated:new Date().toLocaleString('zh-TW')};
+    await apiPost({a:'save',k:API_KEY,data:backup});
+    if(status)status.textContent=`✅ 備份成功 ${new Date().toLocaleTimeString('zh-TW')}`;
+  }catch(e){if(status)status.textContent=`❌ 備份失敗：${e.message}`;}
   btns.forEach(b=>{b.textContent='☁ 備份';b.disabled=false;});
-  if(status)setTimeout(()=>status.textContent='',5000);
+  if(status)setTimeout(()=>status.textContent='',6000);
 }
-
 async function restoreFromGitHub(){
-  if(!confirm('確認從 GitHub 還原資料？本機資料將被覆蓋。'))return;
+  const status=document.getElementById('sync-status');
+  if(!API_URL){if(status)status.textContent='❌ 請先按右上角 ⚙ 設定資料中繼';return;}
+  if(!confirm('確認從雲端備份還原？本機資料將被覆蓋。'))return;
   const btns=document.querySelectorAll('[onclick="restoreFromGitHub()"]');
   btns.forEach(b=>{b.textContent='↓ 還原中...';b.disabled=true;});
-  const status=document.getElementById('sync-status');
   try{
-    const url=`https://raw.githubusercontent.com/${GH_REPO}/main/${GH_DATA}?t=${Date.now()}`;
-    const r=await fetch(url);
-    const data=await r.json();
-    if(data.positions!==undefined){
-      S.positions=data.positions||[];
-      S.plans=data.plans||[];
-      S.notes=data.notes||[];
-      S.history=data.history||[];
-      S.water=data.water||{hn:0,kg:0};
-      S.stratNotes=data.stratNotes||{};
-      save();
-      renderPositions();renderStats();renderPlans();renderAlerts();calcWater();renderNotes();renderNoteWind();
-      if(status)status.textContent=`✅ 還原成功（備份於 ${data._updated||'未知'}）`;
-    } else throw new Error('資料格式錯誤');
-  }catch(e){
-    if(status)status.textContent=`❌ 還原失敗：${e.message}`;
-  }
+    const j=await api({a:'load',k:API_KEY});const data=j.data;
+    if(!data||data.positions===undefined)throw new Error('雲端還沒有備份');
+    S.positions=data.positions||[];S.plans=data.plans||[];S.notes=data.notes||[];S.history=data.history||[];
+    S.water=data.water||{hn:0,kg:0};S.stratNotes=data.stratNotes||{};if(data.windLog&&data.windLog.length)S.windLog=data.windLog;
+    save();renderPositions();renderStats();renderPlans();renderAlerts();calcWater();renderNotes();renderNoteWind();
+    if(status)status.textContent=`✅ 還原成功（備份於 ${data._updated||'未知'}）`;
+    loadSignals();
+  }catch(e){if(status)status.textContent=`❌ 還原失敗：${e.message}`;}
   btns.forEach(b=>{b.textContent='↓ 還原';b.disabled=false;});
   if(status)setTimeout(()=>status.textContent='',6000);
 }
+
 function autoFillName(code){
   if(!code||code.length<4)return;
   // 從 STOCK_MAP_STATIC 反向查（value→key）
@@ -1168,7 +1375,7 @@ function setStratPills(boxId,val){
   });
 }
 let candData=null,candTab='worker';
-const STOCK_MAP_STATIC={'家登':'6598','京元電子':'2449','京元電':'2449','立敦':'6175','智通':'3332','金像電':'2368','台燿':'6274','松川精密':'5314','信邦':'3023','大銀微系統':'4140','博智電子':'8155','閎康科技':'3587','文曄科技':'3036','台光電子':'2383','鴻勁精密':'6803','竹德電子':'6234','鈺創':'5351','鴻海':'2317','聯發科':'2454','台達電':'2308','廣達':'2382','聯電':'2303','中華電':'2412','富邦金':'2881','國泰金':'2882','南亞':'1303','台塑':'1301','台化':'1326','中鋼':'2002','元大金':'2885','兆豐金':'2886','第一金':'2892','合庫金':'5880','玉山金':'2884','永豐金':'2890','台新金':'2887','中信金':'2891','開發金':'2883','華南金':'2880','台灣大':'3045','遠傳':'4904','欣興':'3037','景碩':'3189','臻鼎':'4958','台光電':'2383','南電':'8046','聯茂':'6213','華通':'2313','群聯':'8299','威剛':'3260','創見':'2451','宜鼎':'5289','信驊':'5274','祥碩':'5269','譜瑞':'4966','慧榮':'6286','南亞科':'2408','華邦電':'2344','旺宏':'2337','力積電':'6770','矽力':'6415','聯詠':'3034','瑞昱':'2379','智原':'3035','晶心科':'6533','日月光':'3711','京元電':'2449','欣銓':'3264','矽格':'6257','緯創':'3231','緯穎':'6669','英業達':'2356','仁寶':'2324','和碩':'4938','鴻準':'2354','奇鋐':'3017','建準':'2421','雙鴻':'3324','超眾':'6230','長榮':'2603','陽明':'2609','萬海':'2615','慧洋':'2637','長榮航':'2618','華航':'2610','國巨':'2327','禾伸堂':'3026','大毅':'2478','台半':'5425','強茂':'2481','杰力':'5299','中美晶':'5483','環球晶':'6488','合晶':'6182','嘉晶':'3016','漢磊':'3707','大立光':'3008','玉晶光':'3406','先進光':'3362','亞光':'3019','晶電':'2448','億光':'2393','璨圓':'3061','光磊':'2340','聯鈞':'3450','全新':'2455','宏捷科':'8086','智邦':'2345','合勤':'3704','神達':'3706','正文':'4906','啟碁':'6285','智易':'3596','信音':'3234','雅特力-KY':'4296','晶豪科':'3006','新唐':'4919','旺矽':'6223','帆宣':'6196','精測':'6510','均豪':'5443','大成鋼':'2027','豐興':'2015','燁輝':'2023','牧德':'3563','創意':'3443','世芯-KY':'3661','金居':'8358','達運':'6120','友達':'2409','群創':'3481','彩晶':'6116','元太':'8069','正崴':'2392','技嘉':'2376','微星':'2377','聯強':'2347','大聯大':'3702','文曄':'3036','益登':'3048','尖點':'6117','佳世達':'2352','東元':'1504','光寶科':'2301','台表科':'6278','全漢':'3015','康舒':'6282','義隆':'2458','凌通':'4952','盛群':'6202','凌陽':'2401','晶相光':'3530','旭曜':'3545','聯陽':'3014','笙科':'5272','新光金':'2888','台壽保':'2833','國票金':'2889','亞德客-KY':'1590','上銀':'2049','廣隆':'1537','鉅祥':'2476','裕日車':'2227','中華車':'2204','三陽工業':'2206','瓦城':'2729','王品':'2727','六角':'2732','八方雲集':'2753','統一超':'2912','全家':'5903','大潤發':'2946','遠百':'2903','大同':'2371','聲寶':'1604','士電':'1503','中興電':'1513','亞力電機':'1514','歌林':'1606','燦坤':'2430','精英':'2362','中磊':'5388','川湖':'2059','中租-KY':'5871','裕融':'9941','和潤企業':'6592','正新':'2105','建大':'2106','南港':'2101','台橡':'2103','台苯':'1310','聯成':'1313','台塑化':'6505','茂達':'6138','帝凱':'3410','太極':'4934','啟基':'3010','鼎翰':'3611','虹光':'2380','金寶':'2312','致伸':'4915','精碟':'2396','豐達科':'3149','朋程':'8255','同泰':'6271','光鼎':'3230','達方':'8163','先豐':'5349','百和':'9938','豐泰':'9910','健亞':'4130','聯合':'4129','長科':'3138','閎康':'3587','京鼎':'3413','弘塑':'3131','南僑':'1702','印能科技':'6583','博智':'8155','宇膽':'6265','聯亞':'3081','鈺太':'4971','正弦':'4987','安集':'6477','長榮航空':'2618','漢翔':'2634','統一企業':'1216','旺旺':'1229','健格':'3130','德律':'3030','金益鼎':'8499','家登精密':'6598','穩懋半導體':'3105','台泥':'1101','亞泥':'1102','嘉泥':'1103','達達':'6698','雄獅':'2731','崇越科技':'5434','達電':'3042','佳邦':'6284','宏致':'3605','博大':'4960','詮欣':'6205','昇佳電子':'6732','盛達電業':'6493','大塚':'3567','力士科技':'5464','中保科':'9917','富邦媒':'8454','美律':'2439','定穎投控':'6411','健策':'3653','儒鴻':'1476','聚陽實業':'1477','南緯實業':'1467','宏遠興業':'1460','奇力新':'2456','正隆':'1904','永豐餘':'1907','榮成':'1909','世界先進':'5347','矽品精密':'2325','台灣光罩':'2338','茂迪股份':'6244','力旺':'4961','宏碁':'2353','台驊':'2636','長虹':'5534','興富發':'2542','冠德':'2520','日勝生':'2535','遠雄':'5522','元晶':'6443','穩得':'8433','廣越科技':'4438','友輝光電':'3429','維熹科技':'3501','群電':'6412','新日興':'3376','合一生技':'4743','浩鼎生技':'4174','中天生技':'4128','穩懋半導體股份':'3105','建準電機':'2421','超眾科技':'6230','力致科技':'3483','亨泰光學':'6766','奇鋐科技':'3017','鈺創':'5351','松川精密':'5314','信邦':'3023','大銀微系統':'4140','博智電子':'8155','閎康科技':'3587','文曄科技':'3036','台光電子':'2383','鴻勁精密':'6803','竹德電子':'6234'};
+const STOCK_MAP_STATIC={'家登':'6598','京元電子':'2449','京元電':'2449','立敦':'6175','智通':'3332','金像電':'2368','台燿':'6274','松川精密':'5314','信邦':'3023','大銀微系統':'4140','博智電子':'8155','閎康科技':'3587','文曄科技':'3036','台光電子':'2383','鴻勁精密':'6803','竹德電子':'6234','鈺創':'5351','鴻海':'2317','聯發科':'2454','台達電':'2308','廣達':'2382','聯電':'2303','中華電':'2412','富邦金':'2881','國泰金':'2882','南亞':'1303','台塑':'1301','台化':'1326','中鋼':'2002','元大金':'2885','兆豐金':'2886','第一金':'2892','合庫金':'5880','玉山金':'2884','永豐金':'2890','台新金':'2887','中信金':'2891','開發金':'2883','華南金':'2880','台灣大':'3045','遠傳':'4904','欣興':'3037','景碩':'3189','臻鼎':'4958','台光電':'2383','南電':'8046','聯茂':'6213','華通':'2313','群聯':'8299','威剛':'3260','創見':'2451','宜鼎':'5289','信驊':'5274','祥碩':'5269','譜瑞':'4966','慧榮':'6286','南亞科':'2408','華邦電':'2344','旺宏':'2337','力積電':'6770','矽力':'6415','聯詠':'3034','瑞昱':'2379','智原':'3035','晶心科':'6533','日月光':'3711','京元電':'2449','欣銓':'3264','矽格':'6257','緯創':'3231','緯穎':'6669','英業達':'2356','仁寶':'2324','和碩':'4938','鴻準':'2354','奇鋐':'3017','建準':'2421','雙鴻':'3324','超眾':'6230','長榮':'2603','陽明':'2609','萬海':'2615','慧洋':'2637','長榮航':'2618','華航':'2610','國巨':'2327','禾伸堂':'3026','大毅':'2478','台半':'5425','強茂':'2481','杰力':'5299','中美晶':'5483','環球晶':'6488','合晶':'6182','嘉晶':'3016','漢磊':'3707','大立光':'3008','玉晶光':'3406','先進光':'3362','亞光':'3019','晶電':'2448','億光':'2393','璨圓':'3061','光磊':'2340','聯鈞':'3450','全新':'2455','宏捷科':'8086','智邦':'2345','合勤':'3704','神達':'3706','正文':'4906','啟碁':'6285','智易':'3596','信音':'3234','雅特力-KY':'4296','晶豪科':'3006','新唐':'4919','旺矽':'6223','帆宣':'6196','精測':'6510','均豪':'5443','大成鋼':'2027','豐興':'2015','燁輝':'2023','牧德':'3563','創意':'3443','世芯-KY':'3661','金居':'8358','達運':'6120','友達':'2409','群創':'3481','彩晶':'6116','元太':'8069','正崴':'2392','技嘉':'2376','微星':'2377','聯強':'2347','大聯大':'3702','文曄':'3036','益登':'3048','尖點':'8021','佳世達':'2352','東元':'1504','光寶科':'2301','台表科':'6278','全漢':'3015','康舒':'6282','義隆':'2458','凌通':'4952','盛群':'6202','凌陽':'2401','晶相光':'3530','旭曜':'3545','聯陽':'3014','笙科':'5272','新光金':'2888','台壽保':'2833','國票金':'2889','亞德客-KY':'1590','上銀':'2049','廣隆':'1537','鉅祥':'2476','裕日車':'2227','中華車':'2204','三陽工業':'2206','瓦城':'2729','王品':'2727','六角':'2732','八方雲集':'2753','統一超':'2912','全家':'5903','大潤發':'2946','遠百':'2903','大同':'2371','聲寶':'1604','士電':'1503','中興電':'1513','亞力電機':'1514','歌林':'1606','燦坤':'2430','精英':'2362','中磊':'5388','川湖':'2059','中租-KY':'5871','裕融':'9941','和潤企業':'6592','正新':'2105','建大':'2106','南港':'2101','台橡':'2103','台苯':'1310','聯成':'1313','台塑化':'6505','茂達':'6138','帝凱':'3410','太極':'4934','啟基':'3010','鼎翰':'3611','虹光':'2380','金寶':'2312','致伸':'4915','精碟':'2396','豐達科':'3149','朋程':'8255','同泰':'6271','光鼎':'3230','達方':'8163','先豐':'5349','百和':'9938','豐泰':'9910','健亞':'4130','聯合':'4129','長科':'3138','閎康':'3587','京鼎':'3413','弘塑':'3131','南僑':'1702','印能科技':'6583','博智':'8155','宇膽':'6265','聯亞':'3081','鈺太':'4971','正弦':'4987','安集':'6477','長榮航空':'2618','漢翔':'2634','統一企業':'1216','旺旺':'1229','健格':'3130','德律':'3030','金益鼎':'8499','家登精密':'6598','穩懋半導體':'3105','台泥':'1101','亞泥':'1102','嘉泥':'1103','達達':'6698','雄獅':'2731','崇越科技':'5434','達電':'3042','佳邦':'6284','宏致':'3605','博大':'4960','詮欣':'6205','昇佳電子':'6732','盛達電業':'6493','大塚':'3567','力士科技':'5464','中保科':'9917','富邦媒':'8454','美律':'2439','定穎投控':'6411','健策':'3653','儒鴻':'1476','聚陽實業':'1477','南緯實業':'1467','宏遠興業':'1460','奇力新':'2456','正隆':'1904','永豐餘':'1907','榮成':'1909','世界先進':'5347','矽品精密':'2325','台灣光罩':'2338','茂迪股份':'6244','力旺':'4961','宏碁':'2353','台驊':'2636','長虹':'5534','興富發':'2542','冠德':'2520','日勝生':'2535','遠雄':'5522','元晶':'6443','穩得':'8433','廣越科技':'4438','友輝光電':'3429','維熹科技':'3501','群電':'6412','新日興':'3376','合一生技':'4743','浩鼎生技':'4174','中天生技':'4128','穩懋半導體股份':'3105','建準電機':'2421','超眾科技':'6230','力致科技':'3483','亨泰光學':'6766','奇鋐科技':'3017','鈺創':'5351','松川精密':'5314','信邦':'3023','大銀微系統':'4140','博智電子':'8155','閎康科技':'3587','文曄科技':'3036','台光電子':'2383','鴻勁精密':'6803','竹德電子':'6234'};
 
 
 async function loadCandidates(){
@@ -1176,9 +1383,10 @@ async function loadCandidates(){
   if(btn){btn.textContent='載入中...';btn.disabled=true;}
   const el=document.getElementById('cand-content');
   try{
-    const url=`https://raw.githubusercontent.com/KAI-0513/fengzheng/main/candidates.json?t=${Date.now()}`;
+    if(API_URL){const j=await api({a:'sheet'});candData=j.candidates;}
+    else{const url=`https://raw.githubusercontent.com/KAI-0513/fengzheng/main/candidates.json?t=${Date.now()}`;
     const r=await fetch(url);
-    candData=await r.json();
+    candData=await r.json();}
     document.getElementById('cand-date-row').textContent=`資料日期：${candData.date}　風度：${candData.wind}`;
     renderCandidates();
   }catch(e){
@@ -1234,9 +1442,29 @@ function renderCandidates(){
           </div>
           <span style="font-size:11px;padding:2px 8px;border-radius:99px;background:${badgeBg};color:${badgeC};border:1px solid ${badgeC}">${sc}</span>
         </div>
-        <div id="${tid}" style="margin-top:6px;font-size:11px;color:var(--txt3)">▶ 點擊載入技術面分析</div>
+        <div id="${tid}-v" data-code="${code}" data-strat="${s.strat}" style="margin-top:5px;font-size:12px;color:var(--txt3)">${code&&code!=='0'?'判斷中…':''}</div>
+        <div id="${tid}" style="margin-top:6px;font-size:11px;color:var(--txt3)">▶ 點擊看K線</div>
       </div>`;
     }).join('');
+  evalCandidates();
+}
+async function evalCandidates(){
+  const box=document.getElementById('cand-content');if(!box)return;
+  if(candData&&candData.date){
+    const age=(Date.now()-new Date(candData.date.replace(/\//g,'-')).getTime())/864e5;
+    if(age>4)box.insertAdjacentHTML('afterbegin',`<div style="font-size:12px;color:#f6ad55;background:rgba(246,173,85,0.12);border-radius:8px;padding:6px 10px;margin-bottom:8px">⚠ 候選股資料停在 ${candData.date}（${Math.floor(age)} 天前），試算表最後一筆是這天，名單可能過期</div>`);
+  }
+  const els=[...box.querySelectorAll('[data-strat]')];
+  for(const el of els){
+    const code=el.dataset.code,st=el.dataset.strat;if(!code||code==='0')continue;
+    const sk=st.includes('強勢週')?'W2':st.includes('週趨勢')?'W1':st.includes('週拉回')?'B1':st.includes('廉價')?'B2':'D2';
+    const label=st.startsWith('成值')?'打工型強勢日（成值排行）':SK_NAME[sk];
+    try{
+      const x=indicators(await getBars(code));
+      const r=entryRules(sk,x,label),v=verdictOf(r);
+      el.innerHTML=`<span style="font-weight:700;color:${v.c}">${v.t==='續抱／觀望'?'觀望':v.t}</span> <span style="color:var(--txt3)">（${label}${x?`｜現價 ${x.price}`:''}）</span><br>`+r.map(z=>`• ${z.t}`).join('<br>');
+    }catch(e){el.textContent='判斷失敗：'+e.message;}
+  }
 }
 async function loadCandTech(name,code,strat,tid,period){
   const techEl=document.getElementById(tid);
@@ -1684,6 +1912,7 @@ const PROXIES=[
   u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
 ];
 async function fetchViaProxy(yahooUrl){
+  if(API_URL){try{const d=await api({a:'yahoo',u:yahooUrl});if(d&&d.chart)return d;}catch(e){}}
   for(const makeProxy of PROXIES){
     try{
       const r=await fetch(makeProxy(yahooUrl),{signal:AbortSignal.timeout(6000)});
@@ -1712,7 +1941,32 @@ async function fetchClosePrice(id){
   if(price){p.cur=price;return true;}
   return false;
 }
-async function fetchAllPrices(){
+let _priceBusy=false;
+async function fetchAllPrices(silent){
+  if(!API_URL)return fetchAllPricesOld();
+  if(_priceBusy)return;_priceBusy=true;
+  const btn=document.querySelector('[onclick="fetchAllPrices()"]');
+  const st=document.getElementById('price-update-status');
+  const withCode=S.positions.filter(p=>p.code);
+  if(!withCode.length){_priceBusy=false;return;}
+  if(btn&&!silent){btn.textContent='⏳ 更新中...';btn.disabled=true;}
+  try{
+    const j=await api({a:'quote',codes:[...new Set(withCode.map(p=>p.code))].join(',')});
+    let ok=0;const miss=[];
+    withCode.forEach(p=>{const q=j.q[p.code];if(q&&q.p){p.cur=q.p;p.prevClose=q.y;ok++;}else miss.push(p.name||p.code);});
+    S.lastQuote=j.time;S.idx={tse:j.q.t00,otc:j.q.o00};
+    save();
+    Object.keys(SIG).forEach(c=>{const p=S.positions.find(x=>x.code===c);if(p&&SIG[c])SIG[c]=indicators(IND_CACHE[c]?.bars,p.cur);});
+    renderPositions();renderStats();renderAlerts();calcWater();
+    const msg=`🟢 即時價 ${j.time.slice(11)} 更新 ${ok} 支`+(miss.length?`｜❌ 抓不到：${miss.join('、')}`:'')+(marketOpen()?'｜盤中每30秒自動更新':'');
+    const st2=document.getElementById('price-update-status');if(st2)st2.textContent=msg;
+  }catch(e){
+    const st2=document.getElementById('price-update-status');if(st2)st2.textContent='❌ 即時價失敗：'+e.message;
+  }
+  _priceBusy=false;
+  if(btn){btn.textContent='📡 一鍵更新所有股價';btn.disabled=false;}
+}
+async function fetchAllPricesOld(){
   const btn=document.querySelector('[onclick="fetchAllPrices()"]');
   const withCode=S.positions.filter(p=>p.code);
   if(!withCode.length)return;
@@ -1940,9 +2194,32 @@ function closeCheckMsg(p){
   return msgs;
 }
 
+let acctView='all';try{acctView=localStorage.getItem('fz_acct')||'all';}catch(e){}
+function setAcct(v){acctView=v;try{localStorage.setItem('fz_acct',v);}catch(e){}renderPositions();renderStats();}
+function acctBar(){
+  const sum=a=>S.positions.filter(p=>a==='all'||p.acct===a).reduce((t,p)=>{const {avgPrice,totalQty}=calcAvg(p.lots||[{price:p.buy,qty:p.qty}]);return t+(p.cur-avgPrice)*totalQty;},0);
+  return `<div style="display:flex;gap:6px;margin-bottom:8px">`+[['all','全部'],['華南','華南'],['凱基','凱基']].map(([k,l])=>{
+    const on=acctView===k,v=sum(k);
+    return `<button onclick="setAcct('${k}')" style="flex:1;padding:7px 4px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;border:1.5px solid ${on?'var(--grn)':'var(--bdr2)'};background:${on?'rgba(62,207,142,0.12)':'var(--bg3)'};color:${on?'var(--txt)':'var(--txt3)'}">${l}<br><span style="font-size:11px;color:${v>=0?'var(--sf)':'var(--nw)'}">${v>=0?'+':''}${Math.round(v).toLocaleString()}</span></button>`;}).join('')+`</div>`;
+}
+function signalCards(list){
+  return list.filter(p=>p.code).map(p=>{
+    const x=SIG[p.code];
+    if(x===undefined)return `<div style="font-size:11px;color:var(--txt3);padding:4px 0">${p.name}：載入技術面中…</div>`;
+    const {r,P,days}=holdRules(p,x),v=verdictOf(r);
+    return `<div onclick="openEdit(${p.id})" style="cursor:pointer;background:var(--bg2);border:1px solid var(--bdr);border-left:4px solid ${v.c};border-radius:8px;padding:8px 10px;margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px">
+        <b style="font-size:13px;color:var(--txt)">${p.name} <span style="font-weight:400;color:var(--txt3);font-size:11px">${p.code}・${p.acct||''}</span></b>
+        <span style="font-size:12px;font-weight:700;color:${v.c};background:${v.bg};padding:1px 8px;border-radius:99px;white-space:nowrap">${v.t}</span>
+      </div>
+      <div style="font-size:11px;color:var(--txt3);margin:2px 0 3px">${SK_NAME[stratKey(p.strat)]||p.strat||'未設策略'}｜現價 ${p.cur}｜${P>=0?'+':''}${P.toFixed(1)}%${days!=null?`｜持有${days}交易日`:''}${x?`｜5日 ${x.ma5.toFixed(1)}・10日 ${x.ma10.toFixed(1)}・月 ${x.ma20.toFixed(1)}`:''}</div>
+      ${r.map(z=>`<div style="font-size:12px;color:${z.lvl==='sell'?'#ff6b35':z.lvl==='warn'?'#f6ad55':z.lvl==='buy'?'var(--grn)':'var(--txt2)'}">• ${z.t}</div>`).join('')}
+    </div>`;}).join('');
+}
 function renderPositions(){
   const el=document.getElementById('positions-list');
   if(!S.positions.length){el.innerHTML='<div class="empty">尚無持倉，點下方按鈕新增</div>';return;}
+  const LIST=S.positions.filter(p=>acctView==='all'||p.acct===acctView);
 
   // 先計算每筆平均成本
   S.positions.forEach(p=>{
@@ -1951,8 +2228,10 @@ function renderPositions(){
     p.buy=avgPrice;p.qty=totalQty;
   });
 
-  let html=`<button class="btn sm" style="margin-bottom:4px;width:100%" onclick="fetchAllPrices()">📡 一鍵更新所有股價</button>
-  <div id="price-update-status" style="font-size:11px;color:var(--txt2);min-height:16px;margin-bottom:8px;text-align:center"></div>`;
+  const _st=document.getElementById('price-update-status');const _stTxt=_st?_st.textContent:'';
+  let html=acctBar()+`<button class="btn sm" style="margin-bottom:4px;width:100%" onclick="fetchAllPrices()">📡 一鍵更新所有股價</button>
+  <div id="price-update-status" style="font-size:11px;color:var(--txt2);min-height:16px;margin-bottom:8px;text-align:center">${_stTxt}</div>`;
+  html+=`<div style="font-size:12px;font-weight:700;color:var(--txt2);margin:4px 0 6px">策略判斷（依你設定的策略）</div>`+signalCards(LIST);
 
   // 表格
   html+=`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
@@ -1971,7 +2250,7 @@ function renderPositions(){
     </tr></thead>
     <tbody>`;
 
-  html+=S.positions.map(p=>{
+  html+=LIST.map(p=>{
     const {avgPrice,totalQty}=calcAvg(p.lots);
     // 成本：有填 actualCost（融資實際出資）就用那個，否則算含稅市值
     const displayCost=p.actualCost||Math.round(avgPrice*totalQty*1.001425);
@@ -2025,7 +2304,7 @@ function renderPositions(){
   html+=`</tbody></table></div>`;
 
   // 警示區塊
-  S.positions.forEach(p=>{
+  LIST.forEach(p=>{
     const {avgPrice}=calcAvg(p.lots);
     const pct=(p.cur-avgPrice)/avgPrice*100;
     const pos=pct>=0;
@@ -2124,7 +2403,7 @@ function renderAlerts(){
 function renderStats(){
   document.getElementById('m-pos').textContent=S.positions.length;
   document.getElementById('m-plans').textContent=S.plans?S.plans.length:0;
-  const pnl=S.positions.reduce((s,p)=>s+(p.cur-p.buy)*p.qty,0);
+  const pnl=S.positions.filter(p=>acctView==='all'||p.acct===acctView).reduce((s,p)=>s+(p.cur-p.buy)*p.qty,0);
   const el=document.getElementById('m-pnl');
   el.textContent=(pnl>=0?'+':'')+Math.round(pnl).toLocaleString();
   el.style.color=pnl>=0?'var(--sf)':'var(--nw)';
@@ -2457,6 +2736,10 @@ setWindView('d');renderHistory();renderNoteWind();
 updateStopOptions();initStratBoxes();
 // 開啟時自動從試算表同步風度（背景執行，不影響畫面）
 setTimeout(()=>syncSheet(),1000);
+setTimeout(async()=>{if(API_URL){await fetchAllPrices(true);}loadSignals();},1500);
+setInterval(()=>{if(API_URL&&marketOpen()&&document.visibilityState==='visible')fetchAllPrices(true);},30000);
+setInterval(()=>{if(API_URL&&marketOpen()&&document.visibilityState==='visible')syncSheet();},5*60000);
+if(!API_URL)setTimeout(()=>{const st=document.getElementById('sheet-sync-status');if(st)st.textContent='⚙ 尚未設定資料中繼：按右上角 ⚙ 貼上 Apps Script 網址，即時價和風度才會自動更新';},2500);
 </script>
 </body>
 </html>
