@@ -24,6 +24,22 @@
   --nw:#1db954;--nw-bg:#052e14;--nw-bdr:#1db954;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html[data-theme=light]{
+  --bg:#eef3fb;--bg2:#ffffff;--bg3:#e3ebf7;--bg4:#d4e0f2;
+  --bdr:rgba(18,64,224,0.12);--bdr2:rgba(18,64,224,0.24);
+  --txt:#0f1a33;--txt2:#3d4a66;--txt3:#6b7790;
+  --grn:#0e9f6e;--grn2:#dcf5ea;--red:#d64545;--red2:#fde4e4;--amb:#c77700;--amb2:#fff1dc;--blu:#1240e0;--blu2:#e0e8ff;
+  --sf:#e02424;--sf-bg:#fde8e8;--sf-bdr:#e02424;
+  --gf:#d9534f;--gf-bg:#fff0ef;--gf-bdr:rgba(217,83,79,.5);
+  --lt:#12a150;--lt-bg:#e5f7ed;--lt-bdr:rgba(18,161,80,.45);
+  --nw:#0b8a3e;--nw-bg:#e1f4e8;--nw-bdr:#0b8a3e;
+}
+html[data-theme=light] .header{background:#1240e0;color:#fff;border-bottom:0}
+html[data-theme=light] .header *{color:#fff}
+html[data-theme=light] .header .wind-badge,html[data-theme=light] .header .water-pill,html[data-theme=light] .header button{background:rgba(255,255,255,.16)!important;border-color:rgba(255,255,255,.45)!important}
+html[data-theme=light] .tab-bar{background:rgba(255,255,255,.96);border-top:1px solid var(--bdr2)}
+html[data-theme=light] .tab-item.active{color:#1240e0}
+html[data-theme=light] .card,html[data-theme=light] .metric{box-shadow:0 1px 3px rgba(18,64,224,.08)}
 body{font-family:-apple-system,'Helvetica Neue',sans-serif;background:var(--bg);color:var(--txt);min-height:100dvh}
 input,select,textarea,button{font-family:inherit}
 .app{display:flex;flex-direction:column;height:100dvh}
@@ -222,6 +238,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       <div class="header-date" id="hdr-date"></div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+      <button onclick="toggleTheme()" title="切換藍白／深色" style="background:var(--bg3);border:1px solid var(--bdr2);color:var(--txt2);border-radius:8px;padding:4px 8px;font-size:14px;cursor:pointer">◐</button>
       <button onclick="openApiSetup()" title="資料中繼設定" style="background:var(--bg3);border:1px solid var(--bdr2);color:var(--txt2);border-radius:8px;padding:4px 8px;font-size:14px;cursor:pointer">⚙</button>
       <div class="water-pill" id="water-pill" onclick="showTab('water',document.querySelectorAll('.tab-item')[4])">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6 10 4 13.5 4 16a8 8 0 0 0 16 0c0-2.5-2-6-8-14z"/></svg>
@@ -258,8 +275,9 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       <div class="metric"><div class="val" id="m-pnl" style="color:var(--sf)">+0</div><div class="lbl">帳面損益</div></div>
     </div>
     <div class="card">
-      <div class="card-title">市場風度</div>
-      <div class="alert" id="wind-advice-box"></div>
+      <div class="card-title">今日總覽</div>
+      <div id="ov-box" style="margin-bottom:8px"><div style="font-size:12px;color:var(--txt3)">載入中…</div></div>
+      <div class="alert" id="wind-advice-box" style="font-size:12px"></div>
       <div id="sheet-sync-status" style="font-size:11px;color:var(--txt3);margin-top:6px"></div>
       <div id="sync-status" style="font-size:11px;color:var(--txt2);margin-top:2px"></div>
     </div>
@@ -1201,8 +1219,47 @@ const SIG={};   // code -> indicators
 async function loadSignals(){
   const codes=[...new Set(S.positions.filter(p=>p.code).map(p=>p.code))];
   await Promise.all(codes.map(async c=>{try{const b=await getBars(c);const p=S.positions.find(x=>x.code===c);SIG[c]=indicators(b,p&&p.cur);}catch(e){SIG[c]=null;}}));
-  renderPositions();
+  renderPositions();renderOverview();
 }
+
+// ── 今日總覽（總覽頁中間）────────────────────────────── CLAUDE
+let CAND_V=[];
+function renderOverview(){
+  const box=document.getElementById('ov-box');if(!box)return;
+  const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const g={sell:[],warn:[],buy:[],hold:[]};
+  S.positions.filter(p=>p.code).forEach(p=>{
+    const x=SIG[p.code];if(x===undefined)return;
+    const v=verdictOf(holdRules(p,x).r).t;
+    const tag=`${esc(p.name)}<span style="opacity:.6">・${esc(p.acct||'')}</span>`;
+    (v==='該出場'?g.sell:v==='注意'?g.warn:v==='可以試試'?g.buy:g.hold).push(tag);
+  });
+  const cyc=windCycle(),w=S.wind||'—',last=(S.windLog||[]).at(-1);
+  const src=last&&last.auto?'自動計算':'試算表';
+  const cycC=cyc==='易漲循環'?'var(--sf)':cyc==='易跌循環'?'var(--nw)':'var(--amb)';
+  const T=S.windAuto&&S.windAuto.tse?S.windAuto.tse.wind:'';
+  const cell=(n,label,c,list)=>`<div onclick="document.querySelector('.tab-item:nth-child(2)').click()" style="cursor:pointer;background:var(--bg2);border:1px solid var(--bdr);border-top:3px solid ${c};border-radius:10px;padding:9px 8px;min-width:0">
+      <div style="font-size:26px;font-weight:800;line-height:1;color:${c}">${n}</div>
+      <div style="font-size:12px;font-weight:700;color:var(--txt);margin:3px 0 4px">${label}</div>
+      <div style="font-size:11px;color:var(--txt2);line-height:1.45;word-break:break-all">${list.join('、')||'—'}</div></div>`;
+  const cb=CAND_V.filter(c=>c.v==='可以試試').map(c=>esc(c.name)),cw=CAND_V.filter(c=>c.v!=='可以試試').length;
+  box.innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:8px">
+      <div style="background:var(--bg3);border-radius:10px;padding:8px"><div style="font-size:11px;color:var(--txt3)">今日風度（${src}）</div><div style="font-size:18px;font-weight:800;color:var(--txt)">${esc(w)}</div></div>
+      <div style="background:var(--bg3);border-radius:10px;padding:8px"><div style="font-size:11px;color:var(--txt3)">目前循環（近10天）</div><div style="font-size:18px;font-weight:800;color:${cycC}">${cyc}</div></div>
+      <div style="background:var(--bg3);border-radius:10px;padding:8px"><div style="font-size:11px;color:var(--txt3)">加權風度</div><div style="font-size:18px;font-weight:800;color:var(--txt)">${esc(T||'—')}</div></div>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--txt2);margin:2px 0 6px">持股狀況（點一下看詳細）</div>
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px">
+      ${cell(g.sell.length,'該出場','#e8590c',g.sell)}${cell(g.warn.length,'注意','#d4a017',g.warn)}${cell(g.buy.length,'可以試試','var(--grn)',g.buy)}${cell(g.hold.length,'續抱','var(--blu)',g.hold)}
+    </div>
+    <div onclick="document.querySelector('.tab-item:nth-child(3)').click()" style="cursor:pointer;margin-top:8px;font-size:12px;color:var(--txt2);background:var(--bg3);border-radius:8px;padding:7px 10px">
+      候選股：<b style="color:var(--grn)">可以試試 ${cb.length?cb.join('、'):'0 檔'}</b>　觀望 ${cw} 檔</div>`;
+}
+// 主題：藍白（預設）／深色
+function applyTheme(t){document.documentElement.dataset.theme=t;try{localStorage.setItem('fz_theme',t);}catch(e){}}
+function toggleTheme(){applyTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');}
+try{applyTheme(localStorage.getItem('fz_theme')||'light');}catch(e){applyTheme('light');}
 
 // ── 試算表同步（讀 GitHub wind.json，無CORS問題） ─────────
 const WIND_JSON_URL='https://raw.githubusercontent.com/KAI-0513/fengzheng/main/wind.json';
@@ -1233,7 +1290,7 @@ async function autoWind(){
         if(sheetMap.has(r.date)){cmp++;if(sheetMap.get(r.date)===r.wind)same++;return;}
         if(r.date>lastSheet){const ex=S.windLog.find(l=>l.date===r.date);if(ex){ex.wind=r.wind;ex.auto=1;}else S.windLog.push({date:r.date,wind:r.wind,auto:1});added++;}
       });
-      const L=(j.otc||[]).at(-1);
+      const L=(j.otc||[]).at(-1);S.windAuto={otc:L,tse:(j.tse||[]).at(-1)};
       if(L)msgs.push(`今天自動計算：櫃買 ${L.close}（月線 ${L.ma20}）→ ${L.wind}｜與試算表吻合 ${cmp?Math.round(same/cmp*100):'-'}%`);
     }catch(e){msgs.push('自動計算失敗：'+e.message);}
     // 重建風度紀錄：統一日期格式、去重。優先序：試算表 > 自動計算 > 舊紀錄
@@ -1246,7 +1303,7 @@ async function autoWind(){
     const latest=S.windLog.at(-1);
     if(latest)setWind(latest.wind,true);
     save();
-    msgs.push(windCycle());
+    msgs.push(windCycle());renderOverview();
     if(status)status.textContent=msgs.join('｜');
     setWindView(windView||'d');renderNoteWind();renderNotes();
   }catch(e){
@@ -1457,7 +1514,7 @@ function renderCandidates(){
           </div>
           <span style="font-size:11px;padding:2px 8px;border-radius:99px;background:${badgeBg};color:${badgeC};border:1px solid ${badgeC}">${sc}</span>
         </div>
-        <div id="${tid}-v" data-code="${code}" data-strat="${s.strat}" style="margin-top:5px;font-size:12px;color:var(--txt3)">${code&&code!=='0'?'判斷中…':''}</div>
+        <div id="${tid}-v" data-code="${code}" data-name="${s.name}" data-strat="${s.strat}" style="margin-top:5px;font-size:12px;color:var(--txt3)">${code&&code!=='0'?'判斷中…':''}</div>
         <div id="${tid}" style="margin-top:6px;font-size:11px;color:var(--txt3)">▶ 點擊看K線</div>
       </div>`;
     }).join('');
@@ -1469,7 +1526,7 @@ async function evalCandidates(){
     const age=(Date.now()-new Date(candData.date.replace(/\//g,'-')).getTime())/864e5;
     if(age>4)box.insertAdjacentHTML('afterbegin',`<div style="font-size:12px;color:#f6ad55;background:rgba(246,173,85,0.12);border-radius:8px;padding:6px 10px;margin-bottom:8px">⚠ 候選股資料停在 ${candData.date}（${Math.floor(age)} 天前），試算表最後一筆是這天，名單可能過期</div>`);
   }
-  const els=[...box.querySelectorAll('[data-strat]')];
+  const els=[...box.querySelectorAll('[data-strat]')];CAND_V=[];
   for(const el of els){
     const code=el.dataset.code,st=el.dataset.strat;if(!code||code==='0')continue;
     const sk=st.includes('強勢週')?'W2':st.includes('週趨勢')?'W1':st.includes('週拉回')?'B1':st.includes('廉價')?'B2':'D2';
@@ -1477,6 +1534,7 @@ async function evalCandidates(){
     try{
       const x=indicators(await getBars(code));
       const r=entryRules(sk,x,label),v=verdictOf(r);
+      CAND_V=CAND_V.filter(c=>c.name!==el.dataset.name);CAND_V.push({name:el.dataset.name,v:v.t});renderOverview();
       el.innerHTML=`<span style="font-weight:700;color:${v.c}">${v.t==='續抱／觀望'?'觀望':v.t}</span> <span style="color:var(--txt3)">（${label}${x?`｜現價 ${x.price}`:''}）</span><br>`+r.map(z=>`• ${z.t}`).join('<br>');
     }catch(e){el.textContent='判斷失敗：'+e.message;}
   }
@@ -1974,7 +2032,7 @@ async function fetchAllPrices(silent){
     S.lastQuote=j.time;S.idx={tse:j.q.t00,otc:j.q.o00};
     save();
     Object.keys(SIG).forEach(c=>{const p=S.positions.find(x=>x.code===c);if(p&&SIG[c])SIG[c]=indicators(IND_CACHE[c]?.bars,p.cur);});
-    renderPositions();renderStats();renderAlerts();calcWater();
+    renderPositions();renderStats();renderAlerts();calcWater();renderOverview();
     const msg=`🟢 即時價 ${j.time.slice(11)} 更新 ${ok} 支`+(miss.length?`｜❌ 抓不到：${miss.join('、')}`:'')+(marketOpen()?'｜盤中每30秒自動更新':'');
     const st2=document.getElementById('price-update-status');if(st2)st2.textContent=msg;
   }catch(e){
