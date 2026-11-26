@@ -445,7 +445,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
         <option>打工型強勢日</option><option>打工型日拉回</option>
         <option>上班族強勢週</option><option>上班族週趨勢</option>
         <option>老闆型廉價收購</option><option>老闆型週拉回</option>
-        <option>自己挑</option><option>配股</option><option>認股</option>
+        <option>自己挑</option><option>配股</option><option>認股</option><option>存股</option>
       </select>
     </div>
     <div class="field"><label>選股依據</label><input type="text" id="pl-basis" placeholder="例：YoY +171% 創高，成值前三"></div>
@@ -1093,6 +1093,7 @@ function indicators(bars,cur){
 }
 function stratKey(s){
   s=s||'';
+  if(s.includes('存股'))return'S';
   if(s.includes('日拉回'))return'D1';
   if(s.includes('強勢日'))return'D2';
   if(s.includes('週趨勢'))return'W1';
@@ -1102,7 +1103,7 @@ function stratKey(s){
   if(s.includes('老闆'))return'B1';
   return'';
 }
-const SK_NAME={D1:'打工型日拉回',D2:'打工型強勢日',W1:'上班族週趨勢',W2:'上班族強勢週',B1:'老闆型週拉回',B2:'老闆型廉價收購'};
+const SK_NAME={D1:'打工型日拉回',D2:'打工型強勢日',W1:'上班族週趨勢',W2:'上班族強勢週',B1:'老闆型週拉回',B2:'老闆型廉價收購',S:'存股'};
 function windCycle(){
   const L=(S.windLog||[]).slice(-10);if(!L.length)return'循環交界';
   const up=L.filter(l=>l.wind==='強風'||l.wind==='亂流').length;
@@ -1120,6 +1121,13 @@ function holdRules(p,x){
   const maxSince=x&&p.date?Math.max(...x.bars.filter(b=>b.d>p.date).map(b=>b.c),-Infinity):null;
   if(!x){R('warn','抓不到K線，只能看損益');if(P<=-5)R('sell',`虧損${Math.abs(P).toFixed(1)}%`);return{r,P,days};}
   const u5=p.cur<x.ma5,u10=p.cur<x.ma10,u20=p.cur<x.ma20;
+  if(S_==='S'){
+    R('ok','存股：長期持有，不做停損停利');
+    if(P<0)R('buy',`現價低於平均成本 ${Math.abs(P).toFixed(1)}% → 存股可依計畫加碼`);
+    else if(u20)R('buy',`跌破月線（${x.ma20.toFixed(2)}）→ 可考慮分批加碼`);
+    else R('','在月線上，照原本的定期定額即可');
+    return{r,P,days};
+  }
   const boss=S_[0]==='B';
   if(!S_){
     R('','策略未對應，用通用規則');
@@ -1333,6 +1341,7 @@ const STRAT_LIST=[
   {v:'成值營收創高',  c:'#a0aec0',bg:'rgba(160,174,192,0.1)'},
   {v:'成值營收',      c:'#a0aec0',bg:'rgba(160,174,192,0.1)'},
   {v:'成值',          c:'#a0aec0',bg:'rgba(160,174,192,0.1)'},
+  {v:'存股',          c:'#90cdf4',bg:'rgba(144,205,244,0.12)'},
   {v:'營收',          c:'#a0aec0',bg:'rgba(160,174,192,0.1)'},
   {v:'無成值營收',    c:'#a0aec0',bg:'rgba(160,174,192,0.1)'},
 ];
@@ -1623,6 +1632,7 @@ const STOP_OPTS={
   '老闆型週拉回':['跌破自己設定的均線','週MACD柱往下','自訂…'],
   '自己挑股票':['跌破五日線','虧損達 -5%','跌破月線(20MA)','自訂…'],
   '配股':['依原持倉策略','自訂…'],
+  '存股':['不停損（長期持有）','自訂…'],
 };
 const PROFIT_OPTS={
   '打工型強勢日':['收盤跌破五日線','收盤跌破十日線','獲利達10%賣出','有賺錢就賣','自訂…'],
@@ -1633,6 +1643,7 @@ const PROFIT_OPTS={
   '老闆型週拉回':['守一條均線(10日/月線)','週五收盤低於上週五','有賺錢就賣光','自訂…'],
   '自己挑股票':['收盤跌破五日線','跌破月線(20MA)','獲利達10%賣出','有賺錢就賣','自訂…'],
   '配股':['依原持倉策略','自訂…'],
+  '存股':['不停利（長期持有）','自訂…'],
 };
 const TIMING_OPTS={
   '打工型強勢日':['10點以後再買','看到就買進','選買得下去的價格','確認離起漲點不太遠'],
@@ -2441,6 +2452,12 @@ function calcWater(){
 
 // ── 策略分頁 ─────────────────────────────────────────────
 const STRAT_DEF={
+  '存股':{emoji:'🏦',sub:'長期持有｜週期：數年',
+    key:'不看短線漲跌，長期累積股數。跌越多、買越便宜。',
+    buy:['定期定額或分批買進','現價低於平均成本時可加碼','跌破月線可考慮分批加碼'],
+    sell_b:['不設停損（長期持有）'],
+    sell_a:['不設停利（長期持有）'],
+    warn:'存股用閒錢，不要用短線的停損停利來判斷。'},
   '上班族強勢週':{emoji:'📅',sub:'成值40%、營收60%｜週期：數週～月',
     key:'買在日線起點（日MACD翻紅第1-2根）。越晚參與成本風險越高。',
     buy:['確認日MACD、週MACD趨勢往上','10點以後找買點，或尾盤1點後（13:25掛最後一盤）','不要追漲，不要一開盤衝進'],
