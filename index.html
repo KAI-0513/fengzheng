@@ -39,6 +39,7 @@ html[data-theme=light] .header *{color:#fff}
 html[data-theme=light] .header .wind-badge,html[data-theme=light] .header .water-pill,html[data-theme=light] .header button{background:rgba(255,255,255,.16)!important;border-color:rgba(255,255,255,.45)!important}
 html[data-theme=light] .tab-bar{background:rgba(255,255,255,.96);border-top:1px solid var(--bdr2)}
 html[data-theme=light] .tab-item.active{color:#1240e0}
+html[data-theme=light] .card-title{color:#1240e0!important}
 html[data-theme=light] .card,html[data-theme=light] .metric{box-shadow:0 1px 3px rgba(18,64,224,.08)}
 body{font-family:-apple-system,'Helvetica Neue',sans-serif;background:var(--bg);color:var(--txt);min-height:100dvh}
 input,select,textarea,button{font-family:inherit}
@@ -1223,7 +1224,19 @@ async function loadSignals(){
 }
 
 // ── 今日總覽（總覽頁中間）────────────────────────────── CLAUDE
-let CAND_V=[];
+let CAND_V=[],CAND_SRC='';
+async function evalAllCands(){
+  const d=candData;if(!d)return;
+  const groups=[['worker_strong_week','W2'],['worker_week_trend','W1'],['boss_week_pullback','B1'],['boss_cheap_buy','B2'],['top6_volume','D2']];
+  const out=[];
+  for(const [k,sk] of groups)for(const name of (d[k]||[])){
+    const code=(typeof STOCK_MAP_STATIC!=='undefined'&&STOCK_MAP_STATIC[name])||'';
+    if(!code||code==='0'){out.push({name,v:'代號待查'});continue;}
+    try{const x=indicators(await getBars(code));const v=verdictOf(entryRules(sk,x,SK_NAME[sk])).t;
+      const ex=out.find(o=>o.name===name);if(ex){if(v==='可以試試')ex.v=v;}else out.push({name,v});}catch(e){}
+  }
+  CAND_V=out;renderOverview();
+}
 function renderOverview(){
   const box=document.getElementById('ov-box');if(!box)return;
   const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1242,6 +1255,7 @@ function renderOverview(){
       <div style="font-size:26px;font-weight:800;line-height:1;color:${c}">${n}</div>
       <div style="font-size:12px;font-weight:700;color:var(--txt);margin:3px 0 4px">${label}</div>
       <div style="font-size:11px;color:var(--txt2);line-height:1.45;word-break:break-all">${list.join('、')||'—'}</div></div>`;
+  if(candData&&candData.date&&CAND_SRC!==candData.date){CAND_SRC=candData.date;evalAllCands();}
   const cb=CAND_V.filter(c=>c.v==='可以試試').map(c=>esc(c.name)),cw=CAND_V.filter(c=>c.v!=='可以試試').length;
   box.innerHTML=`
     <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:8px">
@@ -1526,7 +1540,7 @@ async function evalCandidates(){
     const age=(Date.now()-new Date(candData.date.replace(/\//g,'-')).getTime())/864e5;
     if(age>4)box.insertAdjacentHTML('afterbegin',`<div style="font-size:12px;color:#f6ad55;background:rgba(246,173,85,0.12);border-radius:8px;padding:6px 10px;margin-bottom:8px">⚠ 候選股資料停在 ${candData.date}（${Math.floor(age)} 天前），試算表最後一筆是這天，名單可能過期</div>`);
   }
-  const els=[...box.querySelectorAll('[data-strat]')];CAND_V=[];
+  const els=[...box.querySelectorAll('[data-strat]')];
   for(const el of els){
     const code=el.dataset.code,st=el.dataset.strat;if(!code||code==='0')continue;
     const sk=st.includes('強勢週')?'W2':st.includes('週趨勢')?'W1':st.includes('週拉回')?'B1':st.includes('廉價')?'B2':'D2';
@@ -1534,7 +1548,6 @@ async function evalCandidates(){
     try{
       const x=indicators(await getBars(code));
       const r=entryRules(sk,x,label),v=verdictOf(r);
-      CAND_V=CAND_V.filter(c=>c.name!==el.dataset.name);CAND_V.push({name:el.dataset.name,v:v.t});renderOverview();
       el.innerHTML=`<span style="font-weight:700;color:${v.c}">${v.t==='續抱／觀望'?'觀望':v.t}</span> <span style="color:var(--txt3)">（${label}${x?`｜現價 ${x.price}`:''}）</span><br>`+r.map(z=>`• ${z.t}`).join('<br>');
     }catch(e){el.textContent='判斷失敗：'+e.message;}
   }
