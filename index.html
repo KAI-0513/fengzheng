@@ -2483,7 +2483,7 @@ async function fetchAllPrices(silent){
     const msg=`🟢 即時價 ${j.time.slice(11)} 更新 ${ok} 支`+(miss.length?`｜❌ 抓不到：${miss.join('、')}`:'')+(marketOpen()?'｜盤中每30秒自動更新':'');
     const st2=document.getElementById('price-update-status');if(st2)st2.textContent=msg;
   }catch(e){
-    const st2=document.getElementById('price-update-status');if(st2)st2.textContent='❌ 即時價失敗：'+e.message;
+    const st2=document.getElementById('price-update-status');if(st2)st2.textContent='❌ 即時價失敗 '+syncStamp()+'：'+e.message;
   }
   _priceBusy=false;
   if(btn){btn.textContent='📡 一鍵更新所有股價';btn.disabled=false;}
