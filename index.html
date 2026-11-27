@@ -278,7 +278,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     <div class="card">
       <div class="card-title">今日總覽</div>
       <div id="ov-box" style="margin-bottom:8px"><div style="font-size:12px;color:var(--txt3)">載入中…</div></div>
-      <div class="alert" id="wind-advice-box" style="font-size:12px"></div>
+      <div class="alert" id="wind-advice-box" style="display:none"></div>
       <div id="sheet-sync-status" style="font-size:11px;color:var(--txt3);margin-top:6px"></div>
       <div id="sync-status" style="font-size:11px;color:var(--txt2);margin-top:2px"></div>
     </div>
@@ -286,9 +286,6 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:8px">
           <div class="card-title" style="margin-bottom:0">風度統計</div>
-          <button onclick="syncSheet()" style="padding:3px 10px;font-size:11px;font-weight:600;border-radius:6px;border:1px solid var(--bdr2);background:var(--bg3);color:var(--txt2);cursor:pointer">⟳ 同步</button>
-          <button onclick="backupToGitHub()" style="padding:3px 10px;font-size:11px;font-weight:600;border-radius:6px;border:1px solid var(--bdr2);background:var(--bg3);color:var(--txt2);cursor:pointer" title="備份資料到GitHub">☁ 備份</button>
-          <button onclick="restoreFromGitHub()" style="padding:3px 10px;font-size:11px;font-weight:600;border-radius:6px;border:1px solid var(--bdr2);background:var(--bg3);color:var(--txt2);cursor:pointer" title="從GitHub還原資料">↓ 還原</button>
         </div>
         <div style="display:flex;gap:4px">
           <button id="wv-d" onclick="setWindView('d')" style="padding:4px 10px;font-size:11px;font-weight:600;border-radius:6px;border:1px solid var(--sf);background:var(--sf);color:#000;cursor:pointer">日</button>
@@ -964,14 +961,14 @@ function renderWindStat(){
     const isWend=d.getDay()===0||d.getDay()===6;
     const yr=d.getFullYear();const mo=d.getMonth()+1;const dd=d.getDate();
     if(windView==='d'){
-      return `<text x="${x}" y="${dateY1.toFixed(1)}" text-anchor="middle" font-size="10" fill="#fff" font-weight="600">${mo}/${dd}</text>
-        <text x="${x}" y="${dateY2.toFixed(1)}" text-anchor="middle" font-size="10" fill="${isWend?'#ffcc00':'#ccc'}">${wd}</text>
-        <text x="${x}" y="${dateY3.toFixed(1)}" text-anchor="middle" font-size="9" fill="#aaa">${yr}</text>`;
+      return `<text x="${x}" y="${dateY1.toFixed(1)}" text-anchor="middle" font-size="10" style="fill:var(--txt)" font-weight="600">${mo}/${dd}</text>
+        <text x="${x}" y="${dateY2.toFixed(1)}" text-anchor="middle" font-size="10" style="fill:${isWend?'#d97706':'var(--txt2)'}">${wd}</text>
+        <text x="${x}" y="${dateY3.toFixed(1)}" text-anchor="middle" font-size="9" style="fill:var(--txt3)">${yr}</text>`;
     } else {
       if(!isWend&&i%7===0){
-        return `<text x="${x}" y="${dateY1.toFixed(1)}" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">${mo}/${String(dd).padStart(2,'0')}</text>
-          <text x="${x}" y="${dateY2.toFixed(1)}" text-anchor="middle" font-size="10" fill="#ccc">${wd}</text>
-          <text x="${x}" y="${dateY3.toFixed(1)}" text-anchor="middle" font-size="9" fill="#aaa">${yr}</text>`;
+        return `<text x="${x}" y="${dateY1.toFixed(1)}" text-anchor="middle" font-size="10" style="fill:var(--txt)" font-weight="700">${mo}/${String(dd).padStart(2,'0')}</text>
+          <text x="${x}" y="${dateY2.toFixed(1)}" text-anchor="middle" font-size="10" style="fill:var(--txt2)">${wd}</text>
+          <text x="${x}" y="${dateY3.toFixed(1)}" text-anchor="middle" font-size="9" style="fill:var(--txt3)">${yr}</text>`;
       }
     }
     return '';
@@ -1048,7 +1045,7 @@ function openApiSetup(){
       try{localStorage.setItem('fz_api',API_URL);localStorage.setItem('fz_key',API_KEY);}catch(e){}
       const msg=m.querySelector('#api-test-msg');msg.textContent='測試連線中…';
       try{const j=await api({a:'sheet'});msg.textContent=`✅ 連線成功：試算表最新 ${j.candidates?.date||'?'} ${j.candidates?.wind||''}`;
-        setTimeout(()=>{m.style.display='none';},1200);syncSheet();fetchAllPrices();loadSignals();}
+        setTimeout(()=>{m.style.display='none';},1200);syncSheet();fetchAllPrices();loadSignals();cloudPull();}
       catch(e){msg.textContent='❌ 連線失敗：'+e.message;}
     };
   }
@@ -1251,29 +1248,64 @@ function renderOverview(){
   const src=last&&last.auto?'自動計算':'試算表';
   const cycC=cyc==='易漲循環'?'var(--sf)':cyc==='易跌循環'?'var(--nw)':'var(--amb)';
   const T=S.windAuto&&S.windAuto.tse?S.windAuto.tse.wind:'';
-  const cell=(n,label,c,list)=>`<div onclick="document.querySelector('.tab-item:nth-child(2)').click()" style="cursor:pointer;background:var(--bg2);border:1px solid var(--bdr);border-top:3px solid ${c};border-radius:10px;padding:9px 8px;min-width:0">
+  const wc=k=>(WCFG[k]&&WCFG[k].cls)||'';
+  const cb=CAND_V.filter(c=>c.v==='可以試試').map(c=>`${esc(c.name)}<span style="opacity:.6">・候選</span>`),cw=CAND_V.filter(c=>c.v!=='可以試試').length;
+  const buyList=g.buy.concat(cb);
+  const cell=(n,label,c,list,extra)=>`<div onclick="document.querySelector('.tab-item:nth-child(${label==='可以試試'&&!g.buy.length&&cb.length?3:2})').click()" style="cursor:pointer;background:var(--bg2);border:1px solid var(--bdr);border-top:3px solid ${c};border-radius:10px;padding:9px 8px;min-width:0">
       <div style="font-size:26px;font-weight:800;line-height:1;color:${c}">${n}</div>
       <div style="font-size:12px;font-weight:700;color:var(--txt);margin:3px 0 4px">${label}</div>
-      <div style="font-size:11px;color:var(--txt2);line-height:1.45;word-break:break-all">${list.join('、')||'—'}</div></div>`;
+      <div style="font-size:11px;color:var(--txt2);line-height:1.45;word-break:break-all">${list.join('、')||'—'}</div>${extra||''}</div>`;
   if(candData&&candData.date&&CAND_SRC!==candData.date){CAND_SRC=candData.date;evalAllCands();}
-  const cb=CAND_V.filter(c=>c.v==='可以試試').map(c=>esc(c.name)),cw=CAND_V.filter(c=>c.v!=='可以試試').length;
+  const adv=(WCFG[w]&&WCFG[w].advice||'').replace(/^.{2}：/,'');
   box.innerHTML=`
     <div style="display:flex;gap:6px;margin-bottom:8px">
       <button onclick="openPreCheck()" style="flex:1;min-height:42px;border-radius:10px;border:0;background:#1240e0;color:#fff;font-size:14px;font-weight:700;cursor:pointer">🩺 下單前體檢</button>
       <button onclick="showCloseReminder()" style="flex:1;min-height:42px;border-radius:10px;border:1px solid var(--bdr2);background:var(--bg2);color:var(--txt);font-size:14px;font-weight:700;cursor:pointer">🔔 收盤前檢查</button>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:8px">
-      <div style="background:var(--bg3);border-radius:10px;padding:8px"><div style="font-size:11px;color:var(--txt3)">今日風度（${src}）</div><div style="font-size:18px;font-weight:800;color:var(--txt)">${esc(w)}</div></div>
-      <div style="background:var(--bg3);border-radius:10px;padding:8px"><div style="font-size:11px;color:var(--txt3)">目前循環（近10天）</div><div style="font-size:18px;font-weight:800;color:${cycC}">${cyc}</div></div>
-      <div style="background:var(--bg3);border-radius:10px;padding:8px"><div style="font-size:11px;color:var(--txt3)">加權風度</div><div style="font-size:18px;font-weight:800;color:var(--txt)">${esc(T||'—')}</div></div>
+    <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:6px;margin-bottom:8px">
+      <div class="${wc(w)}" style="border:1.5px solid;border-radius:10px;padding:8px 10px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div><div style="font-size:11px;opacity:.8">櫃買風度（${src}）</div><div style="font-size:20px;font-weight:800">${esc(w)}</div></div>
+          <div style="border-left:1px solid currentColor;padding-left:8px;opacity:.95"><div style="font-size:11px;opacity:.8">加權風度</div><div style="font-size:20px;font-weight:800">${esc(T||'—')}</div></div>
+        </div>
+        <div style="font-size:11.5px;line-height:1.45;margin-top:5px;opacity:.9">${esc(adv)}</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;justify-content:center">
+        <div style="font-size:11px;color:var(--txt3)">目前循環（近10天）</div><div style="font-size:20px;font-weight:800;color:${cycC}">${cyc}</div>
+      </div>
     </div>
-    <div style="font-size:12px;font-weight:700;color:var(--txt2);margin:2px 0 6px">持股狀況（點一下看詳細）</div>
+    <div style="font-size:12px;font-weight:700;color:var(--txt2);margin:2px 0 6px">持股狀況（點一下看詳細・存股不列入）</div>
     <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px">
-      ${cell(g.sell.length,'該出場','#e8590c',g.sell)}${cell(g.warn.length,'注意','#d4a017',g.warn)}${cell(g.buy.length,'可以試試','var(--grn)',g.buy)}${cell(g.hold.length,'續抱','var(--blu)',g.hold)}
-    </div>
-    <div onclick="document.querySelector('.tab-item:nth-child(3)').click()" style="cursor:pointer;margin-top:8px;font-size:12px;color:var(--txt2);background:var(--bg3);border-radius:8px;padding:7px 10px">
-      候選股：<b style="color:var(--grn)">可以試試 ${cb.length?cb.join('、'):'0 檔'}</b>　觀望 ${cw} 檔</div>`;
+      ${cell(g.sell.length,'該出場','#e8590c',g.sell)}${cell(g.warn.length,'注意','#d4a017',g.warn)}${cell(buyList.length,'可以試試','var(--grn)',buyList,`<div style="font-size:10.5px;color:var(--txt3);margin-top:3px">候選 ${CAND_V.length} 檔，觀望 ${cw}</div>`)}${cell(g.hold.length,'續抱','var(--blu)',g.hold)}
+    </div>`;
 }
+// ── 雲端自動同步（取代備份／還原按鈕）──────────────── CLAUDE
+let _lastSig='',_pushT=null,_syncing=false;
+function dataSig(){return JSON.stringify({p:S.positions.map(p=>[p.id,p.name,p.code,p.acct,p.strat,p.date,p.lots,p.stop,p.profit,p.memo,p.batch,p.wind]),pl:S.plans,n:S.notes,h:S.history,w:S.water,sn:S.stratNotes});}
+function cloudStatus(t){const el=document.getElementById('sync-status');if(el)el.textContent=t;}
+async function cloudPull(){
+  if(!API_URL||!API_KEY){cloudStatus('☁ 尚未設定密碼：按右上角 ⚙ 輸入一次，手機和電腦就會自動同步持股');return;}
+  try{
+    const j=await api({a:'load',k:API_KEY}),d=j.data;
+    if(d&&d.positions&&(d._ts||0)>(S._ts||0)){
+      S.positions=d.positions;S.plans=d.plans||[];S.notes=d.notes||[];S.history=d.history||[];S.water=d.water||S.water;S.stratNotes=d.stratNotes||{};S._ts=d._ts;
+      _lastSig=dataSig();_origSave();renderPositions();renderStats();renderAlerts();calcWater();renderNotes();loadSignals();
+      cloudStatus('☁ 已從雲端更新 '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}));
+    }else{_lastSig=dataSig();if((S._ts||0)>(d&&d._ts||0))cloudPush();else cloudStatus('☁ 已同步');}
+  }catch(e){cloudStatus('☁ 同步失敗：'+e.message);}
+}
+async function cloudPush(){
+  if(!API_URL||!API_KEY||_syncing)return;_syncing=true;
+  try{await apiPost({a:'save',k:API_KEY,data:{positions:S.positions,plans:S.plans,notes:S.notes,history:S.history,water:S.water,stratNotes:S.stratNotes,windLog:[],_ts:S._ts,_updated:new Date().toLocaleString('zh-TW')}});
+    cloudStatus('☁ 已同步 '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}));}
+  catch(e){cloudStatus('☁ 同步失敗：'+e.message);}
+  _syncing=false;
+}
+const _origSave=save;
+save=function(){
+  if(_lastSig){const sig=dataSig();if(sig!==_lastSig){_lastSig=sig;S._ts=Date.now();clearTimeout(_pushT);_pushT=setTimeout(cloudPush,3000);}}
+  _origSave();
+};
 // 主題：藍白（預設）／深色
 function applyTheme(t){document.documentElement.dataset.theme=t;try{localStorage.setItem('fz_theme',t);}catch(e){}}
 function toggleTheme(){applyTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');}
@@ -2959,7 +2991,7 @@ setWindView('d');renderHistory();renderNoteWind();
 updateStopOptions();initStratBoxes();
 // 開啟時自動從試算表同步風度（背景執行，不影響畫面）
 setTimeout(()=>syncSheet(),1000);
-setTimeout(async()=>{if(API_URL){await fetchAllPrices(true);}loadSignals();},1500);
+setTimeout(async()=>{if(API_URL){await cloudPull();await fetchAllPrices(true);}loadSignals();},1500);
 setInterval(()=>{if(API_URL&&marketOpen()&&document.visibilityState==='visible')fetchAllPrices(true);},30000);
 setInterval(()=>{if(API_URL&&marketOpen()&&document.visibilityState==='visible')syncSheet();},5*60000);
 if(!API_URL)setTimeout(()=>{const st=document.getElementById('sheet-sync-status');if(st)st.textContent='⚙ 尚未設定資料中繼：按右上角 ⚙ 貼上 Apps Script 網址，即時價和風度才會自動更新';},2500);
