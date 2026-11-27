@@ -1231,7 +1231,7 @@ async function loadSignals(){
 // ── 今日總覽（總覽頁中間）────────────────────────────── CLAUDE
 let CAND_V=[],CAND_SRC='';
 async function evalAllCands(){
-  const d=candData;if(!d)return;
+  const d=candData;if(!d)return;resolveCandNames();
   const groups=[['worker_strong_week','W2'],['worker_week_trend','W1'],['boss_week_pullback','B1'],['boss_cheap_buy','B2'],['top6_volume','FIT']];
   const out=[];
   for(const [k,sk] of groups)for(const name of (d[k]||[])){
@@ -1462,6 +1462,33 @@ async function runPreCheck(){
       ${items.map(i=>`<div style="display:flex;gap:8px;font-size:13px;padding:3px 0;line-height:1.45"><span style="color:${ico[i.k][1]};font-weight:800;min-width:12px">${ico[i.k][0]}</span><span><b style="color:var(--txt)">${esc(i.t)}</b> <span style="color:var(--txt2)">— ${esc(i.d)}</span></span></div>`).join('')}
     </div>`;
   }catch(e){out.innerHTML=`<div style="color:var(--red)">體檢失敗：${esc(e.message)}</div>`;}
+}
+
+// ── 全部上市櫃「名稱→代號」（中繼每天從證交所＋櫃買中心抓）──────── CLAUDE
+let CODE_MAP={};
+function applyCodes(m){
+  if(!m)return;CODE_MAP=m;
+  Object.entries(m).forEach(([n,code])=>{STOCK_MAP_STATIC[n]=code;const n2=n.replace(/-KY$/,'');if(!(n2 in m))STOCK_MAP_STATIC[n2]=code;});
+  resolveCandNames();
+}
+function resolveCandNames(){   // 名稱寫法不同（例如「京元電」vs「京元電子」）時，用開頭比對，只對到一檔才採用
+  if(!Object.keys(CODE_MAP).length)return;
+  const d=candData||{},keys=Object.keys(CODE_MAP);
+  [].concat(d.worker_strong_week||[],d.worker_week_trend||[],d.boss_week_pullback||[],d.boss_cheap_buy||[],d.top6_volume||[]).forEach(n=>{
+    if(STOCK_MAP_STATIC[n])return;
+    const hit=keys.filter(k=>k.startsWith(n)||n.startsWith(k));
+    if(hit.length===1)STOCK_MAP_STATIC[n]=CODE_MAP[hit[0]];
+  });
+}
+async function loadCodes(){
+  let c=null;try{c=JSON.parse(localStorage.getItem('fz_codes')||'null');}catch(e){}
+  if(c&&c.m)applyCodes(c.m);
+  const today=new Date().toDateString();
+  if(!c||c.d!==today){
+    try{const j=await api({a:'codes'});
+      if(j.map&&Object.keys(j.map).length>500){applyCodes(j.map);try{localStorage.setItem('fz_codes',JSON.stringify({d:today,m:j.map}));}catch(e){}}}catch(e){}
+  }
+  CAND_SRC='';if(candData){try{renderCandidates();}catch(e){}}renderOverview();
 }
 
 // ── 試算表同步（讀 GitHub wind.json，無CORS問題） ─────────
@@ -3008,7 +3035,7 @@ setWindView('d');renderHistory();renderNoteWind();
 updateStopOptions();initStratBoxes();
 // 開啟時自動從試算表同步風度（背景執行，不影響畫面）
 setTimeout(()=>syncSheet(),1000);
-setTimeout(async()=>{if(API_URL){await cloudPull();await fetchAllPrices(true);}loadSignals();},1500);
+setTimeout(async()=>{if(API_URL){loadCodes();await cloudPull();await fetchAllPrices(true);}loadSignals();},1500);
 setInterval(()=>{if(API_URL&&marketOpen()&&document.visibilityState==='visible')fetchAllPrices(true);},30000);
 setInterval(()=>{if(API_URL&&marketOpen()&&document.visibilityState==='visible')syncSheet();},5*60000);
 if(!API_URL)setTimeout(()=>{const st=document.getElementById('sheet-sync-status');if(st)st.textContent='⚙ 尚未設定資料中繼：按右上角 ⚙ 貼上 Apps Script 網址，即時價和風度才會自動更新';},2500);
