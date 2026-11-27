@@ -360,6 +360,19 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
         <div class="field"><label>華南（元）</label><input type="number" id="w-hn" placeholder="500000" oninput="calcWater()"></div>
         <div class="field"><label>凱基（元）</label><input type="number" id="w-kg" placeholder="500000" oninput="calcWater()"></div>
       </div>
+      <div style="margin-top:12px;border-top:1px dashed var(--bdr2);padding-top:12px">
+        <div style="font-size:13px;font-weight:700;color:var(--txt);margin-bottom:8px">資金進出（薪水匯入、轉出）</div>
+        <div class="form-grid">
+          <div class="field"><label>帳戶</label><select id="cf-acct"><option>華南</option><option>凱基</option></select></div>
+          <div class="field"><label>存入／轉出</label><select id="cf-dir"><option value="in">＋ 存入</option><option value="out">－ 轉出</option></select></div>
+          <div class="field"><label>金額（元）</label><input type="number" id="cf-amt" inputmode="numeric" placeholder="例：50000"></div>
+          <div class="field"><label>日期</label><input type="date" id="cf-date"></div>
+        </div>
+        <div class="field"><label>備註</label><input type="text" id="cf-note" placeholder="例：11月薪水、轉去凱基"></div>
+        <button class="btn primary" style="margin-top:4px" onclick="addCashFlow()">記錄並更新資金</button>
+        <div id="cf-msg" style="font-size:12px;color:var(--txt2);min-height:18px;margin-top:6px"></div>
+        <div id="cash-log"></div>
+      </div>
     </div>
     <div class="card">
       <div class="card-title">目前水位</div>
@@ -1289,14 +1302,14 @@ function renderOverview(){
 }
 // ── 雲端自動同步（取代備份／還原按鈕）──────────────── CLAUDE
 let _lastSig='',_pushT=null,_syncing=false;
-function dataSig(){return JSON.stringify({p:S.positions.map(p=>[p.id,p.name,p.code,p.acct,p.strat,p.date,p.lots,p.stop,p.profit,p.memo,p.batch,p.wind]),pl:S.plans,n:S.notes,h:S.history,w:S.water,sn:S.stratNotes});}
+function dataSig(){return JSON.stringify({p:S.positions.map(p=>[p.id,p.name,p.code,p.acct,p.strat,p.date,p.lots,p.stop,p.profit,p.memo,p.batch,p.wind]),pl:S.plans,n:S.notes,h:S.history,w:S.water,sn:S.stratNotes,c:S.cashLog||[]});}
 function cloudStatus(t){const el=document.getElementById('sync-status');if(el)el.textContent=t;}
 async function cloudPull(){
   if(!API_URL||!API_KEY){cloudStatus('☁ 尚未設定密碼：按右上角 ⚙ 輸入一次，手機和電腦就會自動同步持股');return;}
   try{
     const j=await api({a:'load',k:API_KEY}),d=j.data;
     if(d&&d.positions&&(d._ts||0)>(S._ts||0)){
-      S.positions=d.positions;S.plans=d.plans||[];S.notes=d.notes||[];S.history=d.history||[];S.water=d.water||S.water;S.stratNotes=d.stratNotes||{};S._ts=d._ts;
+      S.positions=d.positions;S.plans=d.plans||[];S.notes=d.notes||[];S.history=d.history||[];S.water=d.water||S.water;S.stratNotes=d.stratNotes||{};S.cashLog=d.cashLog||[];S._ts=d._ts;fillWaterInputs();renderCashLog();
       _lastSig=dataSig();_origSave();renderPositions();renderStats();renderAlerts();calcWater();renderNotes();loadSignals();
       cloudStatus('☁ 已從雲端更新 '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}));
     }else{_lastSig=dataSig();if((S._ts||0)>(d&&d._ts||0))cloudPush();else cloudStatus('☁ 已同步');}
@@ -1304,7 +1317,7 @@ async function cloudPull(){
 }
 async function cloudPush(){
   if(!API_URL||!API_KEY||_syncing)return;_syncing=true;
-  try{await apiPost({a:'save',k:API_KEY,data:{positions:S.positions,plans:S.plans,notes:S.notes,history:S.history,water:S.water,stratNotes:S.stratNotes,windLog:[],_ts:S._ts,_updated:new Date().toLocaleString('zh-TW')}});
+  try{await apiPost({a:'save',k:API_KEY,data:{positions:S.positions,plans:S.plans,notes:S.notes,history:S.history,water:S.water,stratNotes:S.stratNotes,cashLog:S.cashLog||[],windLog:[],_ts:S._ts,_updated:new Date().toLocaleString('zh-TW')}});
     cloudStatus('☁ 已同步 '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'}));}
   catch(e){cloudStatus('☁ 同步失敗：'+e.message);}
   _syncing=false;
@@ -1489,6 +1502,41 @@ async function loadCodes(){
       if(j.map&&Object.keys(j.map).length>500){applyCodes(j.map);try{localStorage.setItem('fz_codes',JSON.stringify({d:today,m:j.map}));}catch(e){}}}catch(e){}
   }
   CAND_SRC='';if(candData){try{renderCandidates();}catch(e){}}renderOverview();
+}
+
+// ── 帳戶資金進出（薪水匯入、轉出）──────────────────── CLAUDE
+function fillWaterInputs(){const a=document.getElementById('w-hn'),b=document.getElementById('w-kg');if(a)a.value=S.water.hn||'';if(b)b.value=S.water.kg||'';}
+function addCashFlow(){
+  const acct=document.getElementById('cf-acct').value,dir=document.getElementById('cf-dir').value;
+  const amt=parseFloat(document.getElementById('cf-amt').value);
+  const msg=document.getElementById('cf-msg');
+  if(!amt||amt<=0){msg.textContent='請輸入金額';return;}
+  const key=acct==='凱基'?'kg':'hn',signed=dir==='out'?-amt:amt;
+  S.water[key]=Math.round(((S.water[key]||0)+signed)*100)/100;
+  if(!S.cashLog)S.cashLog=[];
+  S.cashLog.unshift({id:Date.now(),date:document.getElementById('cf-date').value||new Date().toISOString().slice(0,10),acct,amt:signed,note:document.getElementById('cf-note').value.trim(),after:S.water[key]});
+  document.getElementById('cf-amt').value='';document.getElementById('cf-note').value='';
+  msg.textContent=`✅ ${acct} ${signed>0?'存入':'轉出'} ${amt.toLocaleString()}，現在 ${S.water[key].toLocaleString()} 元`;
+  fillWaterInputs();save();calcWater();renderCashLog();
+}
+function undoCashFlow(id){
+  const i=(S.cashLog||[]).findIndex(x=>x.id===id);if(i<0)return;
+  const e=S.cashLog[i],key=e.acct==='凱基'?'kg':'hn';
+  S.water[key]=Math.round(((S.water[key]||0)-e.amt)*100)/100;S.cashLog.splice(i,1);
+  fillWaterInputs();save();calcWater();renderCashLog();
+  const msg=document.getElementById('cf-msg');if(msg)msg.textContent=`↩ 已撤銷，${e.acct} 現在 ${S.water[key].toLocaleString()} 元`;
+}
+function renderCashLog(){
+  const el=document.getElementById('cash-log');if(!el)return;
+  const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const L=(S.cashLog||[]).slice(0,30);
+  el.innerHTML=L.length?L.map(e=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--bdr);font-size:13px">
+      <span style="color:var(--txt3);white-space:nowrap">${esc(e.date)}</span>
+      <span style="white-space:nowrap">${esc(e.acct)}</span>
+      <b style="white-space:nowrap;color:${e.amt>0?'var(--sf)':'var(--nw)'}">${e.amt>0?'+':''}${Math.round(e.amt).toLocaleString()}</b>
+      <span style="flex:1;color:var(--txt2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.note)}</span>
+      <button onclick="undoCashFlow(${e.id})" style="border:1px solid var(--bdr2);background:var(--bg2);color:var(--txt2);border-radius:6px;padding:3px 8px;font-size:12px;cursor:pointer;white-space:nowrap">↩ 撤銷</button></div>`).join('')
+    :'<div style="font-size:12px;color:var(--txt3);padding-top:6px">還沒有紀錄</div>';
 }
 
 // ── 試算表同步（讀 GitHub wind.json，無CORS問題） ─────────
@@ -3028,6 +3076,7 @@ renderDate();
 S.positions.forEach(p=>{if(p.name==='尖點'&&p.code==='6117')p.code='8021';});
 setWind(S.wind,true);
 if(S.water.hn)document.getElementById('w-hn').value=S.water.hn;
+try{renderCashLog();}catch(e){}
 if(S.water.kg)document.getElementById('w-kg').value=S.water.kg;
 document.getElementById('e-add-date').value=new Date().toISOString().split('T')[0];
 renderStats();renderAlerts();renderNotes();renderPositions();renderPlans();renderStrat();calcWater();
