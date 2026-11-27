@@ -1,7 +1,9 @@
 {
   "date": "2026/11/25",
   "wind": "陣風",
-  "worker_strong_week": [],
+  "worker_strong_week": [
+    "1"
+  ],
   "worker_week_trend": [],
   "boss_week_pullback": [
     "智聯服務"
@@ -15,14 +17,15 @@
     "台達電",
     "台光電",
     "欣興",
-    "景碩",
-    "台玻"
+    "景碩"
   ],
   "recent": [
     {
       "date": "2026/11/25",
       "wind": "陣風",
-      "worker_strong_week": [],
+      "worker_strong_week": [
+        "1"
+      ],
       "worker_week_trend": [],
       "boss_week_pullback": [
         "智聯服務"
@@ -36,14 +39,15 @@
         "台達電",
         "台光電",
         "欣興",
-        "景碩",
-        "台玻"
+        "景碩"
       ]
     },
     {
       "date": "2026/11/24",
       "wind": "陣風",
-      "worker_strong_week": [],
+      "worker_strong_week": [
+        "1"
+      ],
       "worker_week_trend": [],
       "boss_week_pullback": [],
       "boss_cheap_buy": [],
@@ -52,14 +56,15 @@
         "力旺",
         "藥華藥",
         "華碩",
-        "鴻海",
-        "日月光投控"
+        "鴻海"
       ]
     },
     {
       "date": "2026/11/23",
       "wind": "無風",
-      "worker_strong_week": [],
+      "worker_strong_week": [
+        "1"
+      ],
       "worker_week_trend": [],
       "boss_week_pullback": [],
       "boss_cheap_buy": [],
@@ -68,14 +73,15 @@
         "創意",
         "台達電",
         "景碩",
-        "台光電",
-        "欣興"
+        "台光電"
       ]
     },
     {
       "date": "2026/11/20",
       "wind": "無風",
-      "worker_strong_week": [],
+      "worker_strong_week": [
+        "2"
+      ],
       "worker_week_trend": [
         "大國鋼"
       ],
@@ -86,14 +92,15 @@
         "國巨",
         "台達電",
         "日月光投控",
-        "南亞科",
-        "鴻海"
+        "南亞科"
       ]
     },
     {
       "date": "2026/11/19",
       "wind": "無風",
-      "worker_strong_week": [],
+      "worker_strong_week": [
+        "3"
+      ],
       "worker_week_trend": [
         "大國鋼"
       ],
@@ -106,14 +113,15 @@
         "台達電",
         "世芯-KY",
         "國巨",
-        "南亞科",
-        "日月光投控"
+        "南亞科"
       ]
     },
     {
       "date": "2026/11/18",
       "wind": "無風",
-      "worker_strong_week": [],
+      "worker_strong_week": [
+        "3"
+      ],
       "worker_week_trend": [
         "大國鋼",
         "碩天"
@@ -129,14 +137,14 @@
         "景碩",
         "創意",
         "欣興",
-        "台光電",
-        "台達電"
+        "台光電"
       ]
     },
     {
       "date": "2026/11/17",
       "wind": "無風",
       "worker_strong_week": [
+        "7",
         "台玻"
       ],
       "worker_week_trend": [
@@ -153,8 +161,7 @@
         "台達電",
         "創意",
         "欣興",
-        "國巨",
-        "台光電"
+        "國巨"
       ]
     }
   ]
