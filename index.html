@@ -1119,6 +1119,9 @@ function stratKey(s){
   if(s.includes('老闆'))return'B1';
   return'';
 }
+// 試算表的顏色：上班族 #ff9900、老闆 #0dd2a5、成值 #666666；打工型試算表沒有，用深黃
+const XC={W:'#ff9900',B:'#0dd2a5',V:'#666666',D:'#c99700'};
+const skColor=sk=>XC[(sk||'')[0]]||'var(--txt2)';
 const SK_NAME={D1:'打工型日拉回',D2:'打工型強勢日',W1:'上班族週趨勢',W2:'上班族強勢週',B1:'老闆型週拉回',B2:'老闆型廉價收購',S:'存股'};
 function windCycle(){
   const L=(S.windLog||[]).slice(-10);if(!L.length)return'循環交界';
@@ -1669,9 +1672,9 @@ async function loadCandidates(){
 function setCandTab(tab){
   candTab=tab;
   const styles={
-    worker:{active:{border:'1.5px solid #f6ad55',bg:'rgba(246,173,85,0.15)',color:'#f6ad55'},inactive:{border:'1px solid var(--bdr2)',bg:'var(--bg3)',color:'var(--txt3)'}},
-    boss:{active:{border:'1.5px solid #63b3ed',bg:'rgba(99,179,237,0.12)',color:'#63b3ed'},inactive:{border:'1px solid var(--bdr2)',bg:'var(--bg3)',color:'var(--txt3)'}},
-    top6:{active:{border:'1.5px solid var(--grn)',bg:'rgba(62,207,142,0.1)',color:'var(--grn)'},inactive:{border:'1px solid var(--bdr2)',bg:'var(--bg3)',color:'var(--txt3)'}},
+    worker:{active:{border:'1.5px solid #ff9900',bg:'#ff9900',color:'#fff'},inactive:{border:'1.5px solid #ff9900',bg:'var(--bg2)',color:'#ff9900'}},
+    boss:{active:{border:'1.5px solid #0dd2a5',bg:'#0dd2a5',color:'#fff'},inactive:{border:'1.5px solid #0dd2a5',bg:'var(--bg2)',color:'#0dd2a5'}},
+    top6:{active:{border:'1.5px solid #666666',bg:'#666666',color:'#fff'},inactive:{border:'1.5px solid #666666',bg:'var(--bg2)',color:'#666666'}},
   };
   ['worker','boss','top6'].forEach(t=>{
     const b=document.getElementById('ctab-'+t);if(!b)return;
@@ -1703,8 +1706,8 @@ function renderCandidates(){
       const sc=s.strat;
       const isWorker=sc.includes('強勢')||sc.includes('週趨勢');
       const isBoss=sc.includes('拉回')||sc.includes('廉價');
-      const badgeC=isWorker?'#f6ad55':isBoss?'#63b3ed':'var(--grn)';
-      const badgeBg=isWorker?'rgba(246,173,85,0.12)':isBoss?'rgba(99,179,237,0.1)':'rgba(62,207,142,0.1)';
+      const badgeC='#fff';
+      const badgeBg=isWorker?'#ff9900':isBoss?'#0dd2a5':'#666666';
       const tid='tech-'+s.name.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g,'_');
       return `<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;padding:11px 14px;margin-bottom:8px;cursor:pointer" onclick="loadCandTech('${s.name}','${code}','${s.strat}','${tid}')">
         <div style="display:flex;align-items:center;justify-content:space-between">
@@ -1733,9 +1736,8 @@ async function evalCandidates(){
       try{const x=indicators(await getBars(code));
         if(!x){el.textContent='抓不到K線';continue;}
         const f=fitPersonas(x),ok=f.filter(z=>z.ok);
-        el.innerHTML=(ok.length?`<span style="font-weight:700;color:var(--grn)">符合：${ok.map(z=>SK_NAME[z.sk]).join('、')}</span>`:`<span style="font-weight:700;color:var(--txt2)">目前沒有符合的人格</span>`)
-          +` <span style="color:var(--txt3)">｜現價 ${x.price}｜5日 ${x.ma5.toFixed(1)}・月線 ${x.ma20.toFixed(1)}</span><br>`
-          +f.map(z=>`<span style="color:${z.ok?'var(--grn)':'var(--txt3)'}">${z.ok?'✓':'✗'} ${SK_NAME[z.sk]}：${z.why}</span>`).join('<br>');}
+        el.innerHTML=(ok.length?ok.map(z=>`<div><b style="color:${skColor(z.sk)}">✓ ${SK_NAME[z.sk]}</b> <span style="color:var(--txt2)">${z.why}</span></div>`).join(''):`<span style="color:var(--txt3)">目前沒有符合的人格</span>`)
+          +`<div style="color:var(--txt3);font-size:11px;margin-top:2px">現價 ${x.price}｜5日 ${x.ma5.toFixed(1)}・月線 ${x.ma20.toFixed(1)}</div>`;}
       catch(e){el.textContent='';}
       continue;
     }
@@ -1744,7 +1746,7 @@ async function evalCandidates(){
     try{
       const x=indicators(await getBars(code));
       const r=entryRules(sk,x,label),v=verdictOf(r);
-      el.innerHTML=`<span style="font-weight:700;color:${v.c}">${v.t==='續抱／觀望'?'觀望':v.t}</span> <span style="color:var(--txt3)">（${label}${x?`｜現價 ${x.price}`:''}）</span><br>`+r.map(z=>`• ${z.t}`).join('<br>');
+      el.innerHTML=`<span style="font-weight:700;color:${v.c}">${v.t==='續抱／觀望'?'觀望':v.t}</span> <b style="color:${skColor(sk)}">${label}</b> <span style="color:var(--txt3)">${x?`｜現價 ${x.price}`:''}</span><br>`+r.map(z=>`<span style="color:var(--txt2)">• ${z.t}</span>`).join('<br>');
     }catch(e){el.textContent='判斷失敗：'+e.message;}
   }
 }
