@@ -1119,8 +1119,8 @@ function stratKey(s){
   if(s.includes('老闆'))return'B1';
   return'';
 }
-// 試算表的顏色：上班族 #ff9900、老闆 #0dd2a5、成值 #666666；打工型試算表沒有，用深黃
-const XC={W:'#ff9900',B:'#0dd2a5',V:'#666666',D:'#c99700'};
+// 試算表的顏色：上班族 #ff9900、老闆 #0dd2a5、成值 #666666；打工型試算表沒有，用紫色
+const XC={W:'#ff9900',B:'#0dd2a5',V:'#666666',D:'#7c3aed'};
 const skColor=sk=>XC[(sk||'')[0]]||'var(--txt2)';
 const SK_NAME={D1:'打工型日拉回',D2:'打工型強勢日',W1:'上班族週趨勢',W2:'上班族強勢週',B1:'老闆型週拉回',B2:'老闆型廉價收購',S:'存股'};
 function windCycle(){
