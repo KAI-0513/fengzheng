@@ -1728,11 +1728,12 @@ async function autoWind(){
     // 重建風度紀錄：統一日期格式、去重。優先序：試算表 > 自動計算 > 舊紀錄
     const _nd=d=>{const m=String(d).match(/(\d{4})\D(\d{1,2})\D(\d{1,2})/);return m?`${m[1]}/${m[2].padStart(2,'0')}/${m[3].padStart(2,'0')}`:null;};
     const _fin=new Map();
-    S.windLog.forEach(l=>{const d=_nd(l.date);if(d&&!l.auto&&!_fin.has(d))_fin.set(d,{date:d,wind:l.wind});});
+    // 舊紀錄只留試算表最後一天以前的；之後的日子只認自動計算，避免殘留的手動風度蓋掉當天風度
+    S.windLog.forEach(l=>{const d=_nd(l.date);if(d&&!l.auto&&d<=lastSheet&&!_fin.has(d))_fin.set(d,{date:d,wind:l.wind});});
     S.windLog.forEach(l=>{const d=_nd(l.date);if(d&&l.auto&&d>lastSheet)_fin.set(d,{date:d,wind:l.wind,auto:1});});
     sheetMap.forEach((w,d)=>_fin.set(d,{date:d,wind:w}));
     S.windLog=[..._fin.values()].sort((a,b)=>a.date.localeCompare(b.date));
-    const latest=S.windLog.at(-1);
+    const latest=noteWindToday();
     if(latest)setWind(latest.wind,true);
     save();
     msgs.push(windCycle());renderOverview();
@@ -1761,8 +1762,8 @@ async function syncSheetOld(){
       } else {S.windLog.push(l);added++;}
     });
     S.windLog.sort((a,b)=>a.date.localeCompare(b.date));
-    const latest=S.windLog[S.windLog.length-1];
-    if(latest)setWind(latest.wind);
+    const latest=noteWindToday();
+    if(latest)setWind(latest.wind,true);
     save();
     if(status)status.textContent=`✅ 同步成功！共${S.windLog.length}筆，最新：${latest?.date} ${S.wind}｜🕒 同步 ${syncStamp()}`;
     setWindView(windView||'d');
@@ -3221,11 +3222,10 @@ function deleteNote(i){
 
 // ── 初始化 ────────────────────────────────────────────────
 load();
-// 從 windLog 最新一筆（過濾未來日期）設定 S.wind
+// 當天風度（今天還沒有就用最近交易日，過濾未來日期）設定 S.wind
 (function(){
-  const today=new Date().toISOString().split('T')[0].replace(/-/g,'/');
-  const logs=(S.windLog||[]).filter(l=>l&&l.date&&l.date.replace(/-/g,'/')<=today).sort((a,b)=>a.date.localeCompare(b.date));
-  if(logs.length){S.wind=logs[logs.length-1].wind;}
+  const e=noteWindToday();
+  if(e)S.wind=e.wind;
 })();
 renderDate();
 S.positions.forEach(p=>{if(p.name==='尖點'&&p.code==='6117')p.code='8021';});
