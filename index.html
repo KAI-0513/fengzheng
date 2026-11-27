@@ -3003,12 +3003,16 @@ function renderStrat(){
   document.getElementById('strat-wind-note').className='alert '+wc;
   document.getElementById('strat-wind-note').textContent=wn;
   const el=document.getElementById('strat-content');
-  el.innerHTML=Object.keys(STRAT_DEF).map((k,i)=>{
-    const d=STRAT_DEF[k];const ns=S.stratNotes[k]||[];
-    return `<div class="strat-block">
+  // 順序：打工 → 上班族 → 老闆 → 存股；顏色和候選股分頁一致
+  const ORDER=['打工型強勢日','打工型日拉回','上班族強勢週','上班族週趨勢','老闆型廉價收購','老闆型週拉回','存股'];
+  const keys=[...ORDER.filter(k=>STRAT_DEF[k]),...Object.keys(STRAT_DEF).filter(k=>!ORDER.includes(k))];
+  const colorOf=k=>k.startsWith('打工')?'#7c3aed':k.startsWith('上班族')?'#ff9900':k.startsWith('老闆')?'#0dd2a5':'#666666';
+  el.innerHTML=keys.map((k,i)=>{
+    const d=STRAT_DEF[k];const ns=S.stratNotes[k]||[];const col=colorOf(k);
+    return `<div class="strat-block" style="border-left:4px solid ${col}">
       <div class="strat-header" onclick="toggleStrat(${i})">
         <div class="strat-hL"><span class="strat-emoji">${d.emoji}</span>
-        <div><div class="strat-name">${k}</div><div class="strat-sub">${d.sub}</div></div></div>
+        <div><div class="strat-name" style="color:${col}">${k}</div><div class="strat-sub">${d.sub}</div></div></div>
         <span class="strat-arr" id="sa-${i}">›</span>
       </div>
       <div class="strat-body" id="sb-${i}">
