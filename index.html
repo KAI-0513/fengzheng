@@ -3043,10 +3043,8 @@ function renderStrat(){
 // ── 快速筆記 ─────────────────────────────────────────────
 function saveNote(){
   const t=document.getElementById('note-input').value.trim();if(!t)return;
-  // 取今日風度（先從windLog找，沒有就從下拉取）
-  const todayStr=new Date().toLocaleDateString('zh-TW').replace(/\//g,'/');
-  const todayEntry=S.windLog?S.windLog.find(l=>l.date===todayStr):null;
-  const noteWind=todayEntry?todayEntry.wind:(document.getElementById('note-wind-sel')?document.getElementById('note-wind-sel').value:'');
+  // 當天風度（今天還沒有就用最近一個交易日）
+  const noteWind=(noteWindToday()||{}).wind||'';
   S.notes.unshift({id:Date.now(),text:t,wind:noteWind,date:new Date().toLocaleDateString('zh-TW')+' '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})});
   if(S.notes.length>30)S.notes=S.notes.slice(0,30);
   document.getElementById('note-input').value='';save();renderNotes();
@@ -3178,32 +3176,24 @@ const WIND_STYLE={
   '亂流':{c:'#86efb8',bg:'#092a16',bdr:'rgba(134,239,184,.45)'},
   '無風':{c:'#1db954',bg:'#052e14',bdr:'#1db954'},
 };
+// 當天風度：風度紀錄裡日期 ≤ 今天的最新一筆（今天還沒有就用最近一個交易日）
+function noteWindToday(){
+  const nd=d=>{const m=String(d||'').match(/(\d{4})\D(\d{1,2})\D(\d{1,2})/);return m?`${m[1]}/${m[2].padStart(2,'0')}/${m[3].padStart(2,'0')}`:null;};
+  const now=new Date();
+  const today=`${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}`;
+  let best=null;
+  (S.windLog||[]).forEach(l=>{const d=l&&nd(l.date);if(d&&d<=today&&l.wind&&(!best||d>best.date))best={date:d,wind:l.wind};});
+  return best?{...best,isToday:best.date===today}:null;
+}
 function renderNoteWind(){
   const el=document.getElementById('note-wind-display');
   if(!el)return;
-  const now=new Date();
-  const todayISO=`${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}`;
-  const todayEntry=(S.windLog||[]).find(l=>l&&l.date===todayISO)||null;
-  if(todayEntry){
-    const w=todayEntry.wind;const ws=WIND_STYLE[w]||WIND_STYLE['強風'];
-    el.innerHTML=`<div class="wind-badge w-${w}"><span style="width:9px;height:9px;border-radius:50%;background:${ws.c};flex-shrink:0;display:inline-block"></span>${w}</div>`;
-  } else {
-    const cur=S.wind||'強風';
-    const winds=['強風','陣風','亂流','無風'];
-    // 每個 option 用各自的顏色（select 本體跟著目前選項變色）
-    const ws=WIND_STYLE[cur]||WIND_STYLE['強風'];
-    const opts=winds.map(w=>{
-      const s=WIND_STYLE[w];
-      return `<option value="${w}"${w===cur?' selected':''}
-        style="background:${s.bg};color:${s.c}">${w}</option>`;
-    }).join('');
-    el.innerHTML=`<select id="note-wind-sel" onchange="updateNoteWindColor(this)"
-      style="background:${ws.bg};border:1.5px solid ${ws.bdr};border-radius:8px;color:${ws.c};font-size:13px;font-weight:700;padding:4px 10px;outline:none">${opts}</select>`;
-  }
-}
-function updateNoteWindColor(sel){
-  const ws=WIND_STYLE[sel.value]||WIND_STYLE['強風'];
-  sel.style.background=ws.bg;sel.style.borderColor=ws.bdr;sel.style.color=ws.c;
+  const e=noteWindToday();
+  if(!e){el.innerHTML='<span style="font-size:12px;color:var(--txt2)">尚未同步風度</span>';return;}
+  const w=e.wind;const ws=WIND_STYLE[w]||WIND_STYLE['強風'];
+  const md=e.date.slice(5).replace(/^0/,'').replace('/0','/');
+  const tag=e.isToday?'':`<span style="font-size:11px;color:var(--txt2);margin-left:6px">（${md}）</span>`;
+  el.innerHTML=`<div style="display:flex;align-items:center"><div class="wind-badge w-${w}"><span style="width:9px;height:9px;border-radius:50%;background:${ws.c};flex-shrink:0;display:inline-block"></span>${w}</div>${tag}</div>`;
 }
 
 // ── 筆記編輯函式 ──────────────────────────────────────────
