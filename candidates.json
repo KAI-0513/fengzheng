@@ -1,14 +1,35 @@
 {
-  "date": "2026/11/26",
+  "date": "2026/11/27",
   "wind": "陣風",
   "worker_strong_week": [
-    "1"
+    "2"
   ],
-  "worker_week_trend": [],
-  "boss_week_pullback": [],
+  "worker_week_trend": [
+    "南電",
+    "台光電"
+  ],
+  "boss_week_pullback": [
+    "群聯"
+  ],
   "boss_cheap_buy": [],
   "top6_volume": [],
   "recent": [
+    {
+      "date": "2026/11/27",
+      "wind": "陣風",
+      "worker_strong_week": [
+        "2"
+      ],
+      "worker_week_trend": [
+        "南電",
+        "台光電"
+      ],
+      "boss_week_pullback": [
+        "群聯"
+      ],
+      "boss_cheap_buy": [],
+      "top6_volume": []
+    },
     {
       "date": "2026/11/26",
       "wind": "陣風",
@@ -83,23 +104,6 @@
       ],
       "top6_volume": [
         "雷笛克光學"
-      ]
-    },
-    {
-      "date": "2026/11/18",
-      "wind": "無風",
-      "worker_strong_week": [
-        "3"
-      ],
-      "worker_week_trend": [],
-      "boss_week_pullback": [],
-      "boss_cheap_buy": [
-        "大國鋼",
-        "碩天"
-      ],
-      "top6_volume": [
-        "騰輝電子-KY",
-        "視陽"
       ]
     }
   ]
