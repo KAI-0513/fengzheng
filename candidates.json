@@ -1,5 +1,5 @@
 {
-  "date": "2026/11/25",
+  "date": "2026/11/26",
   "wind": "陣風",
   "worker_strong_week": [
     "1"
@@ -7,12 +7,19 @@
   "worker_week_trend": [],
   "boss_week_pullback": [],
   "boss_cheap_buy": [],
-  "top6_volume": [
-    "智聯服務",
-    "禾榮科",
-    "智聯服務"
-  ],
+  "top6_volume": [],
   "recent": [
+    {
+      "date": "2026/11/26",
+      "wind": "陣風",
+      "worker_strong_week": [
+        "1"
+      ],
+      "worker_week_trend": [],
+      "boss_week_pullback": [],
+      "boss_cheap_buy": [],
+      "top6_volume": []
+    },
     {
       "date": "2026/11/25",
       "wind": "陣風",
@@ -89,24 +96,6 @@
       "boss_cheap_buy": [
         "大國鋼",
         "碩天"
-      ],
-      "top6_volume": [
-        "騰輝電子-KY",
-        "視陽"
-      ]
-    },
-    {
-      "date": "2026/11/17",
-      "wind": "無風",
-      "worker_strong_week": [
-        "7"
-      ],
-      "worker_week_trend": [],
-      "boss_week_pullback": [
-        "台玻"
-      ],
-      "boss_cheap_buy": [
-        "大國鋼"
       ],
       "top6_volume": [
         "騰輝電子-KY",
