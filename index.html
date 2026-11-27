@@ -33,7 +33,9 @@ html[data-theme=light]{
   --gf:#d9534f;--gf-bg:#fff0ef;--gf-bdr:rgba(217,83,79,.5);
   --lt:#12a150;--lt-bg:#e5f7ed;--lt-bdr:rgba(18,161,80,.45);
   --nw:#0b8a3e;--nw-bg:#e1f4e8;--nw-bdr:#0b8a3e;
+  --wd-mid:#c3cad6;--wd-hub:#ffffff;
 }
+:root:not([data-theme=light]){--wd-mid:#ffffff;--wd-hub:#111111}
 html[data-theme=light] .header{background:#1240e0;color:#fff;border-bottom:0}
 html[data-theme=light] .header *{color:#fff}
 html[data-theme=light] .header .wind-badge,html[data-theme=light] .header .water-pill,html[data-theme=light] .header button{background:rgba(255,255,255,.16)!important;border-color:rgba(255,255,255,.45)!important}
@@ -226,6 +228,19 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .streak-name{font-size:13px;font-weight:600}
 .streak-detail{font-size:11px;color:var(--txt2);margin-top:2px}
 .streak-days{font-size:22px;font-weight:800;color:var(--txt)}
+/* 風度循環（儀表板＋歷史線圖） */
+.wd-seg{display:flex;gap:4px}
+.wd-seg button,.wd-pill{padding:4px 10px;font-size:11px;font-weight:600;border-radius:6px;border:1px solid var(--bdr2);background:var(--bg3);color:var(--txt2);cursor:pointer}
+.wd-seg button.on,.wd-pill.on{background:var(--sf);border-color:var(--sf);color:#000}
+.wd-head{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px}
+.wd-head .box{background:var(--bg3);border-radius:8px;padding:6px 10px}
+.wd-head .lbl{font-size:11px;color:var(--txt3)}
+.wd-head .val{font-size:18px;font-weight:800}
+.wd-legend{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;font-size:11px;color:var(--txt2);margin:4px 0}
+.wd-legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:3px;vertical-align:middle}
+.wd-legend b{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:3px;vertical-align:middle}
+.wd-note{font-size:12px;color:var(--txt2);line-height:1.6;margin-top:6px}
+.wd-note div{padding:4px 0;border-top:1px solid var(--bdr2)}
 </style>
 </head>
 <body>
@@ -282,17 +297,17 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       <div id="sheet-sync-status" style="font-size:11px;color:var(--txt3);margin-top:6px"></div>
       <div id="sync-status" style="font-size:11px;color:var(--txt2);margin-top:2px"></div>
     </div>
-    <div class="card" id="wind-stat-card">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <div style="display:flex;align-items:center;gap:8px">
-          <div class="card-title" style="margin-bottom:0">風度統計</div>
-        </div>
-        <div style="display:flex;gap:4px">
-          <button id="wv-d" onclick="setWindView('d')" style="padding:4px 10px;font-size:11px;font-weight:600;border-radius:6px;border:1px solid var(--sf);background:var(--sf);color:#000;cursor:pointer">日</button>
-          <button id="wv-m" onclick="setWindView('m')" style="padding:4px 10px;font-size:11px;font-weight:600;border-radius:6px;border:1px solid var(--bdr2);background:var(--bg3);color:var(--txt2);cursor:pointer">年</button>
+    <div class="card" id="wind-dash-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="card-title" style="margin-bottom:0">風度循環</div>
+        <div class="wd-seg">
+          <button id="wdt-g" onclick="setWindDashTab('g')">風度儀表板</button>
+          <button id="wdt-h" onclick="setWindDashTab('h')">歷史線圖</button>
         </div>
       </div>
-      <div id="wind-stat-content"></div>
+      <div id="wind-dash-head" class="wd-head"></div>
+      <div id="wind-dash-body"><div class="empty" style="padding:12px">載入中…</div></div>
+      <div id="wind-dash-foot" style="font-size:11px;color:var(--txt3);margin-top:6px"></div>
     </div>
     <div class="card"><div class="card-title">今日提醒</div><div id="alerts-container"><div class="empty">目前無特別提醒 🎉</div></div></div>
     <div class="card">
@@ -337,7 +352,8 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     <div id="cand-date-row" style="font-size:11px;color:var(--txt3);margin-bottom:10px"></div>
     <!-- 人格切換 -->
     <div style="display:flex;gap:6px;margin-bottom:12px">
-      <button onclick="setCandTab('worker')" id="ctab-worker" style="flex:1;padding:7px;font-size:12px;font-weight:700;border-radius:8px;border:1.5px solid #f6ad55;background:rgba(246,173,85,0.15);color:#f6ad55;cursor:pointer">上班族型</button>
+      <button onclick="setCandTab('parttime')" id="ctab-parttime" style="flex:1;padding:7px;font-size:12px;font-weight:700;border-radius:8px;border:1.5px solid #7c3aed;background:#7c3aed;color:#fff;cursor:pointer">打工型</button>
+      <button onclick="setCandTab('worker')" id="ctab-worker" style="flex:1;padding:7px;font-size:12px;font-weight:700;border-radius:8px;border:1px solid var(--bdr2);background:var(--bg3);color:var(--txt3);cursor:pointer">上班族型</button>
       <button onclick="setCandTab('boss')" id="ctab-boss" style="flex:1;padding:7px;font-size:12px;font-weight:700;border-radius:8px;border:1px solid var(--bdr2);background:var(--bg3);color:var(--txt3);cursor:pointer">老闆型</button>
       <button onclick="setCandTab('top6')" id="ctab-top6" style="flex:1;padding:7px;font-size:12px;font-weight:700;border-radius:8px;border:1px solid var(--bdr2);background:var(--bg3);color:var(--txt3);cursor:pointer">成值TOP6</button>
     </div>
@@ -1022,6 +1038,151 @@ function renderWindStat(){
   el.innerHTML=html;
 }
 
+// ── 風度循環：儀表板＋歷史線圖（取代舊「風度統計」卡）──────────
+// 資料：中繼 a=wind（櫃買/加權每日收盤、月線 ma20、當日風度），盤中用 a=quote 的指數即時價蓋掉今天。
+// 循環與指針是用「指數離月線多遠」估算的，和放風箏 APP 的演算法不一定完全相同。
+const WD={tab:'g',idx:'otc',range:22,series:null,live:{},time:''};
+const WD_BAND=0.03;   // 月線上下 3% 當作循環交界的上下緣
+const WD_SPAN=0.06;   // 指針滿格 = 離月線 ±6%
+const WD_DOT={'強風':'var(--sf)','陣風':'var(--gf)','亂流':'var(--lt)','無風':'var(--nw)'};
+function wdToday(){const t=new Date();return t.getFullYear()+'/'+String(t.getMonth()+1).padStart(2,'0')+'/'+String(t.getDate()).padStart(2,'0');}
+// 取某指數的序列，盤中即時價蓋掉/補上今天
+function wdRows(k){
+  const base=((WD.series&&WD.series[k])||[]).map(r=>Object.assign({},r));
+  const lv=WD.live[k];
+  if(lv&&lv.p&&base.length){
+    const td=wdToday(),d=new Date().getDay();
+    if(d>=1&&d<=5){
+      let last=base[base.length-1];
+      if(last.date!==td){last={date:td,wind:'',close:lv.p,ma20:null};base.push(last);}
+      last.close=lv.p;
+      const c=base.slice(-20).map(r=>r.close);
+      last.ma20=Math.round(c.reduce((a,b)=>a+b,0)/c.length*100)/100;
+      last.live=1;
+    }
+  }
+  return base;
+}
+function wdDev(r){return r&&r.ma20?r.close/r.ma20-1:0;}
+function wdCycle(r){const v=wdDev(r);return v>=WD_BAND?'強風循環':v<=-WD_BAND?'無風循環':'循環交界';}
+function wdCycleColor(c){return c==='強風循環'?'var(--sf)':c==='無風循環'?'var(--nw)':'var(--txt)';}
+function wdPos(r){return Math.max(0,Math.min(1,0.5+wdDev(r)/(2*WD_SPAN)));}
+function setWindDashTab(t){WD.tab=t;renderWindDash();}
+function setWindDashIdx(k){WD.idx=k;renderWindDash();}
+function setWindDashRange(n){WD.range=n;renderWindDash();}
+
+function renderWindDash(){
+  const body=document.getElementById('wind-dash-body');if(!body)return;
+  ['g','h'].forEach(x=>{const b=document.getElementById('wdt-'+x);if(b)b.classList.toggle('on',WD.tab===x);});
+  const head=document.getElementById('wind-dash-head'),foot=document.getElementById('wind-dash-foot');
+  if(!WD.series||!(WD.series.otc||[]).length){
+    head.innerHTML='';body.innerHTML='<div class="empty" style="padding:12px">載入中…（需要資料中繼，按右上角 ⚙ 設定）</div>';return;
+  }
+  const otc=wdRows('otc'),tse=wdRows('tse'),lo=otc.at(-1),lt=tse.at(-1);
+  const box=(name,r)=>{const c=r?wdCycle(r):'-';return `<div class="box"><div class="lbl">${name}指數 風度循環</div>
+    <div class="val" style="color:${wdCycleColor(c)}">${c}</div>
+    <div class="lbl">${r?r.close.toLocaleString():''}（月線 ${r&&r.ma20?r.ma20.toLocaleString():'-'}）${r&&r.live?' 即時':''}</div></div>`;};
+  head.innerHTML=box('櫃買',lo)+box('加權',lt);
+  body.innerHTML=WD.tab==='g'?wdGauge(lo,lt):wdHistory();
+  const dt=(lo&&lo.live)?`即時 ${WD.time||''}`:`收盤 ${lo?lo.date:''}`;
+  foot.innerHTML=`資料：${dt}｜循環與指針依「指數離月線距離」估算（±${WD_BAND*100}% 為交界），可能與 APP 略有差異
+    <button class="wd-pill" style="margin-left:6px" onclick="windDashRefresh(this)">⟳ 更新</button>`;
+}
+
+function wdGauge(lo,lt){
+  const cx=160,cy=160,R=128,W=320,H=190;
+  const pt=(p,r)=>{const a=Math.PI*(1-p);return [cx+r*Math.cos(a),cy-r*Math.sin(a)];};
+  const cols=['#33d63a','#8ef07a','#c6f2bd','var(--wd-mid)','var(--wd-mid)','#ffbdbd','#ff6464','#ff1a1a'];
+  const n=cols.length,gap=0.012;
+  let arcs='';
+  cols.forEach((c,i)=>{
+    const a0=i/n+gap,a1=(i+1)/n-gap,[x0,y0]=pt(a0,R),[x1,y1]=pt(a1,R);
+    arcs+=`<path d="M${x0.toFixed(1)} ${y0.toFixed(1)} A${R} ${R} 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)}" style="stroke:${c}" stroke-width="13" fill="none" stroke-linecap="round"/>`;
+  });
+  let dots='';for(let i=0;i<=40;i++){const [x,y]=pt(i/40,R-20);dots+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6" fill="#8a8a8a"/>`;}
+  const needle=(p,len,w,color)=>{
+    const a=Math.PI*(1-p),tx=cx+len*Math.cos(a),ty=cy-len*Math.sin(a);
+    const nx=Math.sin(a)*w,ny=Math.cos(a)*w;
+    return `<polygon points="${(cx+nx).toFixed(1)},${(cy+ny).toFixed(1)} ${tx.toFixed(1)},${ty.toFixed(1)} ${(cx-nx).toFixed(1)},${(cy-ny).toFixed(1)}" fill="${color}"/>`;
+  };
+  const pO=lo?wdPos(lo):0.5,pT=lt?wdPos(lt):0.5;
+  return `<div style="text-align:center;font-size:12px;color:var(--txt2);line-height:1.5">
+      <span style="color:#f7a23b">▲ 櫃買</span> 指針為主，<span style="color:#19b5e8">▲ 加權</span> 為輔<br>指針往右：行情增溫／變好　指針往左：行情降溫／變差</div>
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:420px;display:block;margin:4px auto 0">
+      <text x="${cx}" y="16" text-anchor="middle" font-size="11" style="fill:var(--txt3)">循環交界</text>
+      ${arcs}${dots}
+      ${needle(pT,82,4,'#19b5e8')}${needle(pO,108,6,'#f7a23b')}
+      <circle cx="${cx}" cy="${cy}" r="9" style="fill:var(--wd-hub);stroke:var(--txt)" stroke-width="3"/>
+      <text x="${cx-R}" y="${cy+26}" text-anchor="middle" font-size="11" style="fill:var(--txt3)">無風循環</text>
+      <text x="${cx+R}" y="${cy+26}" text-anchor="middle" font-size="11" style="fill:var(--txt3)">強風循環</text>
+    </svg>
+    <div class="wd-legend"><span><i style="background:#f7a23b"></i>櫃買 ${lo?Math.round(pO*100)+'%':''}</span><span><i style="background:#19b5e8"></i>加權 ${lt?Math.round(pT*100)+'%':''}</span></div>
+    <div class="wd-note">
+      <div><span style="color:var(--sf)">●</span> 強風循環：漲勢延續性強，打工／上班族型策略勝率偏高</div>
+      <div><span style="color:var(--txt)">●</span> 循環交界：震盪區間，無明顯行情方向</div>
+      <div><span style="color:var(--nw)">●</span> 無風循環：漲勢延續性差，打工／上班多做多賠，老闆／成長／被動「低買」的好機會</div>
+    </div>`;
+}
+
+function wdHistory(){
+  const k=WD.idx,all=wdRows(k),rows=all.slice(-WD.range);
+  // 櫃買的點用試算表的正式風度（沒有才用自動計算），加權用自動計算
+  const sheet=new Map((S.windLog||[]).filter(l=>!l.auto).map(l=>[l.date,l.wind]));
+  const windOf=r=>(k==='otc'&&sheet.get(r.date))||r.wind||'';
+  const pills=(arr,cur,fn)=>arr.map(([v,t])=>`<button class="wd-pill${cur===v?' on':''}" onclick="${fn}(${typeof v==='string'?`'${v}'`:v})">${t}</button>`).join('');
+  let html=`<div style="display:flex;justify-content:center;gap:4px;margin:4px 0">${pills([['otc','櫃買'],['tse','加權']],k,'setWindDashIdx')}</div>
+    <div style="display:flex;justify-content:center;gap:4px;margin:4px 0">${pills([[22,'近1月'],[66,'近3月'],[130,'近6月'],[250,'近1年']],WD.range,'setWindDashRange')}</div>
+    <div class="wd-legend"><span><i style="background:var(--sf)"></i>強風</span><span><i style="background:var(--gf)"></i>陣風</span><span><i style="background:var(--lt)"></i>亂流</span><span><i style="background:var(--nw)"></i>無風</span>
+      <span>｜循環：</span><span><b style="background:rgba(255,34,34,.35)"></b>強風</span><span><b style="background:rgba(160,160,160,.35)"></b>交界</span><span><b style="background:rgba(29,185,84,.35)"></b>無風</span></div>`;
+  if(rows.length<2)return html+'<div class="empty" style="padding:12px">資料不足</div>';
+  if(all.length<WD.range)html+=`<div style="font-size:11px;color:var(--txt3);text-align:center">（中繼目前只提供 ${all.length} 個交易日）</div>`;
+  const W=640,H=330,L=8,Rr=52,T=12,B=30,pw=W-L-Rr,ph=H-T-B;
+  let mn=Infinity,mx=-Infinity;
+  rows.forEach(r=>{[r.close,r.ma20&&r.ma20*(1+WD_BAND),r.ma20&&r.ma20*(1-WD_BAND)].forEach(v=>{if(v){mn=Math.min(mn,v);mx=Math.max(mx,v);}});});
+  const pad=(mx-mn)*0.06||1;mn-=pad;mx+=pad;
+  const step=pw/rows.length,X=i=>L+step*(i+0.5),Y=v=>T+(mx-v)/(mx-mn)*ph;
+  const cyc={'強風循環':'rgba(255,34,34,.16)','循環交界':'rgba(160,160,160,.10)','無風循環':'rgba(29,185,84,.16)'};
+  let bg='';rows.forEach((r,i)=>{bg+=`<rect x="${(L+step*i).toFixed(1)}" y="${T}" width="${(step+0.6).toFixed(1)}" height="${ph}" fill="${cyc[wdCycle(r)]}"/>`;});
+  // 格線與右側刻度
+  let grid='';const nt=5;
+  for(let i=0;i<=nt;i++){const v=mn+(mx-mn)*i/nt,y=Y(v);grid+=`<line x1="${L}" x2="${L+pw}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,.08)"/><text x="${L+pw+6}" y="${(y+4).toFixed(1)}" font-size="11" fill="#b8c2bc">${v>=1000?Math.round(v).toLocaleString():v.toFixed(0)}</text>`;}
+  const poly=(f)=>rows.map((r,i)=>f(r)?`${X(i).toFixed(1)},${Y(f(r)).toFixed(1)}`:null).filter(Boolean).join(' ');
+  const ma=poly(r=>r.ma20),up=poly(r=>r.ma20&&r.ma20*(1+WD_BAND)),dn=poly(r=>r.ma20&&r.ma20*(1-WD_BAND)),cl=poly(r=>r.close);
+  const big=rows.length<=70;
+  const dots=rows.map((r,i)=>{const w=windOf(r);return `<circle cx="${X(i).toFixed(1)}" cy="${Y(r.close).toFixed(1)}" r="${big?3.6:2}" fill="${WD_DOT[w]||'#999'}"><title>${r.date} ${w||''} ${r.close}（月線 ${r.ma20}）${wdCycle(r)}</title></circle>`;}).join('');
+  // X 軸日期：約 5 個
+  let xl='';const every=Math.max(1,Math.round(rows.length/5));
+  rows.forEach((r,i)=>{if(i%every===0){xl+=`<text x="${X(i).toFixed(1)}" y="${H-10}" text-anchor="middle" font-size="11" fill="#b8c2bc">${r.date.slice(5)}</text>`;}});
+  html+=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block;background:#1b2a22;border-radius:8px">
+    ${bg}${grid}
+    <polyline points="${up}" fill="none" stroke="#8a9a90" stroke-width="1" stroke-dasharray="5,4"/>
+    <polyline points="${dn}" fill="none" stroke="#8a9a90" stroke-width="1" stroke-dasharray="5,4"/>
+    <polyline points="${ma}" fill="none" stroke="#f7a23b" stroke-width="2"/>
+    <polyline points="${cl}" fill="none" stroke="#fff" stroke-width="1.6"/>
+    ${dots}${xl}</svg>
+    <div style="font-size:11px;color:var(--txt3);margin-top:4px">白線：${k==='otc'?'櫃買':'加權'}指數收盤｜橘線：月線（20日）｜虛線：月線 ±${WD_BAND*100}%｜點色：${k==='otc'?'試算表風度':'自動計算風度'}</div>`;
+  return html;
+}
+
+// 指數即時價（跟股價一起刷新）：沒有持股時也會抓
+async function windDashQuote(j){
+  try{
+    if(!j)j=await api({a:'quote',codes:''});
+    WD.live={otc:j.q&&j.q.o00,tse:j.q&&j.q.t00};WD.time=(j.time||'').slice(11,16);
+  }catch(e){}
+  renderWindDash();
+}
+async function windDashLoad(){
+  try{WD.series=await api({a:'wind'});}catch(e){}
+  renderWindDash();
+}
+async function windDashRefresh(btn){
+  if(btn){btn.disabled=true;btn.textContent='⏳';}
+  await windDashLoad();
+  await fetchAllPrices();   // 有持股：股價和指數一起更新
+  await windDashQuote();    // 沒有持股時也確保指數是最新的
+}
+
 // ── 日期顯示 ────────────────────────────────────────────
 function renderDate(){
   const now=new Date();
@@ -1245,7 +1406,7 @@ async function loadSignals(){
 let CAND_V=[],CAND_SRC='';
 async function evalAllCands(){
   const d=candData;if(!d)return;resolveCandNames();
-  const groups=[['worker_strong_week','W2'],['worker_week_trend','W1'],['boss_week_pullback','B1'],['boss_cheap_buy','B2'],['top6_volume','FIT']];
+  const groups=[['worker_day_strong','D2'],['worker_day_pullback','D1'],['worker_strong_week','W2'],['worker_week_trend','W1'],['boss_week_pullback','B1'],['boss_cheap_buy','B2'],['top6_volume','FIT']];
   const out=[];
   for(const [k,sk] of groups)for(const name of (d[k]||[])){
     const code=(typeof STOCK_MAP_STATIC!=='undefined'&&STOCK_MAP_STATIC[name])||'';
@@ -1394,6 +1555,8 @@ function autoSk(code,name){
   const d=candData||{},has=k=>(d[k]||[]).includes(name);
   if(has('boss_week_pullback'))return['B1','今天候選・週拉回'];
   if(has('boss_cheap_buy'))return['B2','今天候選・廉價收購'];
+  if(has('worker_day_pullback'))return['D1','今天候選・日拉回'];
+  if(has('worker_day_strong'))return['D2','今天候選・強勢日'];
   if(has('worker_strong_week'))return['W2','今天候選・強勢週'];
   if(has('worker_week_trend'))return['W1','今天候選・週趨勢'];
   if(has('top6_volume'))return['D2','今天候選・成值排行'];
@@ -1487,7 +1650,7 @@ function applyCodes(m){
 function resolveCandNames(){   // 名稱寫法不同（例如「京元電」vs「京元電子」）時，用開頭比對，只對到一檔才採用
   if(!Object.keys(CODE_MAP).length)return;
   const d=candData||{},keys=Object.keys(CODE_MAP);
-  [].concat(d.worker_strong_week||[],d.worker_week_trend||[],d.boss_week_pullback||[],d.boss_cheap_buy||[],d.top6_volume||[]).forEach(n=>{
+  [].concat(d.worker_day_strong||[],d.worker_day_pullback||[],d.worker_strong_week||[],d.worker_week_trend||[],d.boss_week_pullback||[],d.boss_cheap_buy||[],d.top6_volume||[]).forEach(n=>{
     if(STOCK_MAP_STATIC[n])return;
     const hit=keys.filter(k=>k.startsWith(n)||n.startsWith(k));
     if(hit.length===1)STOCK_MAP_STATIC[n]=CODE_MAP[hit[0]];
@@ -1563,6 +1726,7 @@ async function autoWind(){
     // 2) 自動計算：只補試算表還沒填的日子（例如今天盤中）
     try{
       const j=await api({a:'wind'});
+      WD.series=j;
       let same=0,cmp=0,added=0;
       (j.otc||[]).forEach(r=>{
         if(sheetMap.has(r.date)){cmp++;if(sheetMap.get(r.date)===r.wind)same++;return;}
@@ -1583,7 +1747,7 @@ async function autoWind(){
     save();
     msgs.push(windCycle());renderOverview();
     if(status)status.textContent=msgs.join('｜');
-    setWindView(windView||'d');renderNoteWind();renderNotes();
+    setWindView(windView||'d');renderNoteWind();renderNotes();renderWindDash();
   }catch(e){
     if(status)status.textContent=`❌ 讀試算表失敗：${e.message}`;
   }
@@ -1724,7 +1888,7 @@ function setStratPills(boxId,val){
     onStratCheck(boxId,cb);
   });
 }
-let candData=null,candTab='worker';
+let candData=null,candTab='parttime';
 const STOCK_MAP_STATIC={'台積電':'2330','家登':'6598','京元電子':'2449','京元電':'2449','立敦':'6175','智通':'3332','金像電':'2368','台燿':'6274','松川精密':'5314','信邦':'3023','大銀微系統':'4140','博智電子':'8155','閎康科技':'3587','文曄科技':'3036','台光電子':'2383','鴻勁精密':'6803','竹德電子':'6234','鈺創':'5351','鴻海':'2317','聯發科':'2454','台達電':'2308','廣達':'2382','聯電':'2303','中華電':'2412','富邦金':'2881','國泰金':'2882','南亞':'1303','台塑':'1301','台化':'1326','中鋼':'2002','元大金':'2885','兆豐金':'2886','第一金':'2892','合庫金':'5880','玉山金':'2884','永豐金':'2890','台新金':'2887','中信金':'2891','開發金':'2883','華南金':'2880','台灣大':'3045','遠傳':'4904','欣興':'3037','景碩':'3189','臻鼎':'4958','台光電':'2383','南電':'8046','聯茂':'6213','華通':'2313','群聯':'8299','威剛':'3260','創見':'2451','宜鼎':'5289','信驊':'5274','祥碩':'5269','譜瑞':'4966','慧榮':'6286','南亞科':'2408','華邦電':'2344','旺宏':'2337','力積電':'6770','矽力':'6415','聯詠':'3034','瑞昱':'2379','智原':'3035','晶心科':'6533','日月光':'3711','京元電':'2449','欣銓':'3264','矽格':'6257','緯創':'3231','緯穎':'6669','英業達':'2356','仁寶':'2324','和碩':'4938','鴻準':'2354','奇鋐':'3017','建準':'2421','雙鴻':'3324','超眾':'6230','長榮':'2603','陽明':'2609','萬海':'2615','慧洋':'2637','長榮航':'2618','華航':'2610','國巨':'2327','禾伸堂':'3026','大毅':'2478','台半':'5425','強茂':'2481','杰力':'5299','中美晶':'5483','環球晶':'6488','合晶':'6182','嘉晶':'3016','漢磊':'3707','大立光':'3008','玉晶光':'3406','先進光':'3362','亞光':'3019','晶電':'2448','億光':'2393','璨圓':'3061','光磊':'2340','聯鈞':'3450','全新':'2455','宏捷科':'8086','智邦':'2345','合勤':'3704','神達':'3706','正文':'4906','啟碁':'6285','智易':'3596','信音':'3234','雅特力-KY':'4296','晶豪科':'3006','新唐':'4919','旺矽':'6223','帆宣':'6196','精測':'6510','均豪':'5443','大成鋼':'2027','豐興':'2015','燁輝':'2023','牧德':'3563','創意':'3443','世芯-KY':'3661','金居':'8358','達運':'6120','友達':'2409','群創':'3481','彩晶':'6116','元太':'8069','正崴':'2392','技嘉':'2376','微星':'2377','聯強':'2347','大聯大':'3702','文曄':'3036','益登':'3048','尖點':'8021','佳世達':'2352','東元':'1504','光寶科':'2301','台表科':'6278','全漢':'3015','康舒':'6282','義隆':'2458','凌通':'4952','盛群':'6202','凌陽':'2401','晶相光':'3530','旭曜':'3545','聯陽':'3014','笙科':'5272','新光金':'2888','台壽保':'2833','國票金':'2889','亞德客-KY':'1590','上銀':'2049','廣隆':'1537','鉅祥':'2476','裕日車':'2227','中華車':'2204','三陽工業':'2206','瓦城':'2729','王品':'2727','六角':'2732','八方雲集':'2753','統一超':'2912','全家':'5903','大潤發':'2946','遠百':'2903','大同':'2371','聲寶':'1604','士電':'1503','中興電':'1513','亞力電機':'1514','歌林':'1606','燦坤':'2430','精英':'2362','中磊':'5388','川湖':'2059','中租-KY':'5871','裕融':'9941','和潤企業':'6592','正新':'2105','建大':'2106','南港':'2101','台橡':'2103','台苯':'1310','聯成':'1313','台塑化':'6505','茂達':'6138','帝凱':'3410','太極':'4934','啟基':'3010','鼎翰':'3611','虹光':'2380','金寶':'2312','致伸':'4915','精碟':'2396','豐達科':'3149','朋程':'8255','同泰':'6271','光鼎':'3230','達方':'8163','先豐':'5349','百和':'9938','豐泰':'9910','健亞':'4130','聯合':'4129','長科':'3138','閎康':'3587','京鼎':'3413','弘塑':'3131','南僑':'1702','印能科技':'6583','博智':'8155','宇膽':'6265','聯亞':'3081','鈺太':'4971','正弦':'4987','安集':'6477','長榮航空':'2618','漢翔':'2634','統一企業':'1216','旺旺':'1229','健格':'3130','德律':'3030','金益鼎':'8499','家登精密':'6598','穩懋半導體':'3105','台泥':'1101','亞泥':'1102','嘉泥':'1103','達達':'6698','雄獅':'2731','崇越科技':'5434','達電':'3042','佳邦':'6284','宏致':'3605','博大':'4960','詮欣':'6205','昇佳電子':'6732','盛達電業':'6493','大塚':'3567','力士科技':'5464','中保科':'9917','富邦媒':'8454','美律':'2439','定穎投控':'6411','健策':'3653','儒鴻':'1476','聚陽實業':'1477','南緯實業':'1467','宏遠興業':'1460','奇力新':'2456','正隆':'1904','永豐餘':'1907','榮成':'1909','世界先進':'5347','矽品精密':'2325','台灣光罩':'2338','茂迪股份':'6244','力旺':'4961','宏碁':'2353','台驊':'2636','長虹':'5534','興富發':'2542','冠德':'2520','日勝生':'2535','遠雄':'5522','元晶':'6443','穩得':'8433','廣越科技':'4438','友輝光電':'3429','維熹科技':'3501','群電':'6412','新日興':'3376','合一生技':'4743','浩鼎生技':'4174','中天生技':'4128','穩懋半導體股份':'3105','建準電機':'2421','超眾科技':'6230','力致科技':'3483','亨泰光學':'6766','奇鋐科技':'3017','鈺創':'5351','松川精密':'5314','信邦':'3023','大銀微系統':'4140','博智電子':'8155','閎康科技':'3587','文曄科技':'3036','台光電子':'2383','鴻勁精密':'6803','竹德電子':'6234'};
 
 
@@ -1747,11 +1911,12 @@ async function loadCandidates(){
 function setCandTab(tab){
   candTab=tab;
   const styles={
+    parttime:{active:{border:'1.5px solid #7c3aed',bg:'#7c3aed',color:'#fff'},inactive:{border:'1.5px solid #7c3aed',bg:'var(--bg2)',color:'#7c3aed'}},
     worker:{active:{border:'1.5px solid #ff9900',bg:'#ff9900',color:'#fff'},inactive:{border:'1.5px solid #ff9900',bg:'var(--bg2)',color:'#ff9900'}},
     boss:{active:{border:'1.5px solid #0dd2a5',bg:'#0dd2a5',color:'#fff'},inactive:{border:'1.5px solid #0dd2a5',bg:'var(--bg2)',color:'#0dd2a5'}},
     top6:{active:{border:'1.5px solid #666666',bg:'#666666',color:'#fff'},inactive:{border:'1.5px solid #666666',bg:'var(--bg2)',color:'#666666'}},
   };
-  ['worker','boss','top6'].forEach(t=>{
+  ['parttime','worker','boss','top6'].forEach(t=>{
     const b=document.getElementById('ctab-'+t);if(!b)return;
     const s=(t===tab)?styles[t].active:styles[t].inactive;
     b.style.border=s.border;b.style.background=s.bg;b.style.color=s.color;
@@ -1762,7 +1927,11 @@ function renderCandidates(){
   const el=document.getElementById('cand-content');
   if(!candData||!el)return;
   let stocks=[],subtitle='';
-  if(candTab==='worker'){
+  if(candTab==='parttime'){
+    const all=[...(candData.worker_day_strong||[]).map(n=>({name:n,strat:'強勢日'})),...(candData.worker_day_pullback||[]).map(n=>({name:n,strat:'日拉回'}))];
+    const seen=new Set();stocks=all.filter(s=>{if(seen.has(s.name))return false;seen.add(s.name);return true;});
+    subtitle='強勢日 + 日拉回';
+  }else if(candTab==='worker'){
     const all=[...(candData.worker_strong_week||[]).map(n=>({name:n,strat:'強勢週'})),...(candData.worker_week_trend||[]).map(n=>({name:n,strat:'週趨勢'}))];
     const seen=new Set();stocks=all.filter(s=>{if(seen.has(s.name))return false;seen.add(s.name);return true;});
     subtitle='強勢週 + 週趨勢';
@@ -1779,10 +1948,11 @@ function renderCandidates(){
     stocks.map(s=>{
       const code=STOCK_MAP_STATIC[s.name]||'';
       const sc=s.strat;
-      const isWorker=sc.includes('強勢')||sc.includes('週趨勢');
-      const isBoss=sc.includes('拉回')||sc.includes('廉價');
+      const isPart=sc==='強勢日'||sc==='日拉回';
+      const isWorker=sc==='強勢週'||sc==='週趨勢';
+      const isBoss=sc==='週拉回'||sc==='廉價收購';
       const badgeC='#fff';
-      const badgeBg=isWorker?'#ff9900':isBoss?'#0dd2a5':'#666666';
+      const badgeBg=isPart?'#7c3aed':isWorker?'#ff9900':isBoss?'#0dd2a5':'#666666';
       const tid='tech-'+s.name.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g,'_');
       return `<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;padding:11px 14px;margin-bottom:8px;cursor:pointer" onclick="loadCandTech('${s.name}','${code}','${s.strat}','${tid}')">
         <div style="display:flex;align-items:center;justify-content:space-between">
@@ -1816,7 +1986,7 @@ async function evalCandidates(){
       catch(e){el.textContent='';}
       continue;
     }
-    const sk=st.includes('強勢週')?'W2':st.includes('週趨勢')?'W1':st.includes('週拉回')?'B1':st.includes('廉價')?'B2':'D2';
+    const sk=st.includes('強勢週')?'W2':st.includes('週趨勢')?'W1':st.includes('週拉回')?'B1':st.includes('廉價')?'B2':st.includes('日拉回')?'D1':'D2';
     const label=st.startsWith('成值')?'打工型強勢日（成值排行）':SK_NAME[sk];
     try{
       const x=indicators(await getBars(code));
@@ -2309,7 +2479,7 @@ async function fetchAllPrices(silent){
   const btn=document.querySelector('[onclick="fetchAllPrices()"]');
   const st=document.getElementById('price-update-status');
   const withCode=S.positions.filter(p=>p.code);
-  if(!withCode.length){_priceBusy=false;return;}
+  if(!withCode.length){_priceBusy=false;await windDashQuote();return;}
   if(btn&&!silent){btn.textContent='⏳ 更新中...';btn.disabled=true;}
   try{
     const j=await api({a:'quote',codes:[...new Set(withCode.map(p=>p.code))].join(',')});
@@ -2317,6 +2487,7 @@ async function fetchAllPrices(silent){
     withCode.forEach(p=>{const q=j.q[p.code];if(q&&q.p){p.cur=q.p;p.prevClose=q.y;ok++;}else miss.push(p.name||p.code);});
     S.lastQuote=j.time;S.idx={tse:j.q.t00,otc:j.q.o00};
     save();
+    windDashQuote(j);
     Object.keys(SIG).forEach(c=>{const p=S.positions.find(x=>x.code===c);if(p&&SIG[c])SIG[c]=indicators(IND_CACHE[c]?.bars,p.cur);});
     renderPositions();renderStats();renderAlerts();calcWater();renderOverview();
     const msg=`🟢 即時價 ${j.time.slice(11)} 更新 ${ok} 支`+(miss.length?`｜❌ 抓不到：${miss.join('、')}`:'')+(marketOpen()?'｜盤中每30秒自動更新':'');
@@ -3080,7 +3251,7 @@ try{renderCashLog();}catch(e){}
 if(S.water.kg)document.getElementById('w-kg').value=S.water.kg;
 document.getElementById('e-add-date').value=new Date().toISOString().split('T')[0];
 renderStats();renderAlerts();renderNotes();renderPositions();renderPlans();renderStrat();calcWater();
-setWindView('d');renderHistory();renderNoteWind();
+setWindView('d');renderHistory();renderNoteWind();renderWindDash();
 updateStopOptions();initStratBoxes();
 // 開啟時自動從試算表同步風度（背景執行，不影響畫面）
 setTimeout(()=>syncSheet(),1000);
