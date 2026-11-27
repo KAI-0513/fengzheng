@@ -1207,6 +1207,11 @@ function entryRules(sk,x,stratLabel){
     R(under||drop5?'buy':'',under||drop5?`${drop5?'大跌5%以上':'跌破月線'} → 可開始分批（${cyc} 分${batchText()}）`:`在月線上（${x.ma20.toFixed(1)}），等綠K/量縮/整理平台`);}
   return r;
 }
+// 成值TOP6：看符合哪些短線人格（老闆型要看營收，不在這裡判斷）
+function fitPersonas(x){
+  return ['D2','D1','W2','W1'].map(sk=>{const r=entryRules(sk,x,SK_NAME[sk]);const ok=r.some(z=>z.lvl==='buy')&&!r.some(z=>z.lvl==='sell');
+    const why=(r.find(z=>z.lvl==='buy')||r.find(z=>z.lvl==='sell')||r.find(z=>z.lvl==='warn')||r[r.length-1]||{t:''}).t;return{sk,ok,why};});
+}
 function verdictOf(r){
   if(r.some(z=>z.lvl==='sell'))return{c:'#ff6b35',bg:'rgba(255,107,53,0.14)',t:'該出場'};
   if(r.some(z=>z.lvl==='buy'))return{c:'var(--grn)',bg:'rgba(62,207,142,0.12)',t:'可以試試'};
@@ -1224,12 +1229,12 @@ async function loadSignals(){
 let CAND_V=[],CAND_SRC='';
 async function evalAllCands(){
   const d=candData;if(!d)return;
-  const groups=[['worker_strong_week','W2'],['worker_week_trend','W1'],['boss_week_pullback','B1'],['boss_cheap_buy','B2']];  // 成值TOP6 沒有人格，不判斷
+  const groups=[['worker_strong_week','W2'],['worker_week_trend','W1'],['boss_week_pullback','B1'],['boss_cheap_buy','B2'],['top6_volume','FIT']];
   const out=[];
   for(const [k,sk] of groups)for(const name of (d[k]||[])){
     const code=(typeof STOCK_MAP_STATIC!=='undefined'&&STOCK_MAP_STATIC[name])||'';
     if(!code||code==='0'){out.push({name,v:'代號待查'});continue;}
-    try{const x=indicators(await getBars(code));const v=verdictOf(entryRules(sk,x,SK_NAME[sk])).t;
+    try{const x=indicators(await getBars(code));const v=sk==='FIT'?(x&&fitPersonas(x).some(f=>f.ok)?'可以試試':'觀望'):verdictOf(entryRules(sk,x,SK_NAME[sk])).t;
       const ex=out.find(o=>o.name===name);if(ex){if(v==='可以試試')ex.v=v;}else out.push({name,v});}catch(e){}
   }
   CAND_V=out;renderOverview();
@@ -1726,7 +1731,11 @@ async function evalCandidates(){
     const code=el.dataset.code,st=el.dataset.strat;if(!code||code==='0')continue;
     if(st.startsWith('成值')){
       try{const x=indicators(await getBars(code));
-        el.innerHTML=`<span style="color:var(--txt2)">成值排行（不判斷人格，請自己選策略看）${x?`｜現價 ${x.price}｜5日 ${x.ma5.toFixed(1)}・月線 ${x.ma20.toFixed(1)}`:''}</span>`;}
+        if(!x){el.textContent='抓不到K線';continue;}
+        const f=fitPersonas(x),ok=f.filter(z=>z.ok);
+        el.innerHTML=(ok.length?`<span style="font-weight:700;color:var(--grn)">符合：${ok.map(z=>SK_NAME[z.sk]).join('、')}</span>`:`<span style="font-weight:700;color:var(--txt2)">目前沒有符合的人格</span>`)
+          +` <span style="color:var(--txt3)">｜現價 ${x.price}｜5日 ${x.ma5.toFixed(1)}・月線 ${x.ma20.toFixed(1)}</span><br>`
+          +f.map(z=>`<span style="color:${z.ok?'var(--grn)':'var(--txt3)'}">${z.ok?'✓':'✗'} ${SK_NAME[z.sk]}：${z.why}</span>`).join('<br>');}
       catch(e){el.textContent='';}
       continue;
     }
