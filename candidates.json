@@ -5,19 +5,12 @@
     "1"
   ],
   "worker_week_trend": [],
-  "boss_week_pullback": [
-    "智聯服務"
-  ],
-  "boss_cheap_buy": [
+  "boss_week_pullback": [],
+  "boss_cheap_buy": [],
+  "top6_volume": [
+    "智聯服務",
     "禾榮科",
     "智聯服務"
-  ],
-  "top6_volume": [
-    "台積電",
-    "台達電",
-    "台光電",
-    "欣興",
-    "景碩"
   ],
   "recent": [
     {
@@ -27,19 +20,12 @@
         "1"
       ],
       "worker_week_trend": [],
-      "boss_week_pullback": [
-        "智聯服務"
-      ],
-      "boss_cheap_buy": [
+      "boss_week_pullback": [],
+      "boss_cheap_buy": [],
+      "top6_volume": [
+        "智聯服務",
         "禾榮科",
         "智聯服務"
-      ],
-      "top6_volume": [
-        "台積電",
-        "台達電",
-        "台光電",
-        "欣興",
-        "景碩"
       ]
     },
     {
@@ -51,13 +37,7 @@
       "worker_week_trend": [],
       "boss_week_pullback": [],
       "boss_cheap_buy": [],
-      "top6_volume": [
-        "台積電",
-        "力旺",
-        "藥華藥",
-        "華碩",
-        "鴻海"
-      ]
+      "top6_volume": []
     },
     {
       "date": "2026/11/23",
@@ -68,13 +48,7 @@
       "worker_week_trend": [],
       "boss_week_pullback": [],
       "boss_cheap_buy": [],
-      "top6_volume": [
-        "台積電",
-        "創意",
-        "台達電",
-        "景碩",
-        "台光電"
-      ]
+      "top6_volume": []
     },
     {
       "date": "2026/11/20",
@@ -82,18 +56,12 @@
       "worker_strong_week": [
         "2"
       ],
-      "worker_week_trend": [
+      "worker_week_trend": [],
+      "boss_week_pullback": [],
+      "boss_cheap_buy": [
         "大國鋼"
       ],
-      "boss_week_pullback": [],
-      "boss_cheap_buy": [],
-      "top6_volume": [
-        "台積電",
-        "國巨",
-        "台達電",
-        "日月光投控",
-        "南亞科"
-      ]
+      "top6_volume": []
     },
     {
       "date": "2026/11/19",
@@ -101,19 +69,13 @@
       "worker_strong_week": [
         "3"
       ],
-      "worker_week_trend": [
-        "大國鋼"
-      ],
+      "worker_week_trend": [],
       "boss_week_pullback": [],
       "boss_cheap_buy": [
-        "雷笛克光學"
+        "大國鋼"
       ],
       "top6_volume": [
-        "台積電",
-        "台達電",
-        "世芯-KY",
-        "國巨",
-        "南亞科"
+        "雷笛克光學"
       ]
     },
     {
@@ -122,46 +84,33 @@
       "worker_strong_week": [
         "3"
       ],
-      "worker_week_trend": [
+      "worker_week_trend": [],
+      "boss_week_pullback": [],
+      "boss_cheap_buy": [
         "大國鋼",
         "碩天"
       ],
-      "boss_week_pullback": [
-        "騰輝電子-KY"
-      ],
-      "boss_cheap_buy": [
-        "視陽"
-      ],
       "top6_volume": [
-        "台積電",
-        "景碩",
-        "創意",
-        "欣興",
-        "台光電"
+        "騰輝電子-KY",
+        "視陽"
       ]
     },
     {
       "date": "2026/11/17",
       "wind": "無風",
       "worker_strong_week": [
-        "7",
+        "7"
+      ],
+      "worker_week_trend": [],
+      "boss_week_pullback": [
         "台玻"
       ],
-      "worker_week_trend": [
+      "boss_cheap_buy": [
         "大國鋼"
       ],
-      "boss_week_pullback": [
-        "騰輝電子-KY"
-      ],
-      "boss_cheap_buy": [
-        "視陽"
-      ],
       "top6_volume": [
-        "台積電",
-        "台達電",
-        "創意",
-        "欣興",
-        "國巨"
+        "騰輝電子-KY",
+        "視陽"
       ]
     }
   ]
