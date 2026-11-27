@@ -668,7 +668,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 <div class="modal-overlay hidden" id="close-modal" onclick="closeModal('close-modal')">
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-handle"></div>
-    <div class="modal-title">🔔 13:25 收盤前檢查</div>
+    <div class="modal-title">🔔 13:00 收盤前檢查</div>
     <div style="font-size:13px;color:var(--txt2);margin-bottom:14px">更新現價，APP 根據策略判斷是否需要動作。</div>
     <div id="close-check-list"></div>
     <button class="btn" style="margin-top:4px" onclick="closeModal('close-modal')">關閉</button>
@@ -1241,7 +1241,7 @@ function renderOverview(){
   const box=document.getElementById('ov-box');if(!box)return;
   const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const g={sell:[],warn:[],buy:[],hold:[]};
-  S.positions.filter(p=>p.code).forEach(p=>{
+  S.positions.filter(p=>p.code&&stratKey(p.strat)!=='S').forEach(p=>{
     const x=SIG[p.code];if(x===undefined)return;
     const v=verdictOf(holdRules(p,x).r).t;
     const tag=`${esc(p.name)}<span style="opacity:.6">・${esc(p.acct||'')}</span>`;
@@ -1258,6 +1258,10 @@ function renderOverview(){
   if(candData&&candData.date&&CAND_SRC!==candData.date){CAND_SRC=candData.date;evalAllCands();}
   const cb=CAND_V.filter(c=>c.v==='可以試試').map(c=>esc(c.name)),cw=CAND_V.filter(c=>c.v!=='可以試試').length;
   box.innerHTML=`
+    <div style="display:flex;gap:6px;margin-bottom:8px">
+      <button onclick="openPreCheck()" style="flex:1;min-height:42px;border-radius:10px;border:0;background:#1240e0;color:#fff;font-size:14px;font-weight:700;cursor:pointer">🩺 下單前體檢</button>
+      <button onclick="showCloseReminder()" style="flex:1;min-height:42px;border-radius:10px;border:1px solid var(--bdr2);background:var(--bg2);color:var(--txt);font-size:14px;font-weight:700;cursor:pointer">🔔 收盤前檢查</button>
+    </div>
     <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:8px">
       <div style="background:var(--bg3);border-radius:10px;padding:8px"><div style="font-size:11px;color:var(--txt3)">今日風度（${src}）</div><div style="font-size:18px;font-weight:800;color:var(--txt)">${esc(w)}</div></div>
       <div style="background:var(--bg3);border-radius:10px;padding:8px"><div style="font-size:11px;color:var(--txt3)">目前循環（近10天）</div><div style="font-size:18px;font-weight:800;color:${cycC}">${cyc}</div></div>
@@ -1274,6 +1278,151 @@ function renderOverview(){
 function applyTheme(t){document.documentElement.dataset.theme=t;try{localStorage.setItem('fz_theme',t);}catch(e){}}
 function toggleTheme(){applyTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');}
 try{applyTheme(localStorage.getItem('fz_theme')||'light');}catch(e){applyTheme('light');}
+
+// ── 13:00 收盤前檢查（不含存股）──────────────────────── CLAUDE
+function showCloseReminder(){
+  const el=document.getElementById('close-check-list');if(!el)return;
+  const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const list=S.positions.filter(p=>stratKey(p.strat)!=='S');
+  el.innerHTML=list.length?list.map(p=>{
+    const x=SIG[p.code],{r,P}=holdRules(p,x),v=verdictOf(r);
+    return `<div style="background:var(--bg3);border-left:4px solid ${v.c};border-radius:10px;padding:11px;margin-bottom:9px">
+      <div style="display:flex;justify-content:space-between;gap:6px;font-size:13px;font-weight:700;margin-bottom:5px">
+        <span>${esc(p.name)} <span style="font-weight:400;color:var(--txt3)">${esc(p.acct||'')}・${esc(SK_NAME[stratKey(p.strat)]||p.strat||'')}</span></span>
+        <span style="color:${v.c}">${v.t}</span></div>
+      <div style="font-size:12px;color:var(--txt3);margin-bottom:4px">現價 ${p.cur}｜${P>=0?'+':''}${P.toFixed(1)}%</div>
+      ${r.map(z=>`<div style="font-size:13px;color:var(--txt2);padding:1px 0">• ${esc(z.t)}</div>`).join('')}
+    </div>`;}).join(''):'<div class="empty">沒有短線持股要檢查（存股不列入）</div>';
+  document.getElementById('close-modal').classList.remove('hidden');
+}
+function checkCloseTime(){
+  const n=new Date(),wd=n.getDay(),m=n.getHours()*60+n.getMinutes(),today=n.toDateString();
+  let shown='';try{shown=localStorage.getItem('fz_close_shown')||'';}catch(e){}
+  if(wd>=1&&wd<=5&&m>=780&&m<=810&&shown!==today&&S.positions.some(p=>stratKey(p.strat)!=='S')){
+    try{localStorage.setItem('fz_close_shown',today);}catch(e){}
+    (API_URL?fetchAllPrices(true):Promise.resolve()).then(()=>loadSignals()).then(showCloseReminder);
+  }
+}
+
+// ── 下單前體檢 ─────────────────────────────────────── CLAUDE
+function openPreCheck(){
+  let m=document.getElementById('pc-modal');
+  if(!m){
+    m=document.createElement('div');m.id='pc-modal';
+    m.style.cssText='position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center';
+    const inp='width:100%;font-size:16px;padding:10px;border-radius:9px;background:var(--bg2);border:1px solid var(--bdr2);color:var(--txt);min-height:44px';
+    const lab='font-size:12px;color:var(--txt2);display:block;margin-bottom:3px';
+    m.innerHTML=`<div style="background:var(--bg);width:min(560px,100%);max-height:92vh;overflow:auto;border-radius:16px 16px 0 0;padding:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <b style="font-size:17px;color:var(--txt)">🩺 下單前體檢</b>
+        <button id="pc-x" style="border:0;background:none;font-size:22px;color:var(--txt2);cursor:pointer;min-width:44px;min-height:44px">✕</button></div>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+        <div><label style="${lab}">代號</label><input id="pc-code" placeholder="例：3443" style="${inp}" autocomplete="off"></div>
+        <div><label style="${lab}">打算買的價格（留空＝現價）</label><input id="pc-price" inputmode="decimal" style="${inp}"></div>
+        <div><label style="${lab}">股數（選填）</label><input id="pc-qty" inputmode="numeric" style="${inp}"></div>
+        <div><label style="${lab}">帳戶</label><select id="pc-acct" style="${inp}"><option>華南</option><option>凱基</option></select></div>
+        <div style="grid-column:1/-1"><label style="${lab}">這筆的人格（留空＝自動判斷）</label><select id="pc-sk" style="${inp}">
+          <option value="">自動判斷</option><option value="D1">打工型・日拉回</option><option value="D2">打工型・強勢日</option>
+          <option value="W1">上班族・週趨勢</option><option value="W2">上班族・強勢週</option>
+          <option value="B1">老闆型・週拉回</option><option value="B2">老闆型・廉價收購</option><option value="S">存股／ETF</option></select></div>
+      </div>
+      <button id="pc-go" style="width:100%;margin:12px 0;min-height:46px;border:0;border-radius:10px;background:#0e9f6e;color:#fff;font-size:16px;font-weight:700;cursor:pointer">體檢</button>
+      <div id="pc-out"></div></div>`;
+    document.body.appendChild(m);
+    m.querySelector('#pc-x').onclick=()=>m.style.display='none';
+    m.addEventListener('click',e=>{if(e.target===m)m.style.display='none';});
+    m.querySelector('#pc-go').onclick=runPreCheck;
+    m.querySelector('#pc-code').addEventListener('keydown',e=>{if(e.key==='Enter')runPreCheck();});
+  }
+  m.style.display='flex';
+}
+function autoSk(code,name){
+  const p=S.positions.find(x=>x.code===code);if(p&&stratKey(p.strat))return[stratKey(p.strat),'沿用持股策略'];
+  const d=candData||{},has=k=>(d[k]||[]).includes(name);
+  if(has('boss_week_pullback'))return['B1','今天候選・週拉回'];
+  if(has('boss_cheap_buy'))return['B2','今天候選・廉價收購'];
+  if(has('worker_strong_week'))return['W2','今天候選・強勢週'];
+  if(has('worker_week_trend'))return['W1','今天候選・週趨勢'];
+  if(has('top6_volume'))return['D2','今天候選・成值排行'];
+  if(/^00/.test(code))return['S','ETF'];
+  return['W2','不在候選名單，先用上班族強勢週'];
+}
+async function runPreCheck(){
+  const out=document.getElementById('pc-out');
+  const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const code=document.getElementById('pc-code').value.trim().toUpperCase();
+  if(!code){out.innerHTML='<div style="color:var(--red)">請輸入代號</div>';return;}
+  out.innerHTML='<div style="color:var(--txt3);font-size:13px">體檢中…</div>';
+  try{
+    let q={};try{q=(await api({a:'quote',codes:code})).q[code]||{};}catch(e){}
+    const name=q.n||Object.keys(STOCK_MAP_STATIC||{}).find(k=>STOCK_MAP_STATIC[k]===code)||code;
+    const bars=await getBars(code);
+    const priceIn=parseFloat(document.getElementById('pc-price').value);
+    const price=!isNaN(priceIn)&&priceIn>0?priceIn:(q.p||(bars&&bars.at(-1).c));
+    const x=indicators(bars,q.p||null);
+    const qty=parseInt(document.getElementById('pc-qty').value)||0;
+    const acct=document.getElementById('pc-acct').value;
+    let sk=document.getElementById('pc-sk').value,skSrc='你指定';
+    if(!sk){const a=autoSk(code,name);sk=a[0];skSrc='自動判斷：'+a[1];}
+    const items=[],X=(t,d)=>items.push({k:'x',t,d}),W=(t,d)=>items.push({k:'w',t,d}),O=(t,d)=>items.push({k:'o',t,d}),I=(t,d)=>items.push({k:'i',t,d});
+    const w=S.wind,cyc=windCycle(),short=sk==='D1'||sk==='D2'||sk==='W1'||sk==='W2',boss=sk[0]==='B',stock=sk==='S';
+    const hold=S.positions.find(p=>p.code===code);
+    // 1 大環境
+    if(!stock){
+      if((sk==='D2'||sk==='W2')&&(w==='亂流'||w==='無風'))X('風度不對',`今天${w}，${SK_NAME[sk]}只在強風／陣風介入`);
+      else if(short&&cyc==='易跌循環')W('易跌循環',`近10天${cyc}，短線漲勢不易延續，要買就小量試單`);
+      else O('風度',`今天${w}・${cyc}`);
+    }
+    // 2 停損中還加碼
+    if(hold&&!stock){const hx=SIG[code]||x,hr=holdRules(hold,hx);
+      if(hr.r.some(z=>z.lvl==='sell'))X('停損中還加碼',`手上 ${hold.acct} 這檔已觸發出場條件（${hr.r.filter(z=>z.lvl==='sell').map(z=>z.t).join('；')}），應該先處理，不是加碼`);
+      else if(hr.P>=5&&boss)W('已經賺 5% 以上',`老闆型原則：已獲利 ${hr.P.toFixed(1)}% 不加碼，成本會變高`);
+      else I('已有持股',`${hold.acct} 已持有，損益 ${hr.P>=0?'+':''}${hr.P.toFixed(1)}%`);}
+    // 3 賣掉又買回
+    const sold=(S.history||[]).find(h=>(h.code===code||h.name===name)&&h.sellDate&&(Date.now()-new Date(h.sellDate))/864e5<=14);
+    if(sold)W('賣掉又買回',`${sold.sellDate} 才賣過（${sold.reason||'無原因'}），確定是照策略重新進場，不是捨不得？`);
+    // 4 策略進場條件
+    if(stock){
+      if(hold){const {avgPrice}=calcAvg(hold.lots);O('存股加碼',price<avgPrice?`買價低於平均成本 ${avgPrice.toFixed(2)}，可以加碼`:`買價高於平均成本 ${avgPrice.toFixed(2)}，照定期定額即可`);}
+      else O('存股','長期持有，照計畫分批');
+      if(x&&price<x.ma20)O('跌破月線',`月線 ${x.ma20.toFixed(2)}，存股可分批`);
+    }else if(x){
+      const r=entryRules(sk,Object.assign({},x,{price}),SK_NAME[sk]).filter(z=>!/勿介入|建議休息/.test(z.t));
+      r.forEach(z=>z.lvl==='buy'?O('進場條件',z.t):z.lvl==='sell'?X('進場條件',z.t):W('進場條件未齊',z.t));
+      if(short&&price/x.ma5-1>0.05)W('追太高',`買價離5日線 ${(price/x.ma5*100-100).toFixed(1)}%`);
+      if(boss&&x.prev&&price>x.prev)W('不是買的日子','老闆型買綠不買紅：今天是紅K，等下跌或跌5%以上再買');
+    }else W('抓不到K線','無法判斷技術面');
+    // 5 時段
+    const mm=new Date().getHours()*60+new Date().getMinutes();
+    if(sk==='D2'&&mm<600)W('時段','打工型強勢日建議 10:00 後再觀察');
+    if(sk==='W2'&&mm<570)W('時段','上班族強勢週建議 9:30 後再出手');
+    if(boss&&mm<720)I('時段','老闆型習慣尾盤 12 點後買');
+    // 6 選股依據
+    if(!stock){const inC=Object.values({a:candData?.worker_strong_week,b:candData?.worker_week_trend,c:candData?.boss_week_pullback,d:candData?.boss_cheap_buy,e:candData?.top6_volume}).some(l=>(l||[]).includes(name));
+      inC?O('選股依據',`在 ${candData.date} 候選名單`):W('不在候選名單','不是放風箏篩出的標的，確認營收 YoY>30% 或成值夠大');}
+    // 7 資金上限
+    if(qty&&price){const cap=acct==='凱基'?S.water?.kg:S.water?.hn,amt=price*qty+(hold?hold.cur*calcAvg(hold.lots).totalQty:0);
+      if(boss&&cap){const lim=cap/5;amt>lim?X('超過單檔上限',`${acct}資金 ${Math.round(cap).toLocaleString()}／5＝${Math.round(lim).toLocaleString()}，這筆後共 ${Math.round(amt).toLocaleString()}`):O('單檔上限',`這筆後 ${Math.round(amt).toLocaleString()}／上限 ${Math.round(lim).toLocaleString()}`);}
+      else I('金額',`約 ${Math.round(price*qty).toLocaleString()} 元`);}
+    // 8 停損線 / 分批
+    if(x&&!stock){
+      if(sk==='D2')I('停損線',`虧損 5%：${(price*0.95).toFixed(2)}；或3天脫離不了成本`);
+      if(sk==='D1'||sk==='W2')I('停損線',`跌破5日線（現在 ${x.ma5.toFixed(2)}）`);
+      if(sk==='W1')I('停損線',`週五收盤低於上週五，或跌破10日線（${x.ma10.toFixed(2)}）`);
+      if(boss)I('分批筆數',`${cyc}：建議分 ${batchText()}，每筆間隔 -5%~-15%`);
+    }
+    const bad=items.some(i=>i.k==='x'),warn=items.some(i=>i.k==='w');
+    const V=bad?['✗ 違規','#e02424','rgba(224,36,36,.08)']:warn?['⚠ 注意','#c77700','rgba(199,119,0,.08)']:['✓ 沒問題','#0e9f6e','rgba(14,159,110,.08)'];
+    const ico={x:['✗','#e02424'],w:['⚠','#c77700'],o:['✓','#0e9f6e'],i:['•','var(--txt3)']};
+    const order={x:0,w:1,o:2,i:3};items.sort((a,b)=>order[a.k]-order[b.k]);
+    out.innerHTML=`<div style="background:${V[2]};border:1px solid ${V[1]}55;border-radius:12px;padding:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:16px;color:var(--txt)">${esc(name)} <span style="font-weight:400;color:var(--txt3);font-size:13px">${esc(code)}</span></b>
+      <span style="color:${V[1]};font-weight:800;font-size:14px">${V[0]}</span></div>
+      <div style="font-size:12px;color:var(--txt3);margin:4px 0 8px">${new Date().toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}・${price}・${esc(SK_NAME[sk])}（${esc(skSrc)}）・櫃買 ${esc(w)}／${cyc}${marketOpen()?'・盤中暫定':''}</div>
+      ${items.map(i=>`<div style="display:flex;gap:8px;font-size:13px;padding:3px 0;line-height:1.45"><span style="color:${ico[i.k][1]};font-weight:800;min-width:12px">${ico[i.k][0]}</span><span><b style="color:var(--txt)">${esc(i.t)}</b> <span style="color:var(--txt2)">— ${esc(i.d)}</span></span></div>`).join('')}
+    </div>`;
+  }catch(e){out.innerHTML=`<div style="color:var(--red)">體檢失敗：${esc(e.message)}</div>`;}
+}
 
 // ── 試算表同步（讀 GitHub wind.json，無CORS問題） ─────────
 const WIND_JSON_URL='https://raw.githubusercontent.com/KAI-0513/fengzheng/main/wind.json';
@@ -2440,27 +2589,6 @@ function renderPositions(){
 }
 
 // ── 13:25提醒 ────────────────────────────────────────────
-function checkCloseTime(){
-  const now=new Date();const h=now.getHours(),m=now.getMinutes();
-  const wd=now.getDay();
-  if(wd>=1&&wd<=5&&h===13&&m===25&&S.positions.length){showCloseReminder();}
-}
-function showCloseReminder(){
-  const el=document.getElementById('close-check-list');
-  el.innerHTML=S.positions.map(p=>{
-    const pct=(p.cur-p.buy)/p.buy*100;
-    const msgs=closeCheckMsg(p);
-    return `<div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:9px">
-      <div style="font-size:13px;font-weight:700;margin-bottom:7px">${p.name} · ${(pct>=0?'+':'')+pct.toFixed(1)}% · ${p.strat}</div>
-      ${msgs.map(m=>`<div style="font-size:13px;color:var(--txt2);padding:2px 0">• ${m}</div>`).join('')}
-      <div style="display:flex;gap:6px;margin-top:9px">
-        <input type="number" placeholder="現價" id="cr-${p.id}" style="flex:1;font-size:14px;padding:8px;border-radius:8px;background:var(--bg2);border:1px solid var(--bdr2);color:var(--txt)">
-        <button class="btn sm primary" onclick="updateFromClose(${p.id})">更新</button>
-      </div>
-    </div>`;
-  }).join('');
-  document.getElementById('close-modal').classList.remove('hidden');
-}
 function updateFromClose(id){
   const v=parseFloat(document.getElementById('cr-'+id)?.value);
   if(!v||isNaN(v))return;
