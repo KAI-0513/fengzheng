@@ -281,7 +281,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
         </div>
         <!-- 風度選擇器（唯讀提示，同步才能改） -->
         <div id="wind-picker" style="display:none;position:absolute;right:0;top:36px;z-index:999;background:var(--bg2);border:1px solid var(--bdr2);border-radius:12px;padding:8px;width:200px;box-shadow:0 8px 24px rgba(0,0,0,.5)">
-          <div style="font-size:10px;color:var(--txt3);text-align:center;margin-bottom:6px">風度依櫃買指數自動計算（月線＋MACD）</div>
+          <div style="font-size:10px;color:var(--txt3);text-align:center;margin-bottom:6px">風度來自放風箏 APP（每個交易日收盤後更新）</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
             <div style="padding:8px;border-radius:8px;background:var(--sf-bg);border:1.5px solid var(--sf);text-align:center;font-size:12px;font-weight:700;color:var(--sf)"><span style="width:8px;height:8px;border-radius:50%;background:var(--sf);display:inline-block;margin-right:4px"></span>強風</div>
             <div style="padding:8px;border-radius:8px;background:var(--gf-bg);border:1.5px solid var(--gf-bdr);text-align:center;font-size:12px;font-weight:700;color:var(--gf)"><span style="width:8px;height:8px;border-radius:50%;background:var(--gf);display:inline-block;margin-right:4px"></span>陣風</div>
@@ -1142,9 +1142,9 @@ function wdGauge(lo,lt){
 
 function wdHistory(){
   const k=WD.idx,all=wdRows(k),rows=all.slice(-WD.range);
-  // 櫃買的點用試算表的正式風度（沒有才用自動計算），加權用自動計算
+  // 點色只用 APP（試算表）的風度；APP 只有一個風度，櫃買和加權都標同一個，沒有資料的日子是灰點
   const sheet=new Map((S.windLog||[]).filter(l=>!l.auto).map(l=>[l.date,l.wind]));
-  const windOf=r=>(k==='otc'&&sheet.get(r.date))||r.wind||'';
+  const windOf=r=>sheet.get(r.date)||'';
   const pills=(arr,cur,fn)=>arr.map(([v,t])=>`<button class="wd-pill${cur===v?' on':''}" onclick="${fn}(${typeof v==='string'?`'${v}'`:v})">${t}</button>`).join('');
   let html=`<div style="display:flex;justify-content:center;gap:4px;margin:4px 0">${pills([['otc','櫃買'],['tse','加權']],k,'setWindDashIdx')}</div>
     <div style="display:flex;justify-content:center;gap:4px;margin:4px 0">${pills([[22,'近1月'],[66,'近3月'],[130,'近6月'],[250,'近1年']],WD.range,'setWindDashRange')}</div>
@@ -1176,7 +1176,7 @@ function wdHistory(){
     <polyline points="${ma}" fill="none" stroke="#f7a23b" stroke-width="2"/>
     <polyline points="${cl}" fill="none" stroke="#fff" stroke-width="1.6"/>
     ${dots}${xl}</svg>
-    <div style="font-size:11px;color:var(--txt3);margin-top:4px">白線：${k==='otc'?'櫃買':'加權'}指數收盤｜橘線：月線（20日）｜虛線：月線 ±${WD_BAND*100}%｜點色：${k==='otc'?'試算表風度':'自動計算風度'}</div>`;
+    <div style="font-size:11px;color:var(--txt3);margin-top:4px">白線：${k==='otc'?'櫃買':'加權'}指數收盤｜橘線：月線（20日）｜虛線：月線 ±${WD_BAND*100}%｜點色：APP 風度</div>`;
   return html;
 }
 
@@ -1443,9 +1443,7 @@ function renderOverview(){
     (v==='該出場'?g.sell:v==='注意'?g.warn:v==='可以試試'?g.buy:g.hold).push(tag);
   });
   const cyc=windCycle(),w=S.wind||'—',last=(S.windLog||[]).at(-1);
-  const src=last&&last.auto?'自動計算':'試算表';
   const cycC=cyc==='易漲循環'?'var(--sf)':cyc==='易跌循環'?'var(--nw)':'var(--amb)';
-  const T=S.windAuto&&S.windAuto.tse?S.windAuto.tse.wind:'';
   const wc=k=>(WCFG[k]&&WCFG[k].cls)||'';
   const cb=CAND_V.filter(c=>c.v==='可以試試').map(c=>`${esc(c.name)}<span style="opacity:.6">・候選</span>`),cw=CAND_V.filter(c=>c.v!=='可以試試').length;
   const buyList=g.buy.concat(cb);
@@ -1730,23 +1728,13 @@ async function autoWind(){
     if(sh.candidates){candData=sh.candidates;const dr=document.getElementById('cand-date-row');if(dr)dr.textContent=`資料日期：${candData.date}　風度：${candData.wind}　🕒 同步 ${syncStamp()}`;renderCandidates();}
     const lastSheet=[...sheetMap.keys()].sort().at(-1);
     msgs.push(`✅ 風度同步到 ${lastSheet}（${sheetMap.get(lastSheet)}）`);
-    // 2) 自動計算：只補試算表還沒填的日子（例如今天盤中）
-    try{
-      const j=await api({a:'wind'});
-      WD.series=j;
-      let same=0,cmp=0,added=0;
-      (j.otc||[]).forEach(r=>{
-        if(sheetMap.has(r.date)){cmp++;if(sheetMap.get(r.date)===r.wind)same++;return;}
-        if(r.date>lastSheet){const ex=S.windLog.find(l=>l.date===r.date);if(ex){ex.wind=r.wind;ex.auto=1;}else S.windLog.push({date:r.date,wind:r.wind,auto:1});added++;}
-      });
-      const L=(j.otc||[]).at(-1);S.windAuto={otc:L,tse:(j.tse||[]).at(-1)};
-    }catch(e){}
-    // 重建風度紀錄：統一日期格式、去重。優先序：試算表 > 自動計算 > 舊紀錄
+    // 2) 指數序列只給「風度循環」卡片畫圖用；風度一律以 APP（試算表）為準，不再自動計算補日子
+    try{WD.series=await api({a:'wind'});}catch(e){}
+    // 重建風度紀錄：統一日期格式、去重。只留 APP（試算表）的風度
     const _nd=d=>{const m=String(d).match(/(\d{4})\D(\d{1,2})\D(\d{1,2})/);return m?`${m[1]}/${m[2].padStart(2,'0')}/${m[3].padStart(2,'0')}`:null;};
     const _fin=new Map();
-    // 舊紀錄只留試算表最後一天以前的；之後的日子只認自動計算，避免殘留的手動風度蓋掉當天風度
+    // 舊紀錄只留試算表最後一天以前的（試算表沒有的舊日子保留）；自動計算的與之後殘留的都丟掉
     S.windLog.forEach(l=>{const d=_nd(l.date);if(d&&!l.auto&&d<=lastSheet&&!_fin.has(d))_fin.set(d,{date:d,wind:l.wind});});
-    S.windLog.forEach(l=>{const d=_nd(l.date);if(d&&l.auto&&d>lastSheet)_fin.set(d,{date:d,wind:l.wind,auto:1});});
     sheetMap.forEach((w,d)=>_fin.set(d,{date:d,wind:w}));
     S.windLog=[..._fin.values()].sort((a,b)=>a.date.localeCompare(b.date));
     const latest=noteWindToday();
@@ -3204,12 +3192,12 @@ function noteWindToday(){
   const now=new Date();
   const today=`${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}`;
   let best=null;
-  (S.windLog||[]).forEach(l=>{const d=l&&nd(l.date);if(d&&d<=today&&l.wind&&(!best||d>best.date))best={date:d,wind:l.wind,auto:!!l.auto};});
+  (S.windLog||[]).forEach(l=>{const d=l&&!l.auto&&nd(l.date);if(d&&d<=today&&l.wind&&(!best||d>best.date))best={date:d,wind:l.wind};});
   return best?{...best,isToday:best.date===today}:null;
 }
 // ── 術語說明 ─────────────────────────────────────────────
 const GLOSSARY={
-  '風度':'用櫃買指數和月線判斷今天的市場行情，分四種：'+[['強風','sf','月線以上，漲勢容易延續'],['陣風','gf','月線以下，容易回檔'],['亂流','lt','月線以上但震盪變大'],['無風','nw','股票容易跌，最好休息']].map(([k,v,t])=>`<br><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--${v});margin-right:5px"></span><b style="display:inline;color:var(--${v})">${k}</b>：${t}`).join(''),
+  '風度':'放風箏 APP 每個交易日收盤後公布的市場行情，分四種：'+[['強風','sf','月線以上，漲勢容易延續'],['陣風','gf','月線以下，容易回檔'],['亂流','lt','月線以上但震盪變大'],['無風','nw','股票容易跌，最好休息']].map(([k,v,t])=>`<br><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--${v});margin-right:5px"></span><b style="display:inline;color:var(--${v})">${k}</b>：${t}`).join(''),
   '循環':'看最近 10 個交易日的風度：強風＋亂流有 7 天以上是「易漲循環」，3 天以下是「易跌循環」，中間是「循環交界」。易跌循環時短線容易失敗。',
   '水位':'已經投入股票的錢 ÷ 帳戶總資金。風度越差，建議上限越低：強風 80%、陣風 60%、亂流 40%、無風 20%。',
   '打工型':'看日線的短線操作，通常持有幾天。敢買敢賣、停損要快（例如虧 5% 就走）。',
@@ -3280,7 +3268,7 @@ function renderHero(){
   if(!e){el.innerHTML='<div class="ov-hero"><div class="h1">風度載入中…</div></div>';return;}
   const w=e.wind,k={'強風':'sf','陣風':'gf','亂流':'lt','無風':'nw'}[w]||'gf';
   const md=e.date.slice(5).replace(/^0/,'').replace('/0','/');
-  const src=e.auto?`${md} 盤中自動計算`:`${md} 收盤資料`;
+  const src=`${md} 收盤資料`;
   const cyc=windCycle();
   el.innerHTML=`<div class="ov-hero" style="border-color:var(--${k}-bdr);background:var(--${k}-bg)">
     <div class="h1" style="color:var(--${k})">今天${w}<button class="tip" data-term="風度">?</button><span style="margin:0 4px">：</span><span>${WIND_SHORT[w]||''}</span></div>
