@@ -241,19 +241,6 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .wd-legend b{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:3px;vertical-align:middle}
 .wd-note{font-size:12px;color:var(--txt2);line-height:1.6;margin-top:6px}
 .wd-note div{padding:4px 0;border-top:1px solid var(--bdr2)}
-/* 術語說明「?」與新手導覽 */
-.tip{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;border:1px solid var(--bdr2);background:var(--bg3);color:var(--txt2);font-size:10.5px;font-weight:700;line-height:1;cursor:pointer;vertical-align:middle;margin-left:4px;padding:0;flex-shrink:0}
-.tip:hover{color:var(--txt);border-color:var(--txt3)}
-#tip-pop{position:fixed;z-index:1000;max-width:280px;background:var(--bg2);color:var(--txt);border:1px solid var(--bdr2);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.6;box-shadow:0 8px 24px rgba(0,0,0,.25)}
-#tip-pop b{display:block;font-size:13px;margin-bottom:2px}
-.ov-hero{border-radius:12px;padding:12px 14px;margin-bottom:10px;border:1.5px solid var(--bdr2);background:var(--bg2)}
-.ov-hero .h1{font-size:19px;font-weight:800;line-height:1.35;display:flex;align-items:center;flex-wrap:wrap;gap:2px}
-.ov-hero .sub{font-size:11.5px;color:var(--txt3);margin-top:4px;display:flex;align-items:center;flex-wrap:wrap;gap:2px}
-.sync-detail summary{font-size:11px;color:var(--txt3);cursor:pointer;margin-top:6px}
-.guide-step{display:flex;gap:10px;margin-bottom:12px;font-size:13.5px;line-height:1.6}
-.guide-step .n{flex-shrink:0;width:24px;height:24px;border-radius:50%;background:#1240e0;color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:13px}
-.gloss-item{padding:8px 0;border-top:1px solid var(--bdr2);font-size:12.5px;line-height:1.6;color:var(--txt2)}
-.gloss-item b{color:var(--txt);margin-right:6px}
 </style>
 </head>
 <body>
@@ -267,10 +254,9 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       <div class="header-date" id="hdr-date"></div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-      <button onclick="openGuide()" title="新手說明與術語" style="background:var(--bg3);border:1px solid var(--bdr2);color:var(--txt2);border-radius:8px;padding:4px 8px;font-size:14px;font-weight:700;cursor:pointer">?</button>
       <button onclick="toggleTheme()" title="切換藍白／深色" style="background:var(--bg3);border:1px solid var(--bdr2);color:var(--txt2);border-radius:8px;padding:4px 8px;font-size:14px;cursor:pointer">◐</button>
       <button onclick="openApiSetup()" title="資料中繼設定" style="background:var(--bg3);border:1px solid var(--bdr2);color:var(--txt2);border-radius:8px;padding:4px 8px;font-size:14px;cursor:pointer">⚙</button>
-      <div class="water-pill" id="water-pill" title="水位：已投入股票的錢佔帳戶總資金的比例" onclick="showTab('water',document.querySelectorAll('.tab-item')[4])">
+      <div class="water-pill" id="water-pill" onclick="showTab('water',document.querySelectorAll('.tab-item')[4])">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6 10 4 13.5 4 16a8 8 0 0 0 16 0c0-2.5-2-6-8-14z"/></svg>
         <span id="header-water">—%</span>
       </div>
@@ -306,7 +292,6 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     </div>
     <div class="card">
       <div class="card-title">今日總覽</div>
-      <div id="ov-hero"></div>
       <div id="ov-box" style="margin-bottom:8px"><div style="font-size:12px;color:var(--txt3)">載入中…</div></div>
       <div class="alert" id="wind-advice-box" style="display:none"></div>
       <div id="sheet-sync-status" style="font-size:11px;color:var(--txt3);margin-top:6px"></div>
@@ -361,7 +346,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
   <!-- 候選股 -->
   <div class="section" id="sec-history">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <div class="section-header" style="margin-bottom:0;display:flex;align-items:center">候選股<button class="tip" data-term="候選">?</button></div>
+      <div class="section-header" style="margin-bottom:0">候選股</div>
       <button onclick="loadCandidates()" style="padding:4px 12px;font-size:11px;font-weight:600;border-radius:6px;border:1px solid var(--bdr2);background:var(--bg3);color:var(--txt2);cursor:pointer" id="cand-refresh-btn">⟳ 更新</button>
     </div>
     <div id="cand-date-row" style="font-size:11px;color:var(--txt3);margin-bottom:10px"></div>
@@ -372,7 +357,6 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       <button onclick="setCandTab('boss')" id="ctab-boss" style="flex:1;padding:7px;font-size:12px;font-weight:700;border-radius:8px;border:1px solid var(--bdr2);background:var(--bg3);color:var(--txt3);cursor:pointer">老闆型</button>
       <button onclick="setCandTab('top6')" id="ctab-top6" style="flex:1;padding:7px;font-size:12px;font-weight:700;border-radius:8px;border:1px solid var(--bdr2);background:var(--bg3);color:var(--txt3);cursor:pointer">成值TOP6</button>
     </div>
-    <div id="cand-desc" style="font-size:12px;color:var(--txt2);line-height:1.55;margin:-4px 0 10px"></div>
     <div id="cand-content"><div class="empty" style="padding:30px;text-align:center">點右上角「⟳ 更新」載入候選股</div></div>
   </div>
 
@@ -407,7 +391,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       </div>
     </div>
     <div class="card">
-      <div class="card-title" style="display:flex;align-items:center">目前水位<button class="tip" data-term="水位">?</button></div>
+      <div class="card-title">目前水位</div>
       <div class="gauge-wrap">
         <div class="gauge-pct" id="gauge-pct">—</div>
         <div class="gauge-bar-outer"><div class="gauge-bar-inner" id="gauge-bar" style="width:0%"></div></div>
@@ -1462,7 +1446,6 @@ function renderOverview(){
     <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px">
       ${cell(g.sell.length,'該出場','#e8590c',g.sell)}${cell(g.warn.length,'注意','#d4a017',g.warn)}${cell(buyList.length,'可以試試','var(--grn)',buyList,`<div style="font-size:10.5px;color:var(--txt3);margin-top:3px">候選 ${CAND_V.length} 檔，觀望 ${cw}</div>`)}${cell(g.hold.length,'續抱','var(--blu)',g.hold)}
     </div>`;
-  renderHero();
 }
 // ── 雲端自動同步（取代備份／還原按鈕）──────────────── CLAUDE
 let _lastSig='',_pushT=null,_syncing=false;
@@ -1740,7 +1723,6 @@ async function autoWind(){
     const latest=noteWindToday();
     if(latest)setWind(latest.wind,true);
     save();
-    LAST_SYNC=syncStamp();
     renderOverview();
     if(status)status.textContent=msgs.join('｜')+`　🕒 ${syncStamp()}`;
     setWindView(windView||'d');renderNoteWind();renderNotes();renderWindDash();
@@ -1771,7 +1753,6 @@ async function syncSheetOld(){
     if(latest)setWind(latest.wind,true);
     save();
     if(status)status.textContent=`✅ 風度同步到 ${latest?.date}（${S.wind}）　🕒 ${syncStamp()}`;
-    LAST_SYNC=syncStamp();renderHero();
     setWindView(windView||'d');
     renderNoteWind();renderNotes();
   }catch(e){
@@ -1918,7 +1899,6 @@ function setCandTab(tab){
     const s=(t===tab)?styles[t].active:styles[t].inactive;
     b.style.border=s.border;b.style.background=s.bg;b.style.color=s.color;
   });
-  const cd=document.getElementById('cand-desc');if(cd)cd.innerHTML=CAND_DESC[tab]||'';
   renderCandidates();
 }
 function renderCandidates(){
@@ -3195,87 +3175,6 @@ function noteWindToday(){
   (S.windLog||[]).forEach(l=>{const d=l&&!l.auto&&nd(l.date);if(d&&d<=today&&l.wind&&(!best||d>best.date))best={date:d,wind:l.wind};});
   return best?{...best,isToday:best.date===today}:null;
 }
-// ── 術語說明 ─────────────────────────────────────────────
-const GLOSSARY={
-  '風度':'放風箏 APP 每個交易日收盤後公布的市場行情，分四種：'+[['強風','sf','月線以上，漲勢容易延續'],['陣風','gf','月線以下，容易回檔'],['亂流','lt','月線以上但震盪變大'],['無風','nw','股票容易跌，最好休息']].map(([k,v,t])=>`<br><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--${v});margin-right:5px"></span><b style="display:inline;color:var(--${v})">${k}</b>：${t}`).join(''),
-  '循環':'看最近 10 個交易日的風度：強風＋亂流有 7 天以上是「易漲循環」，3 天以下是「易跌循環」，中間是「循環交界」。易跌循環時短線容易失敗。',
-  '水位':'已經投入股票的錢 ÷ 帳戶總資金。風度越差，建議上限越低：強風 80%、陣風 60%、亂流 40%、無風 20%。',
-  '打工型':'看日線的短線操作，通常持有幾天。敢買敢賣、停損要快（例如虧 5% 就走）。',
-  '上班族型':'看週線的波段操作，持有幾週到一個月，不用一直盯盤。',
-  '老闆型':'長線分批布局，持有幾週到幾個月。趁強勢股休息時慢慢買，需要耐心。',
-  '候選':'今天符合放風箏選股條件的股票，每個交易日收盤後更新。只是名單，不代表一定要買。',
-  '創高':'股價創下新高，代表資金還在往這檔股票流，走勢偏強。',
-  '成值':'成交金額（單位：億元）。越大代表越多資金在買賣這檔股票。',
-};
-const CAND_DESC={
-  parttime:'<b>打工型</b>：看日線的短線操作，持有幾天，停損要快。<button class="tip" data-term="打工型">?</button>',
-  worker:'<b>上班族型</b>：看週線的波段操作，持有幾週到一個月。<button class="tip" data-term="上班族型">?</button>',
-  boss:'<b>老闆型</b>：長線分批布局，持有幾週到幾個月。<button class="tip" data-term="老闆型">?</button>',
-  top6:'<b>成值TOP6</b>：今天成交金額最大、而且股價創高的 6 檔。<button class="tip" data-term="成值">?</button><button class="tip" data-term="創高">?</button>',
-};
-function showTip(btn){
-  const term=btn.dataset.term,txt=GLOSSARY[term];if(!txt)return;
-  let pop=document.getElementById('tip-pop');
-  if(pop&&pop.dataset.term===term){pop.remove();return;}
-  if(pop)pop.remove();
-  pop=document.createElement('div');pop.id='tip-pop';pop.dataset.term=term;
-  pop.innerHTML=`<b>${term}</b>${txt}`;
-  document.body.appendChild(pop);
-  const r=btn.getBoundingClientRect(),w=pop.offsetWidth,h=pop.offsetHeight;
-  let x=Math.min(Math.max(8,r.left+r.width/2-w/2),window.innerWidth-w-8);
-  let y=r.bottom+6;if(y+h>window.innerHeight-8)y=Math.max(8,r.top-h-6);
-  pop.style.left=x+'px';pop.style.top=y+'px';
-}
-document.addEventListener('click',e=>{
-  const t=e.target.closest&&e.target.closest('.tip');
-  if(t){e.stopPropagation();showTip(t);return;}
-  const pop=document.getElementById('tip-pop');if(pop&&!e.target.closest('#tip-pop'))pop.remove();
-},true);
-window.addEventListener('scroll',()=>{const p=document.getElementById('tip-pop');if(p)p.remove();},true);
-
-// ── 新手導覽（第一次打開自動顯示，之後按右上角 ? 再看） ──────
-function openGuide(){
-  let m=document.getElementById('guide-modal');
-  if(!m){
-    m=document.createElement('div');m.id='guide-modal';m.className='modal-overlay';
-    m.onclick=()=>closeGuide();
-    const gl=Object.keys(GLOSSARY).map(k=>`<div class="gloss-item"><b>${k}</b>${GLOSSARY[k]}</div>`).join('');
-    m.innerHTML=`<div class="modal" onclick="event.stopPropagation()">
-      <div class="modal-handle"></div>
-      <div class="modal-title">放風箏指揮中心怎麼看？</div>
-      <div class="guide-step"><div class="n">1</div><div><b>先看今天的風度</b><br>首頁最上面的大字告訴你今天的行情和該怎麼做。風度越好越能積極，越差越要保守。</div></div>
-      <div class="guide-step"><div class="n">2</div><div><b>再看候選股</b><br>「候選」分頁是每天收盤後符合條件的股票，依操作方式分成打工型、上班族型、老闆型，挑適合自己的看。</div></div>
-      <div class="guide-step"><div class="n">3</div><div><b>控制水位</b><br>買進前看右上角的水位，不要超過當天風度建議的上限。</div></div>
-      <div style="font-size:11.5px;color:var(--txt3);margin:4px 0 10px">看到 <span class="tip" style="cursor:default">?</span> 都可以點，會跳出白話說明。</div>
-      <details><summary style="font-size:13px;font-weight:700;cursor:pointer;padding:6px 0">術語說明</summary>${gl}</details>
-      <button class="btn primary" style="margin-top:12px" onclick="closeGuide()">知道了</button>
-    </div>`;
-    document.body.appendChild(m);
-  }
-  m.classList.remove('hidden');
-}
-function closeGuide(){
-  const m=document.getElementById('guide-modal');if(m)m.classList.add('hidden');
-  try{localStorage.setItem('fz_guided','1');}catch(e){}
-}
-
-// ── 首頁大字：今天該怎麼做 ─────────────────────────────────
-const WIND_SHORT={'強風':'積極操作，漲勢容易延續','陣風':'謹慎試單，不要追高','亂流':'短線嚴守停損停利','無風':'休息為上，不買新股'};
-let LAST_SYNC='';
-function renderHero(){
-  const el=document.getElementById('ov-hero');if(!el)return;
-  const e=noteWindToday();
-  if(!e){el.innerHTML='<div class="ov-hero"><div class="h1">風度載入中…</div></div>';return;}
-  const w=e.wind,k={'強風':'sf','陣風':'gf','亂流':'lt','無風':'nw'}[w]||'gf';
-  const md=e.date.slice(5).replace(/^0/,'').replace('/0','/');
-  const src=`${md} 收盤資料`;
-  const cyc=windCycle();
-  el.innerHTML=`<div class="ov-hero" style="border-color:var(--${k}-bdr);background:var(--${k}-bg)">
-    <div class="h1" style="color:var(--${k})">今天${w}<button class="tip" data-term="風度">?</button><span style="margin:0 4px">：</span><span>${WIND_SHORT[w]||''}</span></div>
-    <div class="sub">${src}<span style="margin:0 6px">·</span>${cyc}<button class="tip" data-term="循環">?</button>${LAST_SYNC?`<span style="margin:0 6px">·</span>🕒 同步 ${LAST_SYNC}`:''}</div>
-  </div>`;
-}
-
 function renderNoteWind(){
   const el=document.getElementById('note-wind-display');
   if(!el)return;
@@ -3318,9 +3217,6 @@ load();
 renderDate();
 S.positions.forEach(p=>{if(p.name==='尖點'&&p.code==='6117')p.code='8021';});
 setWind(S.wind,true);
-try{renderHero();}catch(e){}
-try{const cd=document.getElementById('cand-desc');if(cd&&!cd.innerHTML)cd.innerHTML=CAND_DESC[typeof candTab!=='undefined'&&candTab?candTab:'parttime']||'';}catch(e){}
-try{if(!localStorage.getItem('fz_guided'))setTimeout(openGuide,800);}catch(e){}
 if(S.water.hn)document.getElementById('w-hn').value=S.water.hn;
 try{renderCashLog();}catch(e){}
 if(S.water.kg)document.getElementById('w-kg').value=S.water.kg;
