@@ -309,9 +309,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
       <div id="ov-hero"></div>
       <div id="ov-box" style="margin-bottom:8px"><div style="font-size:12px;color:var(--txt3)">載入中…</div></div>
       <div class="alert" id="wind-advice-box" style="display:none"></div>
-      <details class="sync-detail"><summary>詳細資料（風度計算與同步紀錄）</summary>
-        <div id="sheet-sync-status" style="font-size:11px;color:var(--txt3);margin-top:6px"></div>
-      </details>
+      <div id="sheet-sync-status" style="font-size:11px;color:var(--txt3);margin-top:6px"></div>
       <div id="sync-status" style="font-size:11px;color:var(--txt2);margin-top:2px"></div>
     </div>
     <div class="card" id="wind-dash-card">
@@ -1731,7 +1729,7 @@ async function autoWind(){
     sheetMap.forEach((w,d)=>S.windLog.push({date:d,wind:w}));
     if(sh.candidates){candData=sh.candidates;const dr=document.getElementById('cand-date-row');if(dr)dr.textContent=`資料日期：${candData.date}　風度：${candData.wind}　🕒 同步 ${syncStamp()}`;renderCandidates();}
     const lastSheet=[...sheetMap.keys()].sort().at(-1);
-    msgs.push(`✅ 試算表風度到 ${lastSheet}：${sheetMap.get(lastSheet)}（共${sheetMap.size}天）`);
+    msgs.push(`✅ 風度同步到 ${lastSheet}（${sheetMap.get(lastSheet)}）`);
     // 2) 自動計算：只補試算表還沒填的日子（例如今天盤中）
     try{
       const j=await api({a:'wind'});
@@ -1742,8 +1740,7 @@ async function autoWind(){
         if(r.date>lastSheet){const ex=S.windLog.find(l=>l.date===r.date);if(ex){ex.wind=r.wind;ex.auto=1;}else S.windLog.push({date:r.date,wind:r.wind,auto:1});added++;}
       });
       const L=(j.otc||[]).at(-1);S.windAuto={otc:L,tse:(j.tse||[]).at(-1)};
-      if(L)msgs.push(`今天自動計算：櫃買 ${L.close}（月線 ${L.ma20}）→ ${L.wind}｜與試算表吻合 ${cmp?Math.round(same/cmp*100):'-'}%`);
-    }catch(e){msgs.push('自動計算失敗：'+e.message);}
+    }catch(e){}
     // 重建風度紀錄：統一日期格式、去重。優先序：試算表 > 自動計算 > 舊紀錄
     const _nd=d=>{const m=String(d).match(/(\d{4})\D(\d{1,2})\D(\d{1,2})/);return m?`${m[1]}/${m[2].padStart(2,'0')}/${m[3].padStart(2,'0')}`:null;};
     const _fin=new Map();
@@ -1756,8 +1753,8 @@ async function autoWind(){
     if(latest)setWind(latest.wind,true);
     save();
     LAST_SYNC=syncStamp();
-    msgs.push(windCycle());renderOverview();
-    if(status)status.textContent=msgs.join('｜')+`｜🕒 同步 ${syncStamp()}`;
+    renderOverview();
+    if(status)status.textContent=msgs.join('｜')+`　🕒 ${syncStamp()}`;
     setWindView(windView||'d');renderNoteWind();renderNotes();renderWindDash();
   }catch(e){
     if(status)status.textContent=`❌ 讀試算表失敗 ${syncStamp()}：${e.message}`;
@@ -1785,7 +1782,7 @@ async function syncSheetOld(){
     const latest=noteWindToday();
     if(latest)setWind(latest.wind,true);
     save();
-    if(status)status.textContent=`✅ 同步成功！共${S.windLog.length}筆，最新：${latest?.date} ${S.wind}｜🕒 同步 ${syncStamp()}`;
+    if(status)status.textContent=`✅ 風度同步到 ${latest?.date}（${S.wind}）　🕒 ${syncStamp()}`;
     LAST_SYNC=syncStamp();renderHero();
     setWindView(windView||'d');
     renderNoteWind();renderNotes();
